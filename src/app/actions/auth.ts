@@ -78,6 +78,38 @@ export async function signInAction(
   redirect("/discover");
 }
 
+export async function requestPasswordResetAction(
+  _: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  if (!hasSupabaseEnv()) {
+    return { error: "Supabase ist noch nicht konfiguriert (.env.local)." };
+  }
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+  if (!isAllowedMail(email)) {
+    return {
+      error:
+        "Bitte nutze deine Uni-Mail mit @student.uni-tuebingen.de.",
+    };
+  }
+
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${appUrl}/reset-password`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    success: "Wenn die Mail existiert, wurde ein Reset-Link gesendet.",
+  };
+}
+
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();

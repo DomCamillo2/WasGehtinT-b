@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { signInAction, signUpAction } from "@/app/actions/auth";
+import { requestPasswordResetAction, signInAction, signUpAction } from "@/app/actions/auth";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Card } from "@/components/ui/card";
 
@@ -14,6 +14,10 @@ export function AuthForms() {
   );
   const [signUpState, signUpFormAction, signUpPending] = useActionState(
     signUpAction,
+    initialState,
+  );
+  const [resetState, resetFormAction, resetPending] = useActionState(
+    requestPasswordResetAction,
     initialState,
   );
 
@@ -49,6 +53,26 @@ export function AuthForms() {
             <p className="text-sm text-red-600">{signInState.error}</p>
           ) : null}
         </form>
+
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <p className="text-sm font-medium text-zinc-800">Passwort vergessen?</p>
+          <form action={resetFormAction} className="mt-2 space-y-2">
+            <input
+              name="email"
+              type="email"
+              placeholder="du@student.uni-tuebingen.de"
+              autoComplete="email"
+              inputMode="email"
+              required
+              className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
+            />
+            <PrimaryButton type="submit" disabled={resetPending} tone="ghost" className="h-11 w-full">
+              Reset-Link senden
+            </PrimaryButton>
+            {resetState.error ? <p className="text-sm text-red-600">{resetState.error}</p> : null}
+            {resetState.success ? <p className="text-sm text-emerald-700">{resetState.success}</p> : null}
+          </form>
+        </div>
       </Card>
 
       <Card className="space-y-4 p-5 sm:p-4">
