@@ -87,6 +87,26 @@ Header: x-refresh-token: <EXTERNAL_EVENTS_REFRESH_TOKEN>
 
 Eine konkrete Schritt-für-Schritt Anleitung für den Livegang findest du in `GO_LIVE_CHECKLIST.md`.
 
+## Resend Templates einrichten
+
+Für Welcome-, Passwort-Reset- und Verifizierungs-Templates ist ein Setup-Script enthalten:
+
+```bash
+node scripts/setup-resend-templates.mjs
+```
+
+Verwendete Template-Aliase:
+
+- `wasgehttueb-welcome`
+- `wasgehttueb-password-reset`
+- `wasgehttueb-email-confirmation`
+
+Optional überschreibbar über Env:
+
+- `RESEND_TEMPLATE_WELCOME`
+- `RESEND_TEMPLATE_PASSWORD_RESET`
+- `RESEND_TEMPLATE_EMAIL_CONFIRMATION`
+
 ## Stripe Webhook lokal testen
 
 1) Stripe CLI installieren und einloggen.

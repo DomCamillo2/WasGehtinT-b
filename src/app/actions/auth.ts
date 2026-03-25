@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/env";
-import { sendWelcomeMail } from "@/lib/resend";
+import { sendPasswordResetMail, sendWelcomeMail } from "@/lib/resend";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type ActionState = {
@@ -99,6 +100,29 @@ export async function requestPasswordResetAction(
   }
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+
+  if (process.env.RESEND_API_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      const generated = await supabaseAdmin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: {
+          redirectTo: `${appUrl}/reset-password`,
+        },
+      });
+
+      if (!generated.error && generated.data.properties?.action_link) {
+        await sendPasswordResetMail(email, generated.data.properties.action_link);
+        return {
+          success: "Wenn die Mail existiert, wurde ein Reset-Link gesendet.",
+        };
+      }
+    } catch {
+      // Fallback to default Supabase email flow below.
+    }
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${appUrl}/reset-password`,
