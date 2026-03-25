@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/env";
+import { sendWelcomeMail } from "@/lib/resend";
 import { createClient } from "@/lib/supabase/server";
 
 type ActionState = {
@@ -49,6 +50,8 @@ export async function signUpAction(
   if (error) {
     return { error: error.message };
   }
+
+  await sendWelcomeMail(email, displayName);
 
   return {
     success:

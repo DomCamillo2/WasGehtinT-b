@@ -32,6 +32,8 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `INTERNAL_ADMIN_EMAILS` (kommagetrennt, z.B. `a@student.uni-tuebingen.de,b@student.uni-tuebingen.de`)
 - `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, für automatisches Partner-Event-Refresh per Cron)
+- `RESEND_API_KEY` (für transaktionale Mails)
+- `RESEND_FROM_EMAIL` (z. B. `WasGehtTüb <onboarding@resend.dev>` oder deine verifizierte Domain-Absenderadresse)
 
 4) Datenbank vorbereiten (Supabase SQL Editor)
 
