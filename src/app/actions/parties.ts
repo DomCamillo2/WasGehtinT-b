@@ -20,6 +20,7 @@ export async function createPartyAction(
   const startsAt = String(formData.get("startsAt") ?? "");
   const endsAt = String(formData.get("endsAt") ?? "");
   const vibeId = Number(formData.get("vibeId"));
+  const locationNameRaw = String(formData.get("locationName") ?? "").trim();
   const maxGuests = Number(formData.get("maxGuests"));
   const contributionCents = Math.round(Number(formData.get("contributionEur")) * 100);
   const publicLat = formData.get("publicLat") ? Number(formData.get("publicLat")) : null;
@@ -42,6 +43,7 @@ export async function createPartyAction(
       contribution_cents: Number.isFinite(contributionCents) ? Math.max(contributionCents, 0) : 0,
       public_lat: publicLat,
       public_lng: publicLng,
+      location_name: locationNameRaw || null,
       status: "published",
     })
     .select("id")
