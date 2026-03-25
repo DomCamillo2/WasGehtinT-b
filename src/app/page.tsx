@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { AuthForms } from "@/components/auth/auth-forms";
+import { LegalLinks } from "@/components/layout/legal-links";
 import { Card } from "@/components/ui/card";
 import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -58,11 +58,7 @@ export default async function Home() {
       </div>
       <AuthForms />
 
-      <p className="mt-4 text-center text-xs text-zinc-500">
-        <Link href="/impressum" className="underline">Impressum</Link>
-        <span className="mx-2">•</span>
-        <Link href="/datenschutz" className="underline">Datenschutz</Link>
-      </p>
+      <LegalLinks className="mt-4" />
     </div>
   );
 }

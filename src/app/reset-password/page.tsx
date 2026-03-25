@@ -1,4 +1,5 @@
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+import { LegalLinks } from "@/components/layout/legal-links";
 
 export default function ResetPasswordPage() {
   return (
@@ -14,6 +15,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <ResetPasswordForm />
+      <LegalLinks className="mt-4" />
     </div>
   );
 }

@@ -5,7 +5,7 @@ export default function DatenschutzPage() {
     <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Datenschutzerklärung</h1>
       <p className="mt-2 text-sm text-zinc-600">
-        DSGVO-Informationsseite für WasGehtTüb. Bitte die Platzhalter und Details final rechtlich prüfen lassen.
+        DSGVO-Informationsseite für WasGehtTüb (Art. 13 DSGVO). Bitte alle Platzhalter durch echte Angaben ersetzen und final rechtlich prüfen lassen.
       </p>
 
       <section className="mt-6 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
@@ -54,6 +54,26 @@ export default function DatenschutzPage() {
         <p className="text-sm text-zinc-700">
           Du hast Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie ein Beschwerderecht bei einer Aufsichtsbehörde.
         </p>
+      </section>
+
+      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
+        <h2 className="text-lg font-semibold text-zinc-900">7. Pflicht zur Bereitstellung von Daten</h2>
+        <p className="text-sm text-zinc-700">
+          Bestimmte Daten (z. B. E-Mail und Login-Daten) sind für die Nutzung der Plattform erforderlich. Ohne diese Daten kann kein Account bereitgestellt werden.
+        </p>
+      </section>
+
+      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
+        <h2 className="text-lg font-semibold text-zinc-900">8. Sicherheit der Verarbeitung</h2>
+        <p className="text-sm text-zinc-700">
+          Wir setzen technische und organisatorische Maßnahmen ein, um deine Daten zu schützen (z. B. Zugriffsbeschränkungen, Transportverschlüsselung, Sicherheits-Header).
+        </p>
+      </section>
+
+      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
+        <h2 className="text-lg font-semibold text-zinc-900">9. Kontakt für Datenschutzanfragen</h2>
+        <p className="text-sm text-zinc-700">E-Mail: [datenschutz@example.com]</p>
+        <p className="text-sm text-zinc-700">Alternativ: Kontaktdaten im Impressum</p>
       </section>
 
       <p className="mt-6 text-sm text-zinc-600">
