@@ -3,6 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+function clampRoundedCoordinate(value: number | null, min: number, max: number) {
+  if (value === null || !Number.isFinite(value)) {
+    return null;
+  }
+
+  const clamped = Math.min(Math.max(value, min), max);
+  return Math.round(clamped * 1000) / 1000;
+}
+
 export async function createPartyAction(
   formData: FormData,
 ): Promise<void> {
@@ -23,10 +32,29 @@ export async function createPartyAction(
   const locationNameRaw = String(formData.get("locationName") ?? "").trim();
   const maxGuests = Number(formData.get("maxGuests"));
   const contributionCents = Math.round(Number(formData.get("contributionEur")) * 100);
-  const publicLat = formData.get("publicLat") ? Number(formData.get("publicLat")) : null;
-  const publicLng = formData.get("publicLng") ? Number(formData.get("publicLng")) : null;
+  const rawLat = formData.get("publicLat") ? Number(formData.get("publicLat")) : null;
+  const rawLng = formData.get("publicLng") ? Number(formData.get("publicLng")) : null;
 
-  if (!title || !startsAt || !endsAt || !vibeId || !maxGuests) {
+  const startDate = new Date(startsAt);
+  const endDate = new Date(endsAt);
+
+  const publicLat = clampRoundedCoordinate(rawLat, -90, 90);
+  const publicLng = clampRoundedCoordinate(rawLng, -180, 180);
+  const locationName = locationNameRaw.length > 140 ? locationNameRaw.slice(0, 140) : locationNameRaw;
+
+  if (
+    !title ||
+    !startsAt ||
+    !endsAt ||
+    !Number.isFinite(vibeId) ||
+    vibeId <= 0 ||
+    !Number.isFinite(maxGuests) ||
+    maxGuests < 1 ||
+    maxGuests > 200 ||
+    Number.isNaN(startDate.getTime()) ||
+    Number.isNaN(endDate.getTime()) ||
+    startDate >= endDate
+  ) {
     return;
   }
 
@@ -36,14 +64,14 @@ export async function createPartyAction(
       host_user_id: user.id,
       title,
       description: description || null,
-      starts_at: new Date(startsAt).toISOString(),
-      ends_at: new Date(endsAt).toISOString(),
+      starts_at: startDate.toISOString(),
+      ends_at: endDate.toISOString(),
       vibe_id: vibeId,
       max_guests: maxGuests,
       contribution_cents: Number.isFinite(contributionCents) ? Math.max(contributionCents, 0) : 0,
       public_lat: publicLat,
       public_lng: publicLng,
-      location_name: locationNameRaw || null,
+      location_name: locationName || null,
       status: "published",
     })
     .select("id")

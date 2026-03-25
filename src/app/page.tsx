@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { AuthForms } from "@/components/auth/auth-forms";
 import { Card } from "@/components/ui/card";
 import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
@@ -56,6 +57,12 @@ export default async function Home() {
         </div>
       </div>
       <AuthForms />
+
+      <p className="mt-4 text-center text-xs text-zinc-500">
+        <Link href="/impressum" className="underline">Impressum</Link>
+        <span className="mx-2">•</span>
+        <Link href="/datenschutz" className="underline">Datenschutz</Link>
+      </p>
     </div>
   );
 }
