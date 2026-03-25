@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useState } from "react";
 import { useActionState } from "react";
 import { requestPasswordResetAction, signInAction, signUpAction } from "@/app/actions/auth";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -8,6 +9,9 @@ import { Card } from "@/components/ui/card";
 const initialState = { error: "", success: "" };
 
 export function AuthForms() {
+  const [showReset, setShowReset] = useState(false);
+  const resetPanelId = useId();
+
   const [signInState, signInFormAction, signInPending] = useActionState(
     signInAction,
     initialState,
@@ -55,23 +59,35 @@ export function AuthForms() {
         </form>
 
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-sm font-medium text-zinc-800">Passwort vergessen?</p>
-          <form action={resetFormAction} className="mt-2 space-y-2">
-            <input
-              name="email"
-              type="email"
-              placeholder="du@student.uni-tuebingen.de"
-              autoComplete="email"
-              inputMode="email"
-              required
-              className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
-            />
-            <PrimaryButton type="submit" disabled={resetPending} tone="ghost" className="h-11 w-full">
-              Reset-Link senden
-            </PrimaryButton>
-            {resetState.error ? <p className="text-sm text-red-600">{resetState.error}</p> : null}
-            {resetState.success ? <p className="text-sm text-emerald-700">{resetState.success}</p> : null}
-          </form>
+          <button
+            type="button"
+            onClick={() => setShowReset((prev) => !prev)}
+            aria-expanded={showReset}
+            aria-controls={resetPanelId}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <span className="text-sm font-medium text-zinc-800">Passwort vergessen?</span>
+            <span className="text-zinc-500">{showReset ? "−" : "+"}</span>
+          </button>
+
+          {showReset ? (
+            <form id={resetPanelId} action={resetFormAction} className="mt-2 space-y-2">
+              <input
+                name="email"
+                type="email"
+                placeholder="du@student.uni-tuebingen.de"
+                autoComplete="email"
+                inputMode="email"
+                required
+                className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
+              />
+              <PrimaryButton type="submit" disabled={resetPending} tone="ghost" className="h-11 w-full">
+                Reset-Link senden
+              </PrimaryButton>
+              {resetState.error ? <p className="text-sm text-red-600">{resetState.error}</p> : null}
+              {resetState.success ? <p className="text-sm text-emerald-700">{resetState.success}</p> : null}
+            </form>
+          ) : null}
         </div>
       </Card>
 
