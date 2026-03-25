@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WasGehtTüb Web App (MVP)
 
-## Getting Started
+Mobile-first PWA-ähnliches Frontend für den Studenten WG-Party Radar.
 
-First, run the development server:
+## Tech
+
+- Next.js (App Router, TypeScript, Tailwind)
+- Supabase (Auth + Postgres + Realtime)
+- MapLibre GL + OpenFreeMap (Map-Ansicht, ohne Token)
+
+## Setup
+
+1) Abhängigkeiten installieren
+
+```bash
+npm install
+```
+
+2) Environment-Datei anlegen
+
+```bash
+cp .env.example .env.local
+```
+
+3) Variablen in `.env.local` setzen
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL` (z.B. `http://localhost:3000`)
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `INTERNAL_ADMIN_EMAILS` (kommagetrennt, z.B. `a@student.uni-tuebingen.de,b@student.uni-tuebingen.de`)
+- `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, für automatisches Partner-Event-Refresh per Cron)
+
+4) Datenbank vorbereiten (Supabase SQL Editor)
+
+- Erst dein Schema-SQL ausführen (das ausführliche Schema aus dem Projektkontext/Chat)
+- Danach `../supabase/02_seed_and_views.sql` ausführen
+- Danach `../supabase/03_webhook_idempotency.sql` ausführen
+
+5) Dev-Server starten
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Öffnen: [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Falls Supabase-Variablen fehlen, zeigt die Startseite eine Setup-Anleitung statt eines Runtime-Errors.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## MVP Screens
 
-## Learn More
+- `/` Login/Registrierung (nur Uni-Mail im Server-Flow erlaubt)
+- `/discover` Listen- oder Map-Ansicht, Gruppenanfrage + Mitbring-Auswahl
+- `/host` Party erstellen, offene Anfragen annehmen/ablehnen
+- `/requests` Eigene Anfragen inkl. Status
+- `/chat` Mini-Chat nach akzeptierter Anfrage (Realtime-Updates)
+- `/payments/success` Rückkehrseite nach Stripe Checkout
+- `/party/[partyId]/address` Exakte Adresse (nur Host oder accepted Gast)
+- `/host/webhooks` Internes Admin-Panel für Stripe Webhook Events
 
-To learn more about Next.js, take a look at the following resources:
+Im Panel `/host/webhooks` können fehlgeschlagene Events manuell per "Retry Event" erneut verarbeitet werden.
+Zusätzlich gibt es Status-Filter (`all`, `failed`, `pending`, `processed`) und Suche nach Event-ID/Event-Typ.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Partner-Events automatisch aktualisieren
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Externe Events (z. B. Kuckuck + Clubhausfeste) werden serverseitig gecacht und automatisch alle 6 Stunden revalidiert.
+- Für aktives Pull-Refresh per Scheduler kann optional ein Cronjob den Endpoint aufrufen:
 
-## Deploy on Vercel
+```bash
+GET /api/external-events/refresh
+Header: x-refresh-token: <EXTERNAL_EVENTS_REFRESH_TOKEN>
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Alternativ als Query: `/api/external-events/refresh?token=<EXTERNAL_EVENTS_REFRESH_TOKEN>`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Hinweise
+
+- Das Projekt liegt bewusst im Unterordner `web`, da der Workspace-Ordnername nicht npm-kompatibel ist.
+- Geld-Wording im UI bleibt bei Beitrag/Umlage/Service-Gebühr.
+- Exakte Adresse wird nicht im öffentlichen Discover-Flow angezeigt (RLS über DB-Schema).
+
+## Go-Live
+
+Eine konkrete Schritt-für-Schritt Anleitung für den Livegang findest du in `GO_LIVE_CHECKLIST.md`.
+
+## Stripe Webhook lokal testen
+
+1) Stripe CLI installieren und einloggen.
+
+2) Webhooks an Next.js weiterleiten:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+3) Das ausgegebene Secret als `STRIPE_WEBHOOK_SECRET` in `.env.local` setzen.
