@@ -19,7 +19,18 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 px-3 pb-[calc(0.4rem+env(safe-area-inset-bottom))] pt-2">
-      <ul className="mx-auto grid max-w-md grid-cols-5 rounded-2xl bg-white p-1 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
+      <div className="mx-auto max-w-md space-y-1.5">
+        <div className="rounded-xl bg-white/95 px-3 py-1.5 text-center text-[11px] text-zinc-500 shadow-[0_-6px_18px_rgba(15,23,42,0.06)] backdrop-blur">
+          <Link href="/impressum" className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
+            Impressum
+          </Link>
+          <span className="mx-2">•</span>
+          <Link href="/datenschutz" className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
+            Datenschutz
+          </Link>
+        </div>
+
+        <ul className="grid grid-cols-5 rounded-2xl bg-white p-1 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
         {NAV.map((item) => {
           const active = pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -41,7 +52,8 @@ export function BottomNav() {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </div>
     </nav>
   );
 }
