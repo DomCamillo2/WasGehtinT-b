@@ -82,10 +82,11 @@ async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard
 }
 
 export default async function DiscoverPage({
-  searchParams: _searchParams,
+  searchParams,
 }: {
   searchParams: Promise<{ view?: string; date?: string; type?: string }>;
 }) {
+  void searchParams;
   const { user } = await requireUser();
 
   const [dbParties, externalParties] = await Promise.all([

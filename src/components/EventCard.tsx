@@ -125,26 +125,28 @@ function resolvePartnerLogo(party: PartyCard): { src: string; alt: string } | nu
   return null;
 }
 
-function resolveFallbackIcon(party: PartyCard) {
+type FallbackIconKey = "home" | "zap" | "users" | "glass" | "map";
+
+function resolveFallbackIcon(party: PartyCard): FallbackIconKey {
   const text = `${party.vibe_label} ${party.title} ${party.description ?? ""}`.toLowerCase();
 
   if (!party.is_external) {
-    return Home;
+    return "home";
   }
 
   if (text.includes("sport") || text.includes("fussball") || text.includes("fußball") || text.includes("run") || text.includes("basket")) {
-    return Zap;
+    return "zap";
   }
 
   if (text.includes("hangout") || text.includes("chill") || text.includes("treffen") || text.includes("stammtisch") || text.includes("meetup")) {
-    return Users;
+    return "users";
   }
 
   if (text.includes("club") || text.includes("bar") || text.includes("party") || text.includes("kuckuck") || text.includes("schlachthaus") || text.includes("clubhaus")) {
-    return GlassWater;
+    return "glass";
   }
 
-  return MapPin;
+  return "map";
 }
 
 const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
@@ -181,7 +183,7 @@ function CardMedia({ party }: { party: PartyCard }) {
   const partnerLogo = resolvePartnerLogo(party);
   const [logoFailed, setLogoFailed] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
-  const Icon = resolveFallbackIcon(party);
+  const iconKey = resolveFallbackIcon(party);
 
   if (partnerLogo && !logoFailed) {
     return (
@@ -211,7 +213,11 @@ function CardMedia({ party }: { party: PartyCard }) {
 
   return (
     <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
-      <Icon size={24} className="text-indigo-600" />
+      {iconKey === "home" ? <Home size={24} className="text-indigo-600" /> : null}
+      {iconKey === "zap" ? <Zap size={24} className="text-indigo-600" /> : null}
+      {iconKey === "users" ? <Users size={24} className="text-indigo-600" /> : null}
+      {iconKey === "glass" ? <GlassWater size={24} className="text-indigo-600" /> : null}
+      {iconKey === "map" ? <MapPin size={24} className="text-indigo-600" /> : null}
     </div>
   );
 }

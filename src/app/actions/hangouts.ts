@@ -12,9 +12,10 @@ export type HangoutActionState = {
 const initialState: HangoutActionState = {};
 
 export async function createHangoutAction(
-  _prevState: HangoutActionState = initialState,
+  prevState: HangoutActionState = initialState,
   formData: FormData,
 ): Promise<HangoutActionState> {
+  void prevState;
   const supabase = await createClient();
   const {
     data: { user },

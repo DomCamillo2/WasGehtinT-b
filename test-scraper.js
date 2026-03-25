@@ -1,7 +1,6 @@
-const cheerio = require("cheerio");
-
 async function testSchlachthausScraperr() {
   try {
+    const cheerio = await import("cheerio");
     const response = await fetch("https://www.schlachthaus-tuebingen.de/", {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
