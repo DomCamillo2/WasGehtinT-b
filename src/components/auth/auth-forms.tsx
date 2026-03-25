@@ -19,9 +19,9 @@ export function AuthForms() {
 
   return (
     <div className="mx-auto grid w-full max-w-md gap-4">
-      <Card className="space-y-4">
+      <Card className="space-y-4 p-5 sm:p-4">
         <div>
-          <h2 className="text-lg font-semibold">Login</h2>
+          <h2 className="text-xl font-semibold text-zinc-900">Login</h2>
           <p className="text-sm text-zinc-500">Nur mit Uni-Mail möglich.</p>
         </div>
         <form action={signInFormAction} className="space-y-3">
@@ -29,17 +29,20 @@ export function AuthForms() {
             name="email"
             type="email"
             placeholder="du@student.uni-tuebingen.de"
+            autoComplete="email"
+            inputMode="email"
             required
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400"
+            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
           />
           <input
             name="password"
             type="password"
             placeholder="Passwort"
+            autoComplete="current-password"
             required
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400"
+            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
           />
-          <PrimaryButton type="submit" disabled={signInPending} className="w-full">
+          <PrimaryButton type="submit" disabled={signInPending} className="h-12 w-full text-base">
             Einloggen
           </PrimaryButton>
           {signInState.error ? (
@@ -48,9 +51,9 @@ export function AuthForms() {
         </form>
       </Card>
 
-      <Card className="space-y-4">
+      <Card className="space-y-4 p-5 sm:p-4">
         <div>
-          <h2 className="text-lg font-semibold">Registrieren</h2>
+          <h2 className="text-xl font-semibold text-zinc-900">Registrieren</h2>
           <p className="text-sm text-zinc-500">
             Erstelle deinen Account mit @student.uni-tuebingen.de.
           </p>
@@ -60,24 +63,28 @@ export function AuthForms() {
             name="displayName"
             type="text"
             placeholder="Anzeigename"
+            autoComplete="nickname"
             required
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400"
+            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
           />
           <input
             name="email"
             type="email"
             placeholder="du@student.uni-tuebingen.de"
+            autoComplete="email"
+            inputMode="email"
             required
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400"
+            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
           />
           <input
             name="password"
             type="password"
             placeholder="Mind. 8 Zeichen"
+            autoComplete="new-password"
             required
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-400"
+            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
           />
-          <PrimaryButton type="submit" disabled={signUpPending} className="w-full">
+          <PrimaryButton type="submit" disabled={signUpPending} className="h-12 w-full text-base">
             Account erstellen
           </PrimaryButton>
           {signUpState.error ? (

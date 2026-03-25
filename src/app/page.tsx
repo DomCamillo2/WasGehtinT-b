@@ -9,11 +9,11 @@ export default async function Home() {
     const missing = getMissingSupabaseEnv();
 
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-8">
-        <div className="mb-6 text-center">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6 sm:py-8">
+        <div className="mb-5 text-center sm:mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">WasGehtTüb</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-900">Setup erforderlich</h1>
-          <p className="mt-2 text-sm text-zinc-600">
+          <h1 className="mt-2 text-[1.85rem] font-bold leading-tight tracking-tight text-zinc-900 sm:text-3xl">Setup erforderlich</h1>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-600">
             Trage die fehlenden Variablen in `.env.local` ein und starte den Dev-Server neu.
           </p>
         </div>
@@ -40,11 +40,11 @@ export default async function Home() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-8">
-      <div className="mb-6 text-center">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6 sm:py-8">
+      <div className="mb-5 text-center sm:mb-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">WasGehtTüb</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-900">WG-Party Radar für Studis</h1>
-        <p className="mt-2 text-sm text-zinc-600">
+        <h1 className="mt-2 text-[1.9rem] font-bold leading-tight tracking-tight text-zinc-900 sm:text-3xl">WG-Party Radar für Studis</h1>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-zinc-600">
           Entdecke Partys, bewerbe dich auch als Gruppe und chatte nach Match.
         </p>
       </div>
