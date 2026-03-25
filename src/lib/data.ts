@@ -140,6 +140,15 @@ export async function getHostDashboard(userId: string) {
     supabase.from("party_vibes").select("id, label").eq("is_active", true),
   ]);
 
+  const fallbackVibesRes = await (vibesRes.error
+    ? supabase.from("party_vibes").select("id, label")
+    : Promise.resolve({ data: null as null, error: null as null }));
+
+  const safeVibes =
+    vibesRes.error && fallbackVibesRes.data
+      ? fallbackVibesRes.data
+      : (vibesRes.data ?? []);
+
   const hostPartyIds = new Set(
     ((dashboardRes.data ?? []) as Array<{ party_id: string }>).map((party) => party.party_id),
   );
@@ -151,7 +160,12 @@ export async function getHostDashboard(userId: string) {
   return {
     dashboard: (dashboardRes.data ?? []) as Array<Record<string, string | number | null>>,
     pending,
-    vibes: (vibesRes.data ?? []) as Array<{ id: number; label: string }>,
+    vibes: (safeVibes as Array<{ id: number; label: string | null }>)
+      .filter((vibe) => typeof vibe.id === "number" && Number.isFinite(vibe.id))
+      .map((vibe) => ({
+        id: vibe.id,
+        label: (vibe.label ?? "").trim() || `Vibe #${vibe.id}`,
+      })),
   };
 }
 

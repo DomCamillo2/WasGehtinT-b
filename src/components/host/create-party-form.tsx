@@ -13,6 +13,12 @@ type Props = {
 };
 
 const DEFAULT_CENTER = { lat: 48.5216, lng: 9.0522 };
+const FALLBACK_VIBES: Array<{ id: number; label: string }> = [
+  { id: 1, label: "Hausparty" },
+  { id: 2, label: "Chill" },
+  { id: 3, label: "Techno" },
+  { id: 4, label: "Karaoke" },
+];
 
 function getVibeEmoji(label: string) {
   const text = label.toLowerCase();
@@ -27,7 +33,15 @@ function getVibeEmoji(label: string) {
 }
 
 export function CreatePartyForm({ vibes }: Props) {
-  const [selectedVibeId, setSelectedVibeId] = useState<string>(() => String(vibes[0]?.id ?? ""));
+  const safeVibes = useMemo(() => {
+    const normalized = vibes
+      .filter((vibe) => typeof vibe.id === "number" && Number.isFinite(vibe.id))
+      .map((vibe) => ({ id: vibe.id, label: vibe.label?.trim() || `Vibe #${vibe.id}` }));
+
+    return normalized.length > 0 ? normalized : FALLBACK_VIBES;
+  }, [vibes]);
+
+  const [selectedVibeId, setSelectedVibeId] = useState<string>(() => String(safeVibes[0]?.id ?? ""));
   const [bringItems, setBringItems] = useState<string[]>([""]);
   const [locationState, setLocationState] = useState<string>("Noch kein Standort gesetzt.");
   const [addressInput, setAddressInput] = useState<string>("");
@@ -42,6 +56,17 @@ export function CreatePartyForm({ vibes }: Props) {
 
   const formattedLat = useMemo(() => lat.toFixed(6), [lat]);
   const formattedLng = useMemo(() => lng.toFixed(6), [lng]);
+
+  useEffect(() => {
+    if (!safeVibes.length) {
+      return;
+    }
+
+    const exists = safeVibes.some((vibe) => String(vibe.id) === selectedVibeId);
+    if (!exists) {
+      setSelectedVibeId(String(safeVibes[0].id));
+    }
+  }, [safeVibes, selectedVibeId]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) {
@@ -269,7 +294,7 @@ export function CreatePartyForm({ vibes }: Props) {
               onChange={(event) => setSelectedVibeId(event.target.value)}
               className="h-12 w-full appearance-none rounded-2xl border border-zinc-200 bg-white px-4 pr-10 text-sm font-medium text-zinc-800 outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
             >
-              {vibes.map((vibe) => (
+              {safeVibes.map((vibe) => (
                 <option key={vibe.id} value={String(vibe.id)}>
                   {getVibeEmoji(vibe.label)} {vibe.label}
                 </option>
