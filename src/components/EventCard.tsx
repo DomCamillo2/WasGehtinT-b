@@ -166,12 +166,7 @@ export function EventCard({ party, expanded, onToggle }: Props) {
     >
       <div className="absolute right-3 top-3 z-10">
         <span
-          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.09em]"
-          style={{
-            borderColor: "var(--nav-border)",
-            backgroundColor: "var(--surface-soft)",
-            color: "var(--muted-foreground)",
-          }}
+          className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-gray-500"
         >
           {typeTag.label}
         </span>
@@ -180,7 +175,7 @@ export function EventCard({ party, expanded, onToggle }: Props) {
       <div className="space-y-2.5">
         <div className="flex items-start gap-3">
           <div
-            className="mt-1 h-11 w-11 shrink-0 overflow-hidden rounded-full border shadow-sm"
+            className="h-11 w-11 shrink-0 self-start overflow-hidden rounded-full border shadow-sm"
             style={{
               borderColor: "var(--nav-border)",
               backgroundColor: "var(--surface-soft)",
@@ -201,14 +196,14 @@ export function EventCard({ party, expanded, onToggle }: Props) {
           </div>
 
           <div className="min-w-0 flex-1 pr-14">
-            <h3 className="line-clamp-2 text-[1.85rem] font-black leading-[1.12] tracking-tight" style={{ color: "var(--foreground)" }}>
+            <h3 className="line-clamp-2 text-[1.85rem] font-black leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
               {party.title}
             </h3>
 
-            <p className="mt-1 inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+            <p className="mt-1.5 inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[12px] font-medium text-gray-500">
               <span className="inline-flex shrink-0 items-center gap-1">
                 <MapPin size={12} />
-                <span className="max-w-[8.5rem] truncate">{locationLine}</span>
+                <span className="max-w-[9.75rem] truncate">{locationLine}</span>
               </span>
               <span className="shrink-0">•</span>
               <span className="inline-flex shrink-0 items-center gap-1">
