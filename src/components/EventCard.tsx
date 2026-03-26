@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   CalendarDays,
   Clock3,
+  Heart,
 } from "lucide-react";
 import { PartyCard } from "@/lib/types";
 
@@ -13,6 +14,8 @@ type Props = {
   party: PartyCard;
   expanded: boolean;
   onToggle: () => void;
+  liked?: boolean;
+  onToggleLike?: () => void;
 };
 
 type TypeTagKey = "club-bar" | "wg-privat" | "treffen" | "extern";
@@ -134,7 +137,7 @@ function resolveMusicGenre(party: PartyCard): string | null {
   return party.is_external ? "Nicht angegeben" : null;
 }
 
-export function EventCard({ party, expanded, onToggle }: Props) {
+export function EventCard({ party, expanded, onToggle, liked = false, onToggleLike }: Props) {
   const typeTag = getTypeTag(party);
   const musicGenre = resolveMusicGenre(party);
   const partnerLogo = resolvePartnerLogo(party);
@@ -169,9 +172,13 @@ export function EventCard({ party, expanded, onToggle }: Props) {
       whileTap={{ scale: 0.985, y: -1 }}
       transition={{ type: "spring", stiffness: 320, damping: 24 }}
       onClick={onToggle}
-      className="relative px-1 py-3 transition-colors"
+      className="relative rounded-2xl border p-3.5 shadow-[0_6px_20px_rgba(20,24,40,0.06)] transition-shadow hover:shadow-[0_12px_30px_rgba(20,24,40,0.12)]"
+      style={{
+        borderColor: party.is_external ? "#d4d4d8" : "#dbeafe",
+        backgroundColor: "var(--surface-elevated)",
+      }}
     >
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 inline-flex items-center gap-2">
             <div
@@ -197,9 +204,27 @@ export function EventCard({ party, expanded, onToggle }: Props) {
             <span className="truncate text-sm font-bold text-gray-500">{locationLine}</span>
           </div>
 
-          <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-500">
-            {typeTag.label}
-          </span>
+          <div className="inline-flex items-center gap-1.5">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-500">
+              {typeTag.label}
+            </span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleLike?.();
+              }}
+              className="grid h-7 w-7 place-items-center rounded-full border transition-colors"
+              style={{
+                borderColor: liked ? "#fb7185" : "var(--nav-border)",
+                backgroundColor: liked ? "#fff1f2" : "var(--surface-soft)",
+                color: liked ? "#e11d48" : "var(--muted-foreground)",
+              }}
+              aria-label={liked ? "Event aus Favoriten entfernen" : "Event als Favorit speichern"}
+            >
+              <Heart size={13} fill={liked ? "currentColor" : "none"} />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-1.5">

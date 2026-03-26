@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -28,8 +28,9 @@ const DiscoverMap = dynamic(
   },
 );
 
-type FilterKey = "all" | "wg" | "clubs" | "today";
+type FilterKey = "all" | "wg" | "clubs" | "today" | "liked";
 type ViewKey = "list" | "map" | "calendar";
+const LIKED_EVENTS_STORAGE_KEY = "wgt-liked-events";
 
 type Props = {
   parties: PartyCardType[];
@@ -142,6 +143,41 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
   const [fromDateInput, setFromDateInput] = useState("");
   const [toDateInput, setToDateInput] = useState("");
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [likedEventIds, setLikedEventIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(LIKED_EVENTS_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const sanitized = parsed
+        .map((value) => String(value).trim())
+        .filter(Boolean);
+
+      setLikedEventIds(Array.from(new Set(sanitized)));
+    } catch {
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(LIKED_EVENTS_STORAGE_KEY, JSON.stringify(likedEventIds));
+  }, [likedEventIds]);
 
   const fromDate = useMemo(() => parseGermanDateToIso(fromDateInput), [fromDateInput]);
   const toDate = useMemo(() => parseGermanDateToIso(toDateInput), [toDateInput]);
@@ -174,6 +210,10 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
         if (dateKey !== todayKey) return false;
       }
 
+      if (filter === "liked") {
+        if (!likedEventIds.includes(party.id)) return false;
+      }
+
       if (fromDate && dateKey < fromDate) {
         return false;
       }
@@ -184,14 +224,23 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
 
       return true;
     });
-  }, [filter, fromDate, parties, toDate, todayKey]);
+  }, [filter, fromDate, likedEventIds, parties, toDate, todayKey]);
 
   const filterItems: Array<{ key: FilterKey; label: string }> = [
     { key: "all", label: "Alle" },
     { key: "wg", label: "🏠 WGs" },
     { key: "clubs", label: "🪩 Clubs" },
     { key: "today", label: "🔥 Heute" },
+    { key: "liked", label: "❤️ Liked" },
   ];
+
+  function toggleLikedEvent(eventId: string) {
+    setLikedEventIds((current) =>
+      current.includes(eventId)
+        ? current.filter((id) => id !== eventId)
+        : [...current, eventId],
+    );
+  }
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, PartyCardType[]>();
@@ -599,6 +648,8 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                       key={party.id}
                       party={party}
                       expanded={expandedCardId === party.id}
+                      liked={likedEventIds.includes(party.id)}
+                      onToggleLike={() => toggleLikedEvent(party.id)}
                       onToggle={() =>
                         setExpandedCardId((current) => (current === party.id ? null : party.id))
                       }
@@ -626,6 +677,8 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                 <EventCard
                   party={party}
                   expanded={expandedCardId === party.id}
+                  liked={likedEventIds.includes(party.id)}
+                  onToggleLike={() => toggleLikedEvent(party.id)}
                   onToggle={() =>
                     setExpandedCardId((current) => (current === party.id ? null : party.id))
                   }
