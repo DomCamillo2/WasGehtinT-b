@@ -35,7 +35,12 @@ export async function createRequestAction(
     .select("id")
     .single();
 
-  if (error || !request) {
+  if (error) {
+    console.error("[createRequestAction] Failed to create request:", error);
+    return;
+  }
+
+  if (!request?.id) {
     return;
   }
 
@@ -56,6 +61,7 @@ export async function createRequestAction(
       .insert(rows);
 
     if (itemError) {
+      console.error("[createRequestAction] Failed to insert bring items:", itemError);
       return;
     }
   }
@@ -64,7 +70,7 @@ export async function createRequestAction(
   revalidatePath("/discover");
 }
 
-export async function decideRequestAction(formData: FormData) {
+export async function decideRequestAction(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -81,7 +87,7 @@ export async function decideRequestAction(formData: FormData) {
     return;
   }
 
-  await supabase
+  const { error } = await supabase
     .from("party_requests")
     .update({
       status: decision,
@@ -89,6 +95,11 @@ export async function decideRequestAction(formData: FormData) {
       decided_by: user.id,
     })
     .eq("id", requestId);
+
+  if (error) {
+    console.error("[decideRequestAction] Failed to update request:", error);
+    return;
+  }
 
   revalidatePath("/host");
   revalidatePath("/chat");

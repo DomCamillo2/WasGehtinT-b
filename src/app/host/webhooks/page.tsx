@@ -86,6 +86,12 @@ export default async function HostWebhookEventsPage({
 
       <Card className="mb-3 space-y-3">
         <div className="flex flex-wrap gap-2">
+          <Link
+            href="/host/reports"
+            className="rounded-full bg-zinc-900 px-3 py-1 text-xs font-semibold text-white"
+          >
+            Zu Reports
+          </Link>
           {(["all", "failed", "pending", "processed"] as StatusFilter[]).map((status) => (
             <Link
               key={status}

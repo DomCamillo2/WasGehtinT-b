@@ -47,23 +47,27 @@ export async function startCheckoutAction(formData: FormData): Promise<void> {
   const totalContributionCents = contributionPerPersonCents * groupSize;
   const totalCents = totalContributionCents + FIXED_SERVICE_FEE_CENTS;
 
-  const { data: paymentExisting } = await supabase
+  const { data: payment, error: paymentError } = await supabase
     .from("party_request_payments")
-    .select("id, status")
-    .eq("party_request_id", requestId)
-    .maybeSingle();
+    .upsert(
+      {
+        party_request_id: requestId,
+        currency: "EUR",
+        contribution_per_person_cents: contributionPerPersonCents,
+        service_fee_cents: FIXED_SERVICE_FEE_CENTS,
+        group_size: groupSize,
+        total_contribution_cents: totalContributionCents,
+        total_cents: totalCents,
+        status: "requires_payment",
+      },
+      { onConflict: "party_request_id" },
+    )
+    .select("id")
+    .single();
 
-  if (!paymentExisting) {
-    await supabase.from("party_request_payments").insert({
-      party_request_id: requestId,
-      currency: "EUR",
-      contribution_per_person_cents: contributionPerPersonCents,
-      service_fee_cents: FIXED_SERVICE_FEE_CENTS,
-      group_size: groupSize,
-      total_contribution_cents: totalContributionCents,
-      total_cents: totalCents,
-      status: "requires_payment",
-    });
+  if (paymentError || !payment?.id) {
+    console.error("[startCheckoutAction] Failed to upsert payment record:", paymentError);
+    return;
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -103,12 +107,17 @@ export async function startCheckoutAction(formData: FormData): Promise<void> {
     ],
   });
 
-  await supabase
+  const { error: checkoutUpdateError } = await supabase
     .from("party_request_payments")
     .update({
       stripe_checkout_session_id: session.id,
     })
     .eq("party_request_id", requestId);
+
+  if (checkoutUpdateError) {
+    console.error("[startCheckoutAction] Failed to persist checkout session:", checkoutUpdateError);
+    return;
+  }
 
   if (session.url) {
     redirect(session.url);

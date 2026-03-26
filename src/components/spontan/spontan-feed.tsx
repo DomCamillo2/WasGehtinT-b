@@ -123,14 +123,22 @@ export function SpontanFeed({ items }: Props) {
               <h2 className="text-base font-bold tracking-tight text-zinc-900">{item.title}</h2>
               <p className="mt-1 text-sm text-zinc-700">{item.description}</p>
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                className="mt-3 inline-flex h-9 items-center gap-1 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
-              >
-                <Users size={14} />
-                Ich bin dabei!
-              </motion.button>
+              <div className="mt-3 flex items-center gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  type="button"
+                  className="inline-flex h-9 items-center gap-1 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+                >
+                  <Users size={14} />
+                  Ich bin dabei!
+                </motion.button>
+                <a
+                  href={`/melden?type=spontan&id=${item.id}`}
+                  className="text-xs font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700"
+                >
+                  Beitrag melden
+                </a>
+              </div>
             </motion.article>
           );
         })}

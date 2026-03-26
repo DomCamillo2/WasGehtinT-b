@@ -77,7 +77,12 @@ export async function createPartyAction(
     .select("id")
     .single();
 
-  if (error || !party) {
+  if (error) {
+    console.error("[createPartyAction] Failed to insert party:", error);
+    return;
+  }
+
+  if (!party?.id) {
     return;
   }
 
@@ -97,6 +102,7 @@ export async function createPartyAction(
 
     const { error: bringError } = await supabase.from("bring_items").insert(bringRows);
     if (bringError) {
+      console.error("[createPartyAction] Failed to insert bring items:", bringError);
       return;
     }
   }

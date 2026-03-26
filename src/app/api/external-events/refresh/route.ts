@@ -2,7 +2,13 @@ import { revalidateTag } from "next/cache";
 import { fetchExternalEventsAction } from "@/app/actions/external-events";
 
 function isAuthorized(request: Request) {
-  const expected = process.env.EXTERNAL_EVENTS_REFRESH_TOKEN;
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  const authHeader = request.headers.get("authorization")?.trim();
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    return true;
+  }
+
+  const expected = process.env.EXTERNAL_EVENTS_REFRESH_TOKEN?.trim();
 
   if (!expected) {
     return false;

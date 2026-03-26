@@ -1,10 +1,19 @@
 import { PropsWithChildren } from "react";
 import { BottomNav } from "@/components/layout/bottom-nav";
 
-export function AppShell({ children }: PropsWithChildren) {
+type Props = PropsWithChildren<{
+  shellClassName?: string;
+  mainClassName?: string;
+}>;
+
+export function AppShell({ children, shellClassName, mainClassName }: Props) {
   return (
-    <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col overflow-hidden bg-zinc-50">
-      <main className="relative flex-1 px-4 pb-32 pt-4">{children}</main>
+    <div
+      className={`relative mx-auto flex min-h-screen w-full max-w-md flex-col overflow-hidden bg-background ${
+        shellClassName ?? ""
+      }`}
+    >
+      <main className={`relative flex-1 px-4 pb-32 pt-4 ${mainClassName ?? ""}`}>{children}</main>
       <BottomNav />
     </div>
   );

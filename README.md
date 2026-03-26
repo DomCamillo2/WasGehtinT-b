@@ -32,6 +32,7 @@ cp .env.example .env.local
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `INTERNAL_ADMIN_EMAILS` (kommagetrennt, z.B. `a@student.uni-tuebingen.de,b@student.uni-tuebingen.de`)
 - `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, für automatisches Partner-Event-Refresh per Cron)
+- `CRON_SECRET` (für sichere Vercel-Cron-Aufrufe auf interne API-Routen)
 - `RESEND_API_KEY` (für transaktionale Mails)
 - `RESEND_FROM_EMAIL` (z. B. `WasGehtTüb <onboarding@resend.dev>` oder deine verifizierte Domain-Absenderadresse)
 
@@ -40,6 +41,8 @@ cp .env.example .env.local
 - Erst dein Schema-SQL ausführen (das ausführliche Schema aus dem Projektkontext/Chat)
 - Danach `../supabase/02_seed_and_views.sql` ausführen
 - Danach `../supabase/03_webhook_idempotency.sql` ausführen
+- Danach `../supabase/05_hangouts.sql` ausführen
+- Danach `../supabase/06_content_reports.sql` ausführen
 
 5) Dev-Server starten
 
@@ -61,6 +64,7 @@ Falls Supabase-Variablen fehlen, zeigt die Startseite eine Setup-Anleitung statt
 - `/payments/success` Rückkehrseite nach Stripe Checkout
 - `/party/[partyId]/address` Exakte Adresse (nur Host oder accepted Gast)
 - `/host/webhooks` Internes Admin-Panel für Stripe Webhook Events
+- `/host/reports` Interne Moderations-Queue für gemeldete Inhalte
 
 Im Panel `/host/webhooks` können fehlgeschlagene Events manuell per "Retry Event" erneut verarbeitet werden.
 Zusätzlich gibt es Status-Filter (`all`, `failed`, `pending`, `processed`) und Suche nach Event-ID/Event-Typ.
@@ -76,6 +80,34 @@ Header: x-refresh-token: <EXTERNAL_EVENTS_REFRESH_TOKEN>
 ```
 
 - Alternativ als Query: `/api/external-events/refresh?token=<EXTERNAL_EVENTS_REFRESH_TOKEN>`
+- In diesem Projekt ist zusätzlich `vercel.json` mit einem Cron auf `/api/external-events/refresh` hinterlegt (täglich um 03:00 UTC; kompatibel mit Vercel Hobby).
+- Für den Vercel-Cron muss `CRON_SECRET` in den Umgebungsvariablen gesetzt sein; der Endpoint akzeptiert `Authorization: Bearer <CRON_SECRET>`.
+
+## Reports API
+
+Serverseitige API für Meldungen und Moderation:
+
+```bash
+POST /api/reports
+Content-Type: application/json
+Body: { "type": "chat|spontan|party|other", "targetId": "...", "reason": "...", "details": "..." }
+```
+
+- Benötigt eingeloggten User (Session Cookie).
+
+```bash
+GET /api/reports?status=open&limit=100
+```
+
+- Nur interne Admins (`INTERNAL_ADMIN_EMAILS`).
+
+```bash
+PATCH /api/reports/{reportId}
+Content-Type: application/json
+Body: { "status": "open|reviewing|resolved|rejected", "reviewNote": "..." }
+```
+
+- Nur interne Admins (`INTERNAL_ADMIN_EMAILS`).
 
 ## Hinweise
 

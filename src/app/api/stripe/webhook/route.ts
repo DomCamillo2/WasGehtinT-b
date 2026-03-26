@@ -38,10 +38,11 @@ export async function POST(request: Request) {
 
   try {
     await processStripeEvent(event);
-
     await markWebhookEventProcessed(event.id);
-  } catch {
-    await markWebhookEventFailed(event.id, "Webhook-Verarbeitung fehlgeschlagen.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Webhook-Verarbeitung fehlgeschlagen.";
+    console.error("[stripe-webhook] Processing failed:", { eventId: event.id, message });
+    await markWebhookEventFailed(event.id, message);
     return NextResponse.json({ error: "Webhook-Verarbeitung fehlgeschlagen." }, { status: 500 });
   }
 

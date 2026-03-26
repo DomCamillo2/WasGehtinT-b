@@ -12,9 +12,9 @@ function getAdminMailSet() {
   );
 }
 
-export async function requireInternalAdmin() {
+export async function getInternalAdminUserOrNull() {
   if (!hasSupabaseEnv()) {
-    redirect("/?setup=1");
+    return null;
   }
 
   const supabase = await createClient();
@@ -23,11 +23,24 @@ export async function requireInternalAdmin() {
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    redirect("/");
+    return null;
   }
 
   const admins = getAdminMailSet();
   if (!admins.has(user.email.toLowerCase())) {
+    return null;
+  }
+
+  return user;
+}
+
+export async function requireInternalAdmin() {
+  if (!hasSupabaseEnv()) {
+    redirect("/?setup=1");
+  }
+
+  const user = await getInternalAdminUserOrNull();
+  if (!user) {
     redirect("/host");
   }
 

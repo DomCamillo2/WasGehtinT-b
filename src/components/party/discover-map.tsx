@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { PartyCard } from "@/lib/types";
+import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
 import { createBaseMapStyle } from "@/lib/map-style";
 
 type Props = {
@@ -16,9 +17,13 @@ const SCHLACHTHAUS_BROWN = "#7c2d12";
 
 export function DiscoverMap({ parties }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const [canLoadMap, setCanLoadMap] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return hasExternalServicesConsent();
+  });
 
   useEffect(() => {
-    if (!mapRef.current) {
+    if (!canLoadMap || !mapRef.current) {
       return;
     }
 
@@ -89,7 +94,28 @@ export function DiscoverMap({ parties }: Props) {
     });
 
     return () => map.remove();
-  }, [parties]);
+  }, [canLoadMap, parties]);
+
+  if (!canLoadMap) {
+    return (
+      <div className="grid h-56 w-full place-items-center rounded-2xl border border-zinc-200 bg-zinc-100 p-4 text-center">
+        <div>
+          <p className="text-sm font-medium text-zinc-700">Karte deaktiviert (Einwilligung fehlt)</p>
+          <p className="mt-1 text-xs text-zinc-500">Für Kartenansicht bitte externe Dienste aktivieren.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setCookieConsent("accepted");
+              setCanLoadMap(true);
+            }}
+            className="mt-3 inline-flex h-9 items-center rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+          >
+            Externe Dienste aktivieren
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return <div ref={mapRef} className="h-56 w-full overflow-hidden rounded-2xl border border-zinc-200" />;
 }

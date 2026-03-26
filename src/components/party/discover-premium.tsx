@@ -2,17 +2,31 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   CalendarDays,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Funnel,
   List,
   Map as MapIcon,
+  X,
 } from "lucide-react";
 import { EventCard } from "@/components/EventCard";
-import { DiscoverMap } from "@/components/party/discover-map";
 import { PartyCard as PartyCardType } from "@/lib/types";
+
+const DiscoverMap = dynamic(
+  () => import("@/components/party/discover-map").then((module) => module.DiscoverMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid h-56 w-full place-items-center rounded-2xl border border-zinc-200 bg-zinc-100 p-4 text-center text-sm text-zinc-600">
+        Kartenansicht wird geladen...
+      </div>
+    ),
+  },
+);
 
 type FilterKey = "all" | "wg" | "clubs" | "today";
 type ViewKey = "list" | "map" | "calendar";
@@ -123,7 +137,8 @@ function shiftIsoMonth(isoDate: string, monthDelta: number): string {
 export function DiscoverPremium({ parties, avatarFallback }: Props) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [view, setView] = useState<ViewKey>("list");
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showViewMenu, setShowViewMenu] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [fromDateInput, setFromDateInput] = useState("");
   const [toDateInput, setToDateInput] = useState("");
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -228,16 +243,35 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
   );
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="relative space-y-4 pb-24">
       <header className="flex items-center justify-between px-1 pt-1">
-        <h1 className="text-3xl font-black tracking-tight text-zinc-900">Entdecken</h1>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          className="grid h-10 w-10 place-items-center rounded-full bg-white text-sm font-bold text-zinc-700 shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
-          type="button"
-        >
-          {avatarFallback}
-        </motion.button>
+        <h1 className="text-3xl font-black tracking-tight" style={{ color: "var(--foreground)" }}>Entdecken</h1>
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            type="button"
+            onClick={() => setShowFilterSheet(true)}
+            className="grid h-10 w-10 place-items-center rounded-full border shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
+            style={{
+              borderColor: "var(--nav-border)",
+              backgroundColor: "var(--surface-elevated)",
+              color: "var(--foreground)",
+            }}
+            aria-label="Filter öffnen"
+          >
+            <Funnel size={16} />
+          </motion.button>
+
+          <motion.div whileTap={{ scale: 0.97 }} className="grid">
+            <Link
+              href="/profile"
+              className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
+              aria-label="Profil öffnen"
+            >
+              {avatarFallback}
+            </Link>
+          </motion.div>
+        </div>
       </header>
 
       <LayoutGroup>
@@ -259,52 +293,12 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                     className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 shadow-md"
                   />
                 ) : null}
-                <span className={`relative z-10 ${active ? "text-white" : "text-zinc-600"}`}>{item.label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
-      </LayoutGroup>
-
-      <motion.button
-        type="button"
-        whileTap={{ scale: 0.97 }}
-        onClick={() => setShowAdvancedFilters((current) => !current)}
-        className="mx-1 flex h-9 w-[calc(100%-0.5rem)] items-center justify-between rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
-      >
-        <span>Erweitert</span>
-        <ChevronDown
-          size={14}
-          className={`transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
-        />
-      </motion.button>
-
-      <LayoutGroup>
-        <div className="grid grid-cols-3 gap-2 px-1">
-          {[
-            { key: "list", label: "Liste", icon: List },
-            { key: "map", label: "Map", icon: MapIcon },
-            { key: "calendar", label: "Kalender", icon: CalendarDays },
-          ].map((item) => {
-            const active = item.key === view;
-            const Icon = item.icon;
-            return (
-              <motion.button
-                key={item.key}
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                onClick={() => setView(item.key as ViewKey)}
-                className="relative flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold"
-              >
-                {active ? (
-                  <motion.span
-                    layoutId="discover-view-chip"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                    className="absolute inset-0 rounded-2xl bg-zinc-900"
-                  />
-                ) : null}
-                <Icon size={16} className={`relative z-10 ${active ? "text-white" : "text-zinc-500"}`} />
-                <span className={`relative z-10 ${active ? "text-white" : "text-zinc-600"}`}>{item.label}</span>
+                <span
+                  className={`relative z-10 ${active ? "text-white" : ""}`}
+                  style={active ? undefined : { color: "var(--muted-foreground)" }}
+                >
+                  {item.label}
+                </span>
               </motion.button>
             );
           })}
@@ -312,54 +306,179 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
       </LayoutGroup>
 
       <AnimatePresence initial={false}>
-        {showAdvancedFilters ? (
-          <motion.div
-            initial={{ opacity: 0, height: 0, y: -6 }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 rounded-2xl bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-              <input
-                type="date"
-                lang="de-DE"
-                placeholder="Von"
-                value={fromDateInput}
-                onChange={(event) => setFromDateInput(event.target.value)}
-                className="h-10 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-700 outline-none focus:border-indigo-400"
-                aria-label="Startdatum"
-              />
-              <input
-                type="date"
-                lang="de-DE"
-                placeholder="Bis"
-                value={toDateInput}
-                onChange={(event) => setToDateInput(event.target.value)}
-                className="h-10 rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-700 outline-none focus:border-indigo-400"
-                aria-label="Enddatum"
-              />
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                onClick={() => {
-                  setFromDateInput("");
-                  setToDateInput("");
-                }}
-                className="h-10 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
-              >
-                Reset
-              </motion.button>
-            </div>
-          </motion.div>
+        {showFilterSheet ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Filter schließen"
+              className="fixed inset-0 z-30 bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFilterSheet(false)}
+            />
+            <motion.div
+              initial={{ y: "100%", opacity: 0.85 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0.85 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md rounded-t-3xl border p-4 shadow-2xl"
+              style={{
+                borderColor: "var(--nav-border)",
+                backgroundColor: "var(--surface-elevated)",
+              }}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Filter</p>
+                <button
+                  type="button"
+                  onClick={() => setShowFilterSheet(false)}
+                  className="grid h-8 w-8 place-items-center rounded-full"
+                  style={{
+                    backgroundColor: "var(--surface-soft)",
+                    color: "var(--muted-foreground)",
+                  }}
+                  aria-label="Schließen"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  lang="de-DE"
+                  placeholder="Von"
+                  value={fromDateInput}
+                  onChange={(event) => setFromDateInput(event.target.value)}
+                  className="h-10 rounded-xl border px-3 text-sm outline-none focus:border-indigo-400"
+                  style={{
+                    borderColor: "var(--nav-border)",
+                    backgroundColor: "var(--surface-soft)",
+                    color: "var(--foreground)",
+                  }}
+                  aria-label="Startdatum"
+                />
+                <input
+                  type="date"
+                  lang="de-DE"
+                  placeholder="Bis"
+                  value={toDateInput}
+                  onChange={(event) => setToDateInput(event.target.value)}
+                  className="h-10 rounded-xl border px-3 text-sm outline-none focus:border-indigo-400"
+                  style={{
+                    borderColor: "var(--nav-border)",
+                    backgroundColor: "var(--surface-soft)",
+                    color: "var(--foreground)",
+                  }}
+                  aria-label="Enddatum"
+                />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFromDateInput("");
+                    setToDateInput("");
+                  }}
+                  className="h-10 rounded-xl border px-3 text-xs font-semibold"
+                  style={{
+                    borderColor: "var(--nav-border)",
+                    backgroundColor: "var(--surface-elevated)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  Zurücksetzen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFilterSheet(false)}
+                  className="h-10 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+                >
+                  Anwenden
+                </button>
+              </div>
+            </motion.div>
+          </>
         ) : null}
       </AnimatePresence>
 
       {fromDateGerman || toDateGerman ? (
-        <p className="px-2 text-xs text-zinc-500">
+        <p className="px-2 text-xs" style={{ color: "var(--muted-foreground)" }}>
           Zeitraum: {fromDateGerman || "..."} – {toDateGerman || "..."}
         </p>
       ) : null}
+
+      <div className="fixed bottom-28 right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2">
+        <AnimatePresence>
+          {showViewMenu ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              className="rounded-2xl border p-2 shadow-lg"
+              style={{
+                borderColor: "var(--nav-border)",
+                backgroundColor: "var(--surface-elevated)",
+              }}
+            >
+              <div className="grid gap-1">
+                {[
+                  { key: "list", label: "Liste", icon: List },
+                  { key: "map", label: "Karte", icon: MapIcon },
+                  { key: "calendar", label: "Kalender", icon: CalendarDays },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const active = view === item.key;
+
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        setView(item.key as ViewKey);
+                        setShowViewMenu(false);
+                      }}
+                      className={`flex h-9 items-center gap-2 rounded-xl px-3 text-xs font-semibold ${
+                        active ? "bg-zinc-900 text-white" : ""
+                      }`}
+                      style={active ? undefined : { color: "var(--foreground)" }}
+                    >
+                      <Icon size={14} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <button
+          type="button"
+          onClick={() => setShowViewMenu((current) => !current)}
+          className={`grid h-12 w-12 place-items-center rounded-full shadow-lg transition ${
+            showViewMenu
+              ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white"
+              : "border"
+          }`}
+          style={
+            showViewMenu
+              ? undefined
+              : {
+                  borderColor: "var(--nav-border)",
+                  backgroundColor: "var(--surface-elevated)",
+                  color: "var(--foreground)",
+                }
+          }
+          aria-label="Ansicht auswählen"
+        >
+          {view === "list" ? <List size={18} /> : null}
+          {view === "map" ? <MapIcon size={18} /> : null}
+          {view === "calendar" ? <CalendarDays size={18} /> : null}
+        </button>
+      </div>
 
       <AnimatePresence mode="wait">
         {view === "map" ? (
@@ -382,24 +501,32 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
             transition={{ duration: 0.2 }}
             className="space-y-3"
           >
-            <div className="rounded-3xl bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+            <div className="rounded-3xl p-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" style={{ backgroundColor: "var(--surface-elevated)" }}>
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setSelectedCalendarDate((current) => shiftIsoMonth(current, -1))}
-                    className="grid h-8 w-8 place-items-center rounded-lg bg-zinc-100 text-zinc-700 transition hover:bg-zinc-200"
+                    className="grid h-8 w-8 place-items-center rounded-lg transition hover:opacity-95"
+                    style={{
+                      backgroundColor: "var(--surface-soft)",
+                      color: "var(--foreground)",
+                    }}
                     aria-label="Vorheriger Monat"
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <p className="min-w-[140px] text-center text-sm font-semibold capitalize text-zinc-900">
+                  <p className="min-w-[140px] text-center text-sm font-semibold capitalize" style={{ color: "var(--foreground)" }}>
                     {calendarMeta.monthLabel}
                   </p>
                   <button
                     type="button"
                     onClick={() => setSelectedCalendarDate((current) => shiftIsoMonth(current, 1))}
-                    className="grid h-8 w-8 place-items-center rounded-lg bg-zinc-100 text-zinc-700 transition hover:bg-zinc-200"
+                    className="grid h-8 w-8 place-items-center rounded-lg transition hover:opacity-95"
+                    style={{
+                      backgroundColor: "var(--surface-soft)",
+                      color: "var(--foreground)",
+                    }}
                     aria-label="Nächster Monat"
                   >
                     <ChevronRight size={16} />
@@ -409,13 +536,17 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                 <button
                   type="button"
                   onClick={() => setSelectedCalendarDate(todayKey)}
-                  className="rounded-xl bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-700"
+                  className="rounded-xl px-2.5 py-1 text-[11px] font-semibold"
+                  style={{
+                    backgroundColor: "var(--surface-soft)",
+                    color: "var(--foreground)",
+                  }}
                 >
                   Heute
                 </button>
               </div>
 
-              <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+              <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
                 {"Mo Di Mi Do Fr Sa So".split(" ").map((weekday) => (
                   <span key={weekday}>{weekday}</span>
                 ))}
@@ -457,7 +588,7 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
             </div>
 
             <div className="space-y-2">
-              <p className="px-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <p className="px-1 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
                 Events am {new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${selectedCalendarDate}T12:00:00Z`))}
               </p>
 
@@ -475,7 +606,7 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                   );
                 })
               ) : (
-                <div className="rounded-2xl bg-white p-4 text-sm text-zinc-500 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+                <div className="rounded-2xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]" style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}>
                   Keine Events für diesen Tag.
                 </div>
               )}
@@ -493,7 +624,6 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
             {filteredParties.map((party) => (
               <motion.div key={party.id} variants={itemVariants}>
                 <EventCard
-                key={party.id}
                   party={party}
                   expanded={expandedCardId === party.id}
                   onToggle={() =>
@@ -507,7 +637,8 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-3xl bg-white p-4 text-sm text-zinc-500 shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
+                className="rounded-3xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
+                style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}
               >
                 Für den aktiven Filter sind aktuell keine Events verfügbar.
               </motion.div>

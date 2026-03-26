@@ -1,12 +1,23 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { decideRequestAction } from "@/app/actions/requests";
 import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
-import { CreatePartyForm } from "@/components/host/create-party-form";
 import { Card } from "@/components/ui/card";
 import { formatDateTime, formatEuroFromCents } from "@/lib/format";
 import { getRequestStatusMeta } from "@/lib/status-ui";
 import { getHostDashboard, requireUser } from "@/lib/data";
+
+const CreatePartyForm = dynamic(
+  () => import("@/components/host/create-party-form").then((module) => module.CreatePartyForm),
+  {
+    loading: () => (
+      <Card className="p-4">
+        <p className="text-sm text-zinc-500">Party-Formular wird geladen...</p>
+      </Card>
+    ),
+  },
+);
 
 export default async function HostPage() {
   const { user } = await requireUser();

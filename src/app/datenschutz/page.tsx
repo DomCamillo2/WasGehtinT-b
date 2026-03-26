@@ -35,10 +35,19 @@ export default function DatenschutzPage() {
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
         <h2 className="text-lg font-semibold text-zinc-900">4. Empfänger / Auftragsverarbeiter</h2>
         <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-700">
-          <li>Supabase (Datenbank/Auth)</li>
+          <li>
+            Supabase (Datenbank/Auth): Hosting der Datenbank- und Auth-Infrastruktur. Bei Drittlandbezug erfolgt Übermittlung auf Basis geeigneter Garantien, insbesondere Standardvertragsklauseln (SCC). Regionale Verarbeitung möglichst EU-nah (z. B. Frankfurt) konfigurieren.
+          </li>
           <li>Vercel (Hosting)</li>
-          <li>Resend (Transaktionsmails)</li>
-          <li>Stripe (Zahlungsabwicklung, falls aktiviert)</li>
+          <li>
+            Resend (Transaktionsmails): Versand von System-E-Mails. Datenverarbeitung auf Grundlage eines Auftragsverarbeitungsvertrags (AVV) bzw. gleichwertiger vertraglicher Regelungen.
+          </li>
+          <li>
+            Stripe (Zahlungsabwicklung, falls aktiviert): Zahlungsdaten werden bei Stripe verarbeitet; WasGehtTüb speichert keine vollständigen Kartendaten, sondern nur abrechnungsrelevante Referenzen/Statusdaten.
+          </li>
+          <li>
+            Karten-/Geodienste (OpenStreetMap/Nominatim): Bei Nutzung der Karten- und Geocoding-Funktionen können technische Nutzungsdaten (z. B. IP-Adresse) an die jeweiligen Dienstanbieter übertragen werden.
+          </li>
         </ul>
       </section>
 
@@ -71,7 +80,14 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">9. Kontakt für Datenschutzanfragen</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">9. Cookies und Einwilligung</h2>
+        <p className="text-sm text-zinc-700">
+          Es werden technisch notwendige Cookies für Login, Sitzungsverwaltung und Sicherheit eingesetzt. Für optionale externe Dienste (z. B. Karten/Geocoding, Zahlungsdienste) holen wir vor der Aktivierung eine Einwilligung über das Cookie-Consent-Banner ein.
+        </p>
+      </section>
+
+      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
+        <h2 className="text-lg font-semibold text-zinc-900">10. Kontakt für Datenschutzanfragen</h2>
         <p className="text-sm text-zinc-700">E-Mail: [datenschutz@example.com]</p>
         <p className="text-sm text-zinc-700">Alternativ: Kontaktdaten im Impressum</p>
       </section>

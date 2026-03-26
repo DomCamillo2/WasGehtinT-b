@@ -15,6 +15,10 @@ export function LegalLinks({ className }: Props) {
         Impressum
       </Link>
       <span className="mx-2">•</span>
+      <Link href="/nutzungsbedingungen" className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
+        AGB
+      </Link>
+      <span className="mx-2">•</span>
       <Link href="/datenschutz" className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
         Datenschutz
       </Link>

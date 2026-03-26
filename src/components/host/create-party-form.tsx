@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { createPartyAction } from "@/app/actions/parties";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Card } from "@/components/ui/card";
+import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
 import { createBaseMapStyle } from "@/lib/map-style";
 
 type Props = {
@@ -47,6 +48,11 @@ export function CreatePartyForm({ vibes }: Props) {
   const [addressInput, setAddressInput] = useState<string>("");
   const [resolvedAddress, setResolvedAddress] = useState<string>("");
   const [isAddressSearching, setIsAddressSearching] = useState<boolean>(false);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState<boolean>(false);
+  const [canLoadExternalServices, setCanLoadExternalServices] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return hasExternalServicesConsent();
+  });
   const [lat, setLat] = useState<number>(DEFAULT_CENTER.lat);
   const [lng, setLng] = useState<number>(DEFAULT_CENTER.lng);
 
@@ -56,6 +62,44 @@ export function CreatePartyForm({ vibes }: Props) {
 
   const formattedLat = useMemo(() => lat.toFixed(6), [lat]);
   const formattedLng = useMemo(() => lng.toFixed(6), [lng]);
+
+  const reverseGeocodeCoordinates = async (nextLat: number, nextLng: number) => {
+    if (!canLoadExternalServices) {
+      return;
+    }
+
+    setIsReverseGeocoding(true);
+    setLocationState("Adresse wird aus Pin-Position ermittelt...");
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${encodeURIComponent(
+          String(nextLat),
+        )}&lon=${encodeURIComponent(String(nextLng))}`,
+      );
+
+      if (!response.ok) {
+        setLocationState("Pin gesetzt. Adresse konnte nicht automatisch aufgelöst werden.");
+        return;
+      }
+
+      const result = (await response.json()) as { display_name?: string };
+      const displayName = (result.display_name ?? "").trim();
+
+      if (!displayName) {
+        setLocationState("Pin gesetzt. Keine genaue Adresse gefunden.");
+        return;
+      }
+
+      setAddressInput(displayName);
+      setResolvedAddress(displayName);
+      setLocationState("Pin gesetzt und Adresse übernommen.");
+    } catch {
+      setLocationState("Pin gesetzt. Adresse konnte nicht automatisch geladen werden.");
+    } finally {
+      setIsReverseGeocoding(false);
+    }
+  };
 
   useEffect(() => {
     if (!safeVibes.length) {
@@ -69,7 +113,7 @@ export function CreatePartyForm({ vibes }: Props) {
   }, [safeVibes, selectedVibeId]);
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) {
+    if (!canLoadExternalServices || !mapContainerRef.current || mapRef.current) {
       return;
     }
 
@@ -100,16 +144,14 @@ export function CreatePartyForm({ vibes }: Props) {
       const pos = marker.getLngLat();
       setLat(pos.lat);
       setLng(pos.lng);
-      setResolvedAddress("");
-      setLocationState("Pin verschoben – Standort wird gespeichert.");
+      void reverseGeocodeCoordinates(pos.lat, pos.lng);
     });
 
     map.on("click", (event) => {
       marker.setLngLat(event.lngLat);
       setLat(event.lngLat.lat);
       setLng(event.lngLat.lng);
-      setResolvedAddress("");
-      setLocationState("Standort auf der Karte aktualisiert.");
+      void reverseGeocodeCoordinates(event.lngLat.lat, event.lngLat.lng);
     });
 
     mapRef.current = map;
@@ -125,7 +167,7 @@ export function CreatePartyForm({ vibes }: Props) {
       markerRef.current = null;
       mapRef.current = null;
     };
-  }, []);
+  }, [canLoadExternalServices]);
 
   useEffect(() => {
     markerRef.current?.setLngLat([lng, lat]);
@@ -161,6 +203,11 @@ export function CreatePartyForm({ vibes }: Props) {
   };
 
   const handleAddressSearch = async () => {
+    if (!canLoadExternalServices) {
+      setLocationState("Für Adresssuche bitte externe Dienste aktivieren.");
+      return;
+    }
+
     const query = addressInput.trim();
     if (!query) {
       setLocationState("Bitte gib eine Adresse ein.");
@@ -361,13 +408,28 @@ export function CreatePartyForm({ vibes }: Props) {
               <button
                 type="button"
                 onClick={handleAddressSearch}
-                disabled={isAddressSearching}
+                disabled={isAddressSearching || !canLoadExternalServices}
                 className="inline-flex h-11 shrink-0 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-800 transition active:scale-[0.99] disabled:opacity-60"
               >
                 {isAddressSearching ? "Suche..." : "Adresse finden"}
               </button>
             </div>
-            <p className="text-xs text-zinc-500">Nach Auswahl wird der Pin automatisch auf die Adresse gesetzt.</p>
+            <p className="text-xs text-zinc-500">
+              Nach Auswahl wird der Pin automatisch auf die Adresse gesetzt. Wenn du den Pin ziehst, wird die Adresse automatisch aktualisiert.
+            </p>
+            {!canLoadExternalServices ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCookieConsent("accepted");
+                  setCanLoadExternalServices(true);
+                  setLocationState("Externe Dienste aktiviert.");
+                }}
+                className="inline-flex h-9 items-center rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+              >
+                Externe Dienste aktivieren
+              </button>
+            ) : null}
           </div>
           <button
             type="button"
@@ -376,9 +438,18 @@ export function CreatePartyForm({ vibes }: Props) {
           >
             Standort automatisch finden
           </button>
-          <p className="text-xs text-zinc-500">{locationState}</p>
+          <p className="text-xs text-zinc-500">
+            {locationState}
+            {isReverseGeocoding ? " (wird aktualisiert...)" : ""}
+          </p>
           {resolvedAddress ? <p className="text-xs text-zinc-600">Erkannte Adresse: {resolvedAddress}</p> : null}
-          <div ref={mapContainerRef} className="h-44 w-full overflow-hidden rounded-2xl border border-zinc-200" />
+          {canLoadExternalServices ? (
+            <div ref={mapContainerRef} className="h-44 w-full overflow-hidden rounded-2xl border border-zinc-200" />
+          ) : (
+            <div className="grid h-44 w-full place-items-center rounded-2xl border border-zinc-200 bg-zinc-100 px-3 text-center text-xs text-zinc-600">
+              Karte ist deaktiviert, bis externe Dienste akzeptiert wurden.
+            </div>
+          )}
           <p className="text-xs text-zinc-500">
             Pin antippen/ziehen, um die Position grob anzupassen. Aktuell: {formattedLat}, {formattedLng}
           </p>

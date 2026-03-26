@@ -19,7 +19,8 @@ export default function ImpressumPage() {
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
         <h2 className="text-lg font-semibold text-zinc-900">2. Kontakt</h2>
         <p className="text-sm text-zinc-700">E-Mail: [kontakt@example.com]</p>
-        <p className="text-sm text-zinc-700">Telefon: [optional, aber empfohlen]</p>
+        <p className="text-sm text-zinc-700">Telefon: [verpflichtend eintragen]</p>
+        <p className="text-sm text-zinc-700">Meldestelle Inhalte: [abuse@example.com]</p>
       </section>
 
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">

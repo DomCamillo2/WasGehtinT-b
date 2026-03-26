@@ -29,6 +29,7 @@ export async function sendChatMessageAction(
   });
 
   if (error) {
+    console.error("[sendChatMessageAction] Failed to insert message:", error);
     return;
   }
 

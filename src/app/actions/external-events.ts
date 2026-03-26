@@ -20,14 +20,27 @@ type ParsedEvent = {
   musicGenre: string | null;
 };
 
-const CANCELLED_EVENT_PATTERNS = [
-  /\bausfall\b/i,
-  /\babgesagt\b/i,
-  /\bcancelled\b/i,
-  /\bcanceled\b/i,
-  /\bcancel\b/i,
-  /\bfällt\s+aus\b/i,
+const CANCELLED_EVENT_PATTERNS: Array<{ pattern: RegExp; description: string }> = [
+  { pattern: /\bausfall\b/i, description: "ausfall" },
+  { pattern: /\babgesagt\b/i, description: "abgesagt" },
+  { pattern: /\bcancelled\b/i, description: "cancelled" },
+  { pattern: /\bcanceled\b/i, description: "canceled" },
+  { pattern: /\bcancel\b/i, description: "cancel" },
+  { pattern: /\bfällt\s+aus\b/i, description: "fällt aus" },
 ];
+
+function validateCancellationPatterns(): void {
+  for (const { pattern, description } of CANCELLED_EVENT_PATTERNS) {
+    try {
+      // Force a no-op test at startup to catch malformed regex edits early.
+      void pattern.test(description);
+    } catch (error) {
+      console.error("[external-events] Invalid cancellation regex pattern:", description, error);
+    }
+  }
+}
+
+validateCancellationPatterns();
 
 function isCancelledOrOutageEvent(event: PartyCard): boolean {
   const content = [event.title, event.description, event.vibe_label, event.external_link]
@@ -38,16 +51,46 @@ function isCancelledOrOutageEvent(event: PartyCard): boolean {
     return false;
   }
 
-  return CANCELLED_EVENT_PATTERNS.some((pattern) => pattern.test(content));
+  return CANCELLED_EVENT_PATTERNS.some(({ pattern }) => pattern.test(content));
 }
 
 function toIsoDate(day: number, month: number): string | null {
+  if (!Number.isInteger(day) || !Number.isInteger(month)) {
+    return null;
+  }
+
+  if (day < 1 || day > 31 || month < 1 || month > 12) {
+    return null;
+  }
+
   const now = new Date();
-  const year = now.getMonth() + 1 > month ? now.getFullYear() + 1 : now.getFullYear();
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+
+  let year = currentYear;
+  if (month < currentMonth) {
+    year += 1;
+  }
+
   const candidate = new Date(Date.UTC(year, month - 1, day, 20, 0, 0));
   if (Number.isNaN(candidate.getTime())) {
     return null;
   }
+
+  // Reject date overflows like 31.2. that Date auto-normalizes.
+  if (
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  // Never return past dates.
+  if (candidate.getTime() < now.getTime()) {
+    return null;
+  }
+
   return candidate.toISOString();
 }
 
@@ -303,6 +346,7 @@ async function fetchFsrvvClubhausEventsAction(): Promise<PartyCard[]> {
 
 const getCachedExternalEvents = unstable_cache(
   async (): Promise<PartyCard[]> => {
+    const nowMs = Date.now();
     const [kuckuckEvents, clubhausEvents, schlachthausEvents, dignightsEvents] = await Promise.all([
       fetchKuckuckEventsAction(),
       fetchFsrvvClubhausEventsAction(),
@@ -311,7 +355,11 @@ const getCachedExternalEvents = unstable_cache(
     ]);
 
     const allEvents = [...kuckuckEvents, ...clubhausEvents, ...schlachthausEvents, ...dignightsEvents]
-      .filter((event) => !isCancelledOrOutageEvent(event));
+      .filter((event) => !isCancelledOrOutageEvent(event))
+      .filter((event) => {
+        const endMs = new Date(event.ends_at).getTime();
+        return Number.isFinite(endMs) && endMs >= nowMs;
+      });
     
     // Remove duplicates by ID
     const uniqueMap = new Map<string, PartyCard>();

@@ -43,13 +43,24 @@ async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard
   if (hostIds.length > 0) {
     const avatarResult = await supabase
       .from("user_profiles")
-      .select("id, avatar_url")
+      .select("id, avatar_url, profile_visibility")
       .in("id", hostIds);
 
     if (!avatarResult.error) {
       avatarMap = new Map(
-        ((avatarResult.data ?? []) as Array<{ id: string; avatar_url: string | null }>)
-          .filter((row) => typeof row.avatar_url === "string" && row.avatar_url.length > 0)
+        (
+          (avatarResult.data ?? []) as Array<{
+            id: string;
+            avatar_url: string | null;
+            profile_visibility?: "public" | "members" | "hidden" | null;
+          }>
+        )
+          .filter(
+            (row) =>
+              typeof row.avatar_url === "string" &&
+              row.avatar_url.length > 0 &&
+              row.profile_visibility !== "hidden",
+          )
           .map((row) => [row.id, row.avatar_url as string]),
       );
     }
@@ -96,7 +107,7 @@ export default async function DiscoverPage({
 
   const enrichedDbParties = await enrichPartiesForDiscover(dbParties);
   const parties = [...enrichedDbParties, ...externalParties];
-  const avatarFallback = (user.email?.[0] ?? "U").toUpperCase();
+  const avatarFallback = String(user.email?.[0] ?? "U").toUpperCase();
 
   return (
     <AppShell>

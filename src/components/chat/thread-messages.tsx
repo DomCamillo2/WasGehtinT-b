@@ -69,6 +69,16 @@ export function ThreadMessages({ threadId, currentUserId, initialMessages }: Pro
               <p className={`mt-1 text-[10px] ${own ? "text-zinc-300" : "text-zinc-500"}`}>
                 {formatDateTime(message.created_at)}
               </p>
+              {!own ? (
+                <a
+                  href={`/melden?type=chat&id=${message.id}`}
+                  className={`mt-1 inline-block text-[10px] underline underline-offset-2 ${
+                    own ? "text-zinc-300" : "text-zinc-500"
+                  }`}
+                >
+                  Beitrag melden
+                </a>
+              ) : null}
             </div>
           </div>
         );

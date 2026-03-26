@@ -149,3 +149,47 @@ export async function sendPasswordResetMail(email: string, resetUrl: string, dis
     `,
   });
 }
+
+export async function sendEmailConfirmationMail(
+  email: string,
+  confirmationUrl: string,
+  displayName = "",
+) {
+  const safeName = displayName.trim().length > 0 ? displayName.trim() : email.split("@")[0];
+
+  const templateResult = await sendTemplateMail({
+    to: email,
+    templateIdOrAlias: getTemplateAlias("email-confirmation"),
+    variables: {
+      NAME: safeName,
+      CONFIRMATION_URL: confirmationUrl,
+    },
+    subject: "Bestätige deine E-Mail · WasGehtTüb",
+  });
+
+  if (templateResult.ok) {
+    return templateResult;
+  }
+
+  return sendMail({
+    to: email,
+    subject: "Bestätige deine E-Mail · WasGehtTüb",
+    text: `Hi ${safeName}, bestätige hier deine E-Mail: ${confirmationUrl}`,
+    html: `
+      <div style="font-family:sans-serif;background-color:#f9fafb;padding:40px;text-align:center;">
+        <div style="max-width:450px;margin:auto;background:white;padding:30px;border-radius:24px;box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+          <h1 style="color:#6366f1;font-size:24px;margin-bottom:10px;">WasGehtTüb? 🪩</h1>
+          <p style="color:#4b5563;font-size:16px;line-height:1.5;">
+            Willkommen in Tübingen! Bestätige kurz deine E-Mail, um die Map und alle WG-Partys freizuschalten.
+          </p>
+          <a href="${confirmationUrl}" style="display:inline-block;background:#6366f1;color:white;padding:14px 28px;border-radius:14px;text-decoration:none;font-weight:bold;margin-top:20px;">
+            Jetzt verifizieren
+          </a>
+          <p style="font-size:12px;color:#9ca3af;margin-top:30px;">
+            Nur für Studierende der Uni Tübingen.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}

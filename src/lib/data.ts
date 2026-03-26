@@ -22,9 +22,12 @@ export async function requireUser() {
 
 export async function getPublicParties() {
   const supabase = await createClient();
+  const nowIso = new Date().toISOString();
+
   const { data, error } = await supabase
     .from("v_public_parties")
     .select("*")
+    .gte("ends_at", nowIso)
     .order("starts_at", { ascending: true });
 
   if (error) {
@@ -126,17 +129,12 @@ export async function getPartyAddressForUser(partyId: string, userId: string) {
 export async function getHostDashboard(userId: string) {
   const supabase = await createClient();
 
-  const [dashboardRes, requestsRes, vibesRes] = await Promise.all([
+  const [dashboardRes, vibesRes] = await Promise.all([
     supabase
       .from("v_host_party_dashboard")
       .select("*")
       .eq("host_user_id", userId)
       .order("starts_at", { ascending: true }),
-    supabase
-      .from("party_requests")
-      .select("id, party_id, requester_user_id, group_size, status, message, created_at, parties(title)")
-      .in("status", ["pending"]) 
-      .order("created_at", { ascending: false }),
     supabase.from("party_vibes").select("id, label").eq("is_active", true),
   ]);
 
@@ -153,9 +151,18 @@ export async function getHostDashboard(userId: string) {
     ((dashboardRes.data ?? []) as Array<{ party_id: string }>).map((party) => party.party_id),
   );
 
-  const pending = ((requestsRes.data ?? []) as Array<Record<string, unknown>>).filter((row) =>
-    hostPartyIds.has(String(row.party_id)),
-  );
+  const hostPartyIdList = Array.from(hostPartyIds);
+  const requestsRes =
+    hostPartyIdList.length > 0
+      ? await supabase
+          .from("party_requests")
+          .select("id, party_id, requester_user_id, group_size, status, message, created_at, parties(title)")
+          .eq("status", "pending")
+          .in("party_id", hostPartyIdList)
+          .order("created_at", { ascending: false })
+      : ({ data: [] } as { data: Array<Record<string, unknown>> });
+
+  const pending = (requestsRes.data ?? []) as Array<Record<string, unknown>>;
 
   return {
     dashboard: (dashboardRes.data ?? []) as Array<Record<string, string | number | null>>,

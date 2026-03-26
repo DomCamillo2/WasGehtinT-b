@@ -2,15 +2,11 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import {
   CalendarDays,
-  ChevronDown,
   Clock3,
-  GlassWater,
-  Home,
   MapPin,
-  Users,
-  Zap,
 } from "lucide-react";
 import { PartyCard } from "@/lib/types";
 
@@ -34,22 +30,6 @@ const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
   { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
 ];
 
-function getBadgeClasses(vibeLabel: string) {
-  const normalized = vibeLabel.toLowerCase();
-
-  if (normalized.includes("schlachthaus")) {
-    return "text-amber-900 bg-amber-100";
-  }
-  if (normalized.includes("kuckuck")) {
-    return "text-red-700 bg-red-50";
-  }
-  if (normalized.includes("clubhaus")) {
-    return "text-blue-700 bg-blue-50";
-  }
-
-  return "text-indigo-600 bg-indigo-50";
-}
-
 function getTypeTag(party: PartyCard): TypeTag {
   const title = party.title.toLowerCase();
   const description = (party.description ?? "").toLowerCase();
@@ -68,7 +48,7 @@ function getTypeTag(party: PartyCard): TypeTag {
     return {
       key: "wg-privat",
       label: "WG/Privat",
-      bookmarkClasses: "bg-teal-50/95 text-teal-700 ring-teal-200",
+      bookmarkClasses: "bg-fuchsia-100/95 text-fuchsia-800 ring-fuchsia-300",
     };
   }
 
@@ -83,7 +63,7 @@ function getTypeTag(party: PartyCard): TypeTag {
     return {
       key: "club-bar",
       label: "Club/Bar",
-      bookmarkClasses: "bg-violet-50/95 text-violet-700 ring-violet-200",
+      bookmarkClasses: "bg-amber-100/95 text-amber-800 ring-amber-300",
     };
   }
 
@@ -125,30 +105,6 @@ function resolvePartnerLogo(party: PartyCard): { src: string; alt: string } | nu
   return null;
 }
 
-type FallbackIconKey = "home" | "zap" | "users" | "glass" | "map";
-
-function resolveFallbackIcon(party: PartyCard): FallbackIconKey {
-  const text = `${party.vibe_label} ${party.title} ${party.description ?? ""}`.toLowerCase();
-
-  if (!party.is_external) {
-    return "home";
-  }
-
-  if (text.includes("sport") || text.includes("fussball") || text.includes("fußball") || text.includes("run") || text.includes("basket")) {
-    return "zap";
-  }
-
-  if (text.includes("hangout") || text.includes("chill") || text.includes("treffen") || text.includes("stammtisch") || text.includes("meetup")) {
-    return "users";
-  }
-
-  if (text.includes("club") || text.includes("bar") || text.includes("party") || text.includes("kuckuck") || text.includes("schlachthaus") || text.includes("clubhaus")) {
-    return "glass";
-  }
-
-  return "map";
-}
-
 const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
   { regex: /techno|acid\s*techno/i, label: "Techno" },
   { regex: /house|deep\s*house|afro\s*house/i, label: "House" },
@@ -179,161 +135,167 @@ function resolveMusicGenre(party: PartyCard): string | null {
   return party.is_external ? "Nicht angegeben" : null;
 }
 
-function CardMedia({ party }: { party: PartyCard }) {
-  const partnerLogo = resolvePartnerLogo(party);
-  const [logoFailed, setLogoFailed] = useState(false);
-  const [avatarFailed, setAvatarFailed] = useState(false);
-  const iconKey = resolveFallbackIcon(party);
-
-  if (partnerLogo && !logoFailed) {
-    return (
-      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
-        <img
-          src={partnerLogo.src}
-          alt={partnerLogo.alt}
-          className="h-full w-full object-cover"
-          onError={() => setLogoFailed(true)}
-        />
-      </div>
-    );
-  }
-
-  if (!party.is_external && party.host_avatar_url && !avatarFailed) {
-    return (
-      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
-        <img
-          src={party.host_avatar_url}
-          alt="Host Avatar"
-          className="h-full w-full object-cover"
-          onError={() => setAvatarFailed(true)}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
-      {iconKey === "home" ? <Home size={24} className="text-indigo-600" /> : null}
-      {iconKey === "zap" ? <Zap size={24} className="text-indigo-600" /> : null}
-      {iconKey === "users" ? <Users size={24} className="text-indigo-600" /> : null}
-      {iconKey === "glass" ? <GlassWater size={24} className="text-indigo-600" /> : null}
-      {iconKey === "map" ? <MapPin size={24} className="text-indigo-600" /> : null}
-    </div>
-  );
-}
-
 export function EventCard({ party, expanded, onToggle }: Props) {
   const typeTag = getTypeTag(party);
   const musicGenre = resolveMusicGenre(party);
+  const partnerLogo = resolvePartnerLogo(party);
+  const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
+
+  const hostAvatarSrc = party.host_avatar_url ?? null;
+  const partnerLogoSrc = partnerLogo?.src ?? null;
+  const avatarSrc =
+    hostAvatarSrc && failedImageSrc !== hostAvatarSrc
+      ? hostAvatarSrc
+      : partnerLogoSrc && failedImageSrc !== partnerLogoSrc
+        ? partnerLogoSrc
+        : null;
+  const locationLine = party.location_name || party.vibe_label;
+  const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
 
   return (
     <motion.article
-      whileTap={{ scale: 0.97 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.985, y: -1 }}
+      transition={{ type: "spring", stiffness: 320, damping: 24 }}
       onClick={onToggle}
-      className="relative overflow-hidden rounded-3xl bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
+      className="relative rounded-3xl border p-4 shadow-sm transition-shadow hover:shadow-md"
+      style={{
+        borderColor: "var(--nav-border)",
+        backgroundColor: "var(--surface-elevated)",
+      }}
     >
       <div className="absolute right-3 top-3 z-10">
         <span
-          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ring-1 shadow-sm backdrop-blur ${typeTag.bookmarkClasses}`}
+          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.09em]"
+          style={{
+            borderColor: "var(--nav-border)",
+            backgroundColor: "var(--surface-soft)",
+            color: "var(--muted-foreground)",
+          }}
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
           {typeTag.label}
         </span>
       </div>
 
-      <div className="flex gap-3">
-        <CardMedia party={party} />
-
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-1.5 pr-14">
-            <p
-              className={`w-max rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${getBadgeClasses(party.vibe_label)}`}
-            >
-              {party.vibe_label}
-            </p>
-            <ChevronDown
-              size={16}
-              className={`text-zinc-400 transition-transform ${expanded ? "rotate-180" : ""}`}
-            />
+      <div className="space-y-2.5">
+        <div className="flex items-start gap-3">
+          <div
+            className="mt-1 h-11 w-11 shrink-0 overflow-hidden rounded-full border shadow-sm"
+            style={{
+              borderColor: "var(--nav-border)",
+              backgroundColor: "var(--surface-soft)",
+            }}
+          >
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt="Club oder Host"
+                className="h-full w-full object-cover"
+                onError={() => setFailedImageSrc(avatarSrc)}
+              />
+            ) : (
+              <div className="grid h-full w-full place-items-center text-xs font-bold" style={{ color: "var(--muted-foreground)" }}>
+                {fallbackInitial}
+              </div>
+            )}
           </div>
 
-          <h3 className="line-clamp-2 text-lg font-bold tracking-tight text-zinc-900">{party.title}</h3>
+          <div className="min-w-0 flex-1 pr-14">
+            <h3 className="line-clamp-2 text-[1.85rem] font-black leading-[1.12] tracking-tight" style={{ color: "var(--foreground)" }}>
+              {party.title}
+            </h3>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-zinc-500">
-            <span className="inline-flex items-center gap-1">
-              <CalendarDays size={14} />
-              {new Intl.DateTimeFormat("de-DE", {
-                timeZone: "Europe/Berlin",
-                weekday: "short",
-                day: "2-digit",
-                month: "2-digit",
-              }).format(new Date(party.starts_at))}
-            </span>
-            <span>•</span>
-            <span className="inline-flex items-center gap-1">
-              <Clock3 size={14} />
-              {new Intl.DateTimeFormat("de-DE", {
-                timeZone: "Europe/Berlin",
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(new Date(party.starts_at))}
-              Uhr
-            </span>
-            {!party.is_external ? (
-              <span className="inline-flex items-center gap-1">
-                <Users size={14} />
-                {party.spots_left} frei
+            <p className="mt-1 inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <MapPin size={12} />
+                <span className="max-w-[8.5rem] truncate">{locationLine}</span>
               </span>
-            ) : null}
+              <span className="shrink-0">•</span>
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <CalendarDays size={12} />
+                {new Intl.DateTimeFormat("de-DE", {
+                  timeZone: "Europe/Berlin",
+                  weekday: "short",
+                  day: "2-digit",
+                  month: "2-digit",
+                }).format(new Date(party.starts_at))}
+              </span>
+              <span className="shrink-0">•</span>
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <Clock3 size={12} />
+                {new Intl.DateTimeFormat("de-DE", {
+                  timeZone: "Europe/Berlin",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }).format(new Date(party.starts_at))}
+                Uhr
+              </span>
+            </p>
           </div>
-
-          <AnimatePresence initial={false}>
-            {expanded ? (
-              <motion.div
-                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                animate={{ opacity: 1, height: "auto", marginTop: 8 }}
-                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="rounded-2xl bg-zinc-50 p-3 text-sm text-zinc-700">
-                  <p>
-                    <span className="font-semibold text-zinc-900">Typ:</span> {typeTag.label}
-                  </p>
-                  {musicGenre ? (
-                    <p className="mt-1">
-                      <span className="font-semibold text-zinc-900">Musik:</span> {musicGenre}
-                    </p>
-                  ) : null}
-                  <p className="mt-1">
-                    <span className="font-semibold text-zinc-900">Adresse:</span> {getAddressLine(party)}
-                  </p>
-                  <p className="mt-1">
-                    <span className="font-semibold text-zinc-900">Start:</span>{" "}
-                    {new Intl.DateTimeFormat("de-DE", {
-                      timeZone: "Europe/Berlin",
-                      dateStyle: "full",
-                      timeStyle: "short",
-                    }).format(new Date(party.starts_at))}
-                  </p>
-                  <p className="mt-1">
-                    <span className="font-semibold text-zinc-900">Ende:</span>{" "}
-                    {new Intl.DateTimeFormat("de-DE", {
-                      timeZone: "Europe/Berlin",
-                      dateStyle: "full",
-                      timeStyle: "short",
-                    }).format(new Date(party.ends_at))}
-                  </p>
-                  {party.description ? (
-                    <p className="mt-2 text-zinc-600">
-                      <span className="font-semibold text-zinc-900">Was passiert:</span> {party.description}
-                    </p>
-                  ) : null}
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
+
+        <AnimatePresence initial={false}>
+          {expanded ? (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-2xl p-3 text-sm" style={{ backgroundColor: "var(--surface-soft)", color: "var(--muted-foreground)" }}>
+                <p>
+                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Typ:</span> {typeTag.label}
+                </p>
+                {musicGenre ? (
+                  <p className="mt-1">
+                    <span className="font-semibold" style={{ color: "var(--foreground)" }}>Musik:</span> {musicGenre}
+                  </p>
+                ) : null}
+                <p className="mt-1">
+                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Adresse:</span> {getAddressLine(party)}
+                </p>
+                <p className="mt-1">
+                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Start:</span>{" "}
+                  {new Intl.DateTimeFormat("de-DE", {
+                    timeZone: "Europe/Berlin",
+                    dateStyle: "full",
+                    timeStyle: "short",
+                  }).format(new Date(party.starts_at))}
+                </p>
+                <p className="mt-1">
+                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Ende:</span>{" "}
+                  {new Intl.DateTimeFormat("de-DE", {
+                    timeZone: "Europe/Berlin",
+                    dateStyle: "full",
+                    timeStyle: "short",
+                  }).format(new Date(party.ends_at))}
+                </p>
+                {party.description ? (
+                  <p className="mt-2" style={{ color: "var(--muted-foreground)" }}>
+                    <span className="font-semibold" style={{ color: "var(--foreground)" }}>Was passiert:</span> {party.description}
+                  </p>
+                ) : null}
+                {!party.is_external && party.host_user_id ? (
+                  <div className="mt-2">
+                    <Link
+                      href={`/profile/${party.host_user_id}`}
+                      onClick={(event) => event.stopPropagation()}
+                      className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                      style={{
+                        borderColor: "var(--nav-border)",
+                        backgroundColor: "var(--surface-elevated)",
+                        color: "var(--foreground)",
+                      }}
+                    >
+                      Host-Profil ansehen
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     </motion.article>
   );
