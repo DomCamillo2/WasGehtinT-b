@@ -151,6 +151,18 @@ export function EventCard({ party, expanded, onToggle }: Props) {
         : null;
   const locationLine = party.location_name || party.vibe_label;
   const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
+  const startsAtDate = new Date(party.starts_at);
+  const formattedDate = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(startsAtDate);
+  const formattedTime = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(startsAtDate);
 
   return (
     <motion.article
@@ -158,24 +170,24 @@ export function EventCard({ party, expanded, onToggle }: Props) {
       whileTap={{ scale: 0.985, y: -1 }}
       transition={{ type: "spring", stiffness: 320, damping: 24 }}
       onClick={onToggle}
-      className="relative rounded-3xl border p-4 shadow-sm transition-shadow hover:shadow-md"
+      className="relative rounded-3xl border px-4 py-3.5 shadow-sm transition-shadow hover:shadow-md"
       style={{
         borderColor: "var(--nav-border)",
         backgroundColor: "var(--surface-elevated)",
       }}
     >
-      <div className="absolute right-3 top-3 z-10">
+      <div className="absolute right-3 top-2.5 z-10">
         <span
-          className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-gray-500"
+          className="inline-flex items-center rounded-full bg-gray-100/90 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-500"
         >
           {typeTag.label}
         </span>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         <div className="flex items-start gap-3">
           <div
-            className="h-11 w-11 shrink-0 self-start overflow-hidden rounded-full border shadow-sm"
+            className="mt-0.5 h-10 w-10 shrink-0 self-start overflow-hidden rounded-full border shadow-sm"
             style={{
               borderColor: "var(--nav-border)",
               backgroundColor: "var(--surface-soft)",
@@ -196,33 +208,24 @@ export function EventCard({ party, expanded, onToggle }: Props) {
           </div>
 
           <div className="min-w-0 flex-1 pr-14">
-            <h3 className="line-clamp-2 text-[1.85rem] font-black leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
+            <h3 className="line-clamp-2 text-[2rem] font-black leading-snug tracking-tight sm:text-[2.1rem]" style={{ color: "var(--foreground)" }}>
               {party.title}
             </h3>
 
-            <p className="mt-1.5 inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[12px] font-medium text-gray-500">
-              <span className="inline-flex shrink-0 items-center gap-1">
-                <MapPin size={12} />
-                <span className="max-w-[9.75rem] truncate">{locationLine}</span>
+            <p className="mt-1.5 inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[11.5px] font-medium text-gray-500 sm:text-[12px]">
+              <span className="inline-flex min-w-0 items-center gap-1">
+                <MapPin size={11} className="shrink-0" />
+                <span className="max-w-[8.25rem] truncate sm:max-w-[9.5rem]">{locationLine}</span>
               </span>
               <span className="shrink-0">•</span>
               <span className="inline-flex shrink-0 items-center gap-1">
-                <CalendarDays size={12} />
-                {new Intl.DateTimeFormat("de-DE", {
-                  timeZone: "Europe/Berlin",
-                  weekday: "short",
-                  day: "2-digit",
-                  month: "2-digit",
-                }).format(new Date(party.starts_at))}
+                <CalendarDays size={11} />
+                {formattedDate}
               </span>
               <span className="shrink-0">•</span>
               <span className="inline-flex shrink-0 items-center gap-1">
-                <Clock3 size={12} />
-                {new Intl.DateTimeFormat("de-DE", {
-                  timeZone: "Europe/Berlin",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }).format(new Date(party.starts_at))}
+                <Clock3 size={11} />
+                {formattedTime}
                 Uhr
               </span>
             </p>
