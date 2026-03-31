@@ -105,3 +105,28 @@ using (
   or status = 'published'
   or is_published = true
 );
+
+-- Anon + authenticated can insert pending hangouts.
+drop policy if exists "hangouts_insert_pending" on public.hangouts;
+create policy "hangouts_insert_pending"
+on public.hangouts
+for insert
+to anon, authenticated
+with check (
+  review_status = 'pending'
+  and status = 'pending'
+  and is_published = false
+);
+
+-- Only authenticated users + admin can update their own entries.
+drop policy if exists "hangouts_update_own" on public.hangouts;
+create policy "hangouts_update_own"
+on public.hangouts
+for update
+to authenticated
+using (
+  coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid) = auth.uid()
+)
+with check (
+  coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid) = auth.uid()
+);
