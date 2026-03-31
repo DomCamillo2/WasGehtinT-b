@@ -4,6 +4,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+export type CreatePartyActionState = {
+  ok: boolean;
+  message: string;
+};
+
+export const INITIAL_CREATE_PARTY_STATE: CreatePartyActionState = {
+  ok: false,
+  message: "",
+};
+
 function clampRoundedCoordinate(value: number | null, min: number, max: number) {
   if (value === null || !Number.isFinite(value)) {
     return null;
@@ -14,15 +24,16 @@ function clampRoundedCoordinate(value: number | null, min: number, max: number) 
 }
 
 export async function createPartyAction(
+  _prevState: CreatePartyActionState,
   formData: FormData,
-): Promise<void> {
+): Promise<CreatePartyActionState> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return;
+    return { ok: false, message: "Bitte logge dich ein, um ein Event einzureichen." };
   }
 
   const profileResult = await supabase
@@ -112,36 +123,58 @@ export async function createPartyAction(
     Number.isNaN(endDate.getTime()) ||
     startDate >= endDate
   ) {
-    return;
+    return {
+      ok: false,
+      message: "Bitte pruefe Titel, Zeiten, Vibe und Gaestezahl. Endzeit muss nach Startzeit liegen.",
+    };
   }
 
-  const { data: party, error } = await supabase
+  const baseInsert = {
+    host_user_id: user.id,
+    title,
+    description: description || null,
+    starts_at: startDate.toISOString(),
+    ends_at: endDate.toISOString(),
+    vibe_id: resolvedVibeId,
+    max_guests: maxGuests,
+    contribution_cents: Number.isFinite(contributionCents) ? Math.max(contributionCents, 0) : 0,
+    public_lat: publicLat,
+    public_lng: publicLng,
+    location_name: locationName || null,
+    status: nextStatus,
+  };
+
+  let partyResult = await supabase
     .from("parties")
     .insert({
-      host_user_id: user.id,
-      title,
-      description: description || null,
-      starts_at: startDate.toISOString(),
-      ends_at: endDate.toISOString(),
-      vibe_id: resolvedVibeId,
-      max_guests: maxGuests,
-      contribution_cents: Number.isFinite(contributionCents) ? Math.max(contributionCents, 0) : 0,
-      public_lat: publicLat,
-      public_lng: publicLng,
-      location_name: locationName || null,
-      status: nextStatus,
+      ...baseInsert,
       review_status: nextReviewStatus,
     })
     .select("id")
     .single();
 
+  if (partyResult.error && partyResult.error.code === "42703") {
+    // Backward-compatible fallback if review_status migration is not applied yet.
+    partyResult = await supabase
+      .from("parties")
+      .insert(baseInsert)
+      .select("id")
+      .single();
+  }
+
+  const party = partyResult.data;
+  const error = partyResult.error;
+
   if (error) {
     console.error("[createPartyAction] Failed to insert party:", error);
-    return;
+    return {
+      ok: false,
+      message: "Event konnte nicht gespeichert werden. Bitte pruefe DB-Migrationen und versuche es erneut.",
+    };
   }
 
   if (!party?.id) {
-    return;
+    return { ok: false, message: "Event konnte nicht gespeichert werden." };
   }
 
   const itemNames = formData
@@ -161,11 +194,24 @@ export async function createPartyAction(
     const { error: bringError } = await supabase.from("bring_items").insert(bringRows);
     if (bringError) {
       console.error("[createPartyAction] Failed to insert bring items:", bringError);
-      return;
+      return {
+        ok: false,
+        message: "Event wurde erstellt, aber Mitbring-Liste konnte nicht gespeichert werden.",
+      };
     }
   }
 
   revalidatePath("/discover");
   revalidatePath("/host");
   revalidatePath("/admin");
+
+  if (nextStatus === "draft") {
+    return { ok: true, message: "Entwurf gespeichert." };
+  }
+
+  if (nextReviewStatus === "pending") {
+    return { ok: true, message: "Event eingereicht. Es wird im Admin-Panel geprueft." };
+  }
+
+  return { ok: true, message: "Event veroeffentlicht." };
 }

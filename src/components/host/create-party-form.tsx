@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { createPartyAction } from "@/app/actions/parties";
+import { useFormStatus } from "react-dom";
+import { createPartyAction, INITIAL_CREATE_PARTY_STATE } from "@/app/actions/parties";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Card } from "@/components/ui/card";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
@@ -33,6 +34,23 @@ function getVibeEmoji(label: string) {
   return "✨";
 }
 
+function SubmitPartyButton({ publishMode }: { publishMode: "published" | "draft" }) {
+  const { pending } = useFormStatus();
+
+  const idleLabel = publishMode === "published" ? "Party veroeffentlichen" : "Entwurf speichern";
+  const pendingLabel = publishMode === "published" ? "Wird gespeichert..." : "Entwurf wird gespeichert...";
+
+  return (
+    <PrimaryButton
+      type="submit"
+      disabled={pending}
+      className="h-12 w-full rounded-2xl bg-gradient-to-r from-violet-600 to-blue-600 text-base font-semibold text-white shadow-[0_12px_28px_rgba(79,70,229,0.35)] transition hover:from-violet-500 hover:to-blue-500 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {pending ? pendingLabel : idleLabel}
+    </PrimaryButton>
+  );
+}
+
 export function CreatePartyForm({ vibes }: Props) {
   const safeVibes = useMemo(() => {
     const normalized = vibes
@@ -59,8 +77,10 @@ export function CreatePartyForm({ vibes }: Props) {
   const [lng, setLng] = useState<number>(DEFAULT_CENTER.lng);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const markerRef = useRef<import("maplibre-gl").Marker | null>(null);
+  const [actionState, formAction] = useActionState(createPartyAction, INITIAL_CREATE_PARTY_STATE);
 
   const formattedLat = useMemo(() => lat.toFixed(6), [lat]);
   const formattedLng = useMemo(() => lng.toFixed(6), [lng]);
@@ -191,6 +211,23 @@ export function CreatePartyForm({ vibes }: Props) {
     mapRef.current?.flyTo({ center: [lng, lat], duration: 500 });
   }, [lat, lng]);
 
+  useEffect(() => {
+    if (!actionState.ok) {
+      return;
+    }
+
+    formRef.current?.reset();
+    setSelectedVibeId(String(safeVibes[0]?.id ?? ""));
+    setCustomVibeLabel("");
+    setPublishMode("published");
+    setBringItems([""]);
+    setAddressInput("");
+    setResolvedAddress("");
+    setLat(DEFAULT_CENTER.lat);
+    setLng(DEFAULT_CENTER.lng);
+    setLocationState("Event gespeichert.");
+  }, [actionState.ok, safeVibes]);
+
   const handleAutoLocation = () => {
     if (!navigator.geolocation) {
       setLocationState("Geolocation wird von diesem Browser nicht unterstützt.");
@@ -292,7 +329,7 @@ export function CreatePartyForm({ vibes }: Props) {
       <h2 className="text-base font-semibold text-zinc-900">Neue Party erstellen</h2>
       <p className="text-xs text-zinc-500">Mobile-optimiert: große Touch-Flächen, schneller Vibe- und Standort-Picker.</p>
 
-      <form action={createPartyAction} className="space-y-4">
+      <form ref={formRef} action={formAction} className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="party-title" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
             Titel der Party
@@ -553,12 +590,19 @@ export function CreatePartyForm({ vibes }: Props) {
           </button>
         </div>
 
-        <PrimaryButton
-          type="submit"
-          className="h-12 w-full rounded-2xl bg-gradient-to-r from-violet-600 to-blue-600 text-base font-semibold text-white shadow-[0_12px_28px_rgba(79,70,229,0.35)] transition hover:from-violet-500 hover:to-blue-500 active:scale-[0.985]"
-        >
-          {publishMode === "published" ? "Party veröffentlichen" : "Entwurf speichern"}
-        </PrimaryButton>
+        <SubmitPartyButton publishMode={publishMode} />
+
+        {actionState.message ? (
+          <div
+            className={`rounded-2xl border px-3 py-2 text-sm ${
+              actionState.ok
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-rose-200 bg-rose-50 text-rose-700"
+            }`}
+          >
+            {actionState.message}
+          </div>
+        ) : null}
       </form>
     </Card>
   );
