@@ -89,40 +89,8 @@ export default async function AdminPage() {
     .eq("review_status", "pending")
     .order("created_at", { ascending: true });
 
-  const pendingHangoutsFallback = await (isMissingColumnError(pendingHangoutsQuery.error?.code)
-    ? supabase
-        .from("hangouts")
-      .select("*")
-        .eq("is_published", false)
-        .order("created_at", { ascending: true })
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const pendingHangoutsLegacy = await (isMissingColumnError(
-    (isMissingColumnError(pendingHangoutsQuery.error?.code)
-      ? pendingHangoutsFallback.error?.code
-      : pendingHangoutsQuery.error?.code),
-  )
-    ? supabase
-        .from("hangouts")
-      .select("*")
-        .order("created_at", { ascending: true })
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const useHangoutFallback = isMissingColumnError(pendingHangoutsQuery.error?.code);
-  const hangoutFallbackErrorCode = useHangoutFallback ? pendingHangoutsFallback.error?.code : pendingHangoutsQuery.error?.code;
-  const useHangoutLegacy = isMissingColumnError(hangoutFallbackErrorCode);
-
-  const rawHangouts = useHangoutLegacy
-    ? ((pendingHangoutsLegacy.data ?? []) as Array<Record<string, unknown>>)
-    : useHangoutFallback
-      ? ((pendingHangoutsFallback.data ?? []) as Array<Record<string, unknown>>)
-      : ((pendingHangoutsQuery.data ?? []) as Array<Record<string, unknown>>);
-
-  const hangoutError = useHangoutLegacy
-    ? pendingHangoutsLegacy.error
-    : useHangoutFallback
-      ? pendingHangoutsFallback.error
-      : pendingHangoutsQuery.error;
+  const rawHangouts = (pendingHangoutsQuery.data ?? []) as Array<Record<string, unknown>>;
+  const hangoutError = pendingHangoutsQuery.error;
 
   const pendingHangouts: PendingHangout[] = rawHangouts.map((row) => ({
     id: String(row.id ?? ""),
