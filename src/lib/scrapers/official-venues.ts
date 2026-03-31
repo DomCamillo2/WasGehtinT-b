@@ -12,36 +12,6 @@ const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
 const DIGINIGHTS_URL = "https://diginights.com/city/tuebingen";
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 
-const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
-  { regex: /techno|acid\s*techno/i, label: "Techno" },
-  { regex: /house|deep\s*house|afro\s*house/i, label: "House" },
-  { regex: /drum\s*&?\s*bass|dnb/i, label: "Drum & Bass" },
-  { regex: /hip\s*hop|rap|trap/i, label: "Hip-Hop" },
-  { regex: /reggaeton|latin/i, label: "Reggaeton" },
-  { regex: /rnb|r\s*&\s*b/i, label: "R&B" },
-  { regex: /electro|edm/i, label: "Electro" },
-  { regex: /disco|funk/i, label: "Disco/Funk" },
-  { regex: /rock|indie|metal|punk/i, label: "Rock/Indie" },
-  { regex: /karaoke/i, label: "Karaoke" },
-  { regex: /90s|2000s|80s/i, label: "Classics" },
-  { regex: /mixed\s*music|all\s*styles|querbeet/i, label: "Mixed" },
-];
-
-function inferMusicGenre(text: string): string | null {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return null;
-  }
-
-  for (const pattern of MUSIC_GENRE_PATTERNS) {
-    if (pattern.regex.test(normalized)) {
-      return pattern.label;
-    }
-  }
-
-  return null;
-}
-
 /**
  * Parse date strings in various formats
  */
@@ -151,90 +121,36 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
     console.log("Schlachthaus: Searching through", lines.length, "lines of text");
 
     // Pattern: "FR 6.3. | TITLE | TIME" or "SA 7.3. | TITLE | TIME"
-    // Use non-greedy match and search anywhere in the line
-    const eventPattern = /(MO|DI|MI|DO|FR|SA|SO)\s+(\d{1,2})\.(\d{1,2})\.\s*\|\s*(.+?)\s*\|\s*(\d{1,2}):(\d{2})/gi;
+    const eventPattern = /^(MO|DI|MI|DO|FR|SA|SO)\s+(\d{1,2})\.(\d{1,2})\.\s*\|\s*(.+?)\s*\|\s*(\d{1,2}):(\d{2})/i;
 
     let eventCount = 0;
     const currentYear = new Date().getFullYear();
-    const nowUTC = new Date();
+    const now = new Date();
+    const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
 
-    console.log("Schlachthaus: Current time (UTC):", nowUTC.toISOString());
+    for (const line of lines) {
+      if (eventCount >= 10) break;
 
-    // Combine all lines and extract events
-    const combinedText = lines.join(" ");
-    
-    let match;
-    while ((match = eventPattern.exec(combinedText)) !== null) {
-      if (eventCount >= 15) break;
+      const match = line.match(eventPattern);
+      if (!match) {
+        continue;
+      }
 
-      const [, dayName, dayStr, monthStr, rawTitle, hourStr, minStr] = match;
+      const [, dayName, dayStr, monthStr, title, hourStr, minStr] = match;
       const day = parseInt(dayStr, 10);
       const month = parseInt(monthStr, 10);
       const hour = parseInt(hourStr, 10);
       const min = parseInt(minStr, 10);
 
-      const titleParts = rawTitle
-        .split("|")
-        .map((value) => value.trim())
-        .filter(Boolean);
-      const title = titleParts[0] ?? rawTitle.trim();
-      const explicitGenre = titleParts.length > 1 ? titleParts[1] : null;
-      const musicGenre = explicitGenre || inferMusicGenre(rawTitle);
+      // Create date for this year
+      const eventDate = new Date(Date.UTC(currentYear, month - 1, day, hour, min, 0));
 
-      // Create date in Berlin local time, then convert to UTC
-      // The times from the website are in Berlin local time (CET/CEST)
-      const berlinDate = new Date(currentYear, month - 1, day, hour, min, 0);
-      
-      // Calculate timezone offset by checking what UTC time midnight is that day
-      const utcMidnight = new Date(Date.UTC(currentYear, month - 1, day, 0, 0, 0));
-      const berlinMidnightString = utcMidnight.toLocaleString("en-US", { 
-        timeZone: "Europe/Berlin",
-        year: "numeric",
-        month: "2-digit", 
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-      });
-      
-      // Parse result format: "MM/DD/YYYY, HH:mm:ss"
-      const parts = berlinMidnightString.split(", ");
-      const timeStr = parts[1]; // "HH:mm:ss"
-      const berlinHour = parseInt(timeStr.split(":")[0]); // Hour in Berlin when it's UTC midnight
-      
-      // If UTC midnight is 1:00 in Berlin, Berlin is UTC+1
-      // If UTC midnight is 2:00 in Berlin, Berlin is UTC+2
-      // So to convert Berlin time to UTC, we subtract the hour
-      const eventDate = new Date(berlinDate.getTime() - berlinHour * 60 * 60 * 1000);
+      console.log(`Schlachthaus: Found event: ${dayName} ${day}.${month}. ${title} ${hour}:${String(min).padStart(2, "0")}`);
 
-      console.log(`Schlachthaus: Found event: ${dayName} ${day}.${month}. ${title} ${hour}:${String(min).padStart(2, "0")} (UTC+${berlinHour}) → ${eventDate.toISOString()}`);
-
-      // Only add events that are in the future
-      if (eventDate > nowUTC) {
-        const eventId = generateEventId("schlachthaus", eventDate, title);
-        events.push({
-          id: eventId,
-          title: title,
-          description: "Schlachthaus Tübingen – Kulturzentrum und Veranstaltungsort",
-          starts_at: eventDate.toISOString(),
-          ends_at: new Date(eventDate.getTime() + 4 * 60 * 60 * 1000).toISOString(),
-          max_guests: 0,
-          contribution_cents: 0,
-          public_lat: VENUE_COORDINATES.schlachthaus.lat,
-          public_lng: VENUE_COORDINATES.schlachthaus.lng,
-          is_external: true,
-          external_link: null,
-          vibe_label: "Schlachthaus",
-          spots_left: 0,
-          location_name: "Schlachthaus",
-          music_genre: musicGenre,
-        } as PartyCard);
-        eventCount++;
-      } else {
-        // If in the past, try next year
+      // If date is more than 10 days in the past, skip or try next year
+      if (eventDate < tenDaysAgo) {
         const eventDateNextYear = new Date(Date.UTC(currentYear + 1, month - 1, day, hour, min, 0));
-        if (eventDateNextYear > nowUTC) {
+        if (eventDateNextYear > tenDaysAgo) {
           const eventId = generateEventId("schlachthaus", eventDateNextYear, title);
           events.push({
             id: eventId,
@@ -250,11 +166,27 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
             external_link: null,
             vibe_label: "Schlachthaus",
             spots_left: 0,
-            location_name: "Schlachthaus",
-            music_genre: musicGenre,
           } as PartyCard);
           eventCount++;
         }
+      } else {
+        const eventId = generateEventId("schlachthaus", eventDate, title);
+        events.push({
+          id: eventId,
+          title: title,
+          description: "Schlachthaus Tübingen – Kulturzentrum und Veranstaltungsort",
+          starts_at: eventDate.toISOString(),
+          ends_at: new Date(eventDate.getTime() + 4 * 60 * 60 * 1000).toISOString(),
+          max_guests: 0,
+          contribution_cents: 0,
+          public_lat: VENUE_COORDINATES.schlachthaus.lat,
+          public_lng: VENUE_COORDINATES.schlachthaus.lng,
+          is_external: true,
+          external_link: null,
+          vibe_label: "Schlachthaus",
+          spots_left: 0,
+        } as PartyCard);
+        eventCount++;
       }
     }
 
@@ -364,8 +296,6 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
         external_link: null,
         vibe_label: venueName.length > 0 ? venueName : "Diginights",
         spots_left: 0,
-        location_name: venueName.length > 0 ? venueName : null,
-        music_genre: inferMusicGenre(`${title} ${venueName}`),
       } as PartyCard);
     }
 
