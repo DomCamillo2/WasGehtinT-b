@@ -1,10 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = {
   params: Promise<{ partyId: string }>;
 };
+
+async function getOrCreateSessionId(): Promise<string> {
+  const cookieStore = await cookies();
+  let sessionId = cookieStore.get("anon_session_id")?.value;
+  
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    (await cookies()).set("anon_session_id", sessionId, {
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+  }
+  
+  return sessionId;
+}
 
 export async function POST(_: Request, context: RouteContext) {
   const { partyId } = await context.params;
@@ -18,15 +36,13 @@ export async function POST(_: Request, context: RouteContext) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
+  const identifier = user?.id ?? (await getOrCreateSessionId());
 
   const existingVoteResult = await supabase
     .from("party_upvotes")
     .select("id")
     .eq("party_id", partyId)
-    .eq("user_id", user.id)
+    .eq(user?.id ? "user_id" : "anonymous_session_id", identifier)
     .maybeSingle();
 
   if (existingVoteResult.error) {
@@ -39,17 +55,18 @@ export async function POST(_: Request, context: RouteContext) {
     const deleteResult = await supabase
       .from("party_upvotes")
       .delete()
-      .eq("id", existingVoteResult.data.id)
-      .eq("user_id", user.id);
+      .eq("id", existingVoteResult.data.id);
 
     if (deleteResult.error) {
       return Response.json({ ok: false, error: "delete_failed" }, { status: 500 });
     }
   } else {
-    const insertResult = await supabase.from("party_upvotes").insert({
+    const insertData = {
       party_id: partyId,
-      user_id: user.id,
-    });
+      ...(user?.id ? { user_id: user.id } : { anonymous_session_id: identifier }),
+    };
+
+    const insertResult = await supabase.from("party_upvotes").insert(insertData);
 
     if (insertResult.error) {
       return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });

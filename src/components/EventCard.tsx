@@ -242,12 +242,13 @@ export function EventCard({
                 }}
                 onMouseEnter={() => setShowFlameTooltip(true)}
                 onMouseLeave={() => setShowFlameTooltip(false)}
-                className="inline-flex h-7 min-w-12 items-center justify-center gap-1 rounded-full border px-2 transition-colors"
+                className="inline-flex h-7 items-center justify-center gap-1 rounded-full border px-2 transition-colors"
                 style={{
                   borderColor: upvoted ? "#fb7185" : "var(--nav-border)",
                   backgroundColor: upvoted ? "#fff1f2" : "var(--surface-soft)",
                   color: upvoted ? "#e11d48" : "var(--muted-foreground)",
                   opacity: canUpvote ? 1 : 0.55,
+                  minWidth: effectiveUpvoteCount > 0 ? "auto" : "1.75rem",
                 }}
                 aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur für WG-Partys"}
                 disabled={!canUpvote}
@@ -259,7 +260,9 @@ export function EventCard({
                 >
                   <Flame size={13} fill={upvoted || isHotNow ? "currentColor" : "none"} />
                 </motion.span>
-                <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
+                {effectiveUpvoteCount > 0 && (
+                  <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
+                )}
               </button>
               
               {/* Flame Tooltip */}

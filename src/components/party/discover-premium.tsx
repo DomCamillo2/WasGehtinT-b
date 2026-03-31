@@ -305,10 +305,6 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   }
 
   async function toggleUpvote(eventId: string) {
-    if (!requireAuth("Um Events zu pushen und den Hot Feed zu formen, logge dich mit deiner Uni-Mail ein.")) {
-      return;
-    }
-
     const wasUpvoted = upvotedPartyIds.includes(eventId);
 
     setUpvotedPartyIds((current) =>
