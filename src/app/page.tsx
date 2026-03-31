@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { SplashAuth } from "@/components/landing/splash-auth";
 import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
   if (!hasSupabaseEnv()) {
@@ -30,14 +28,6 @@ export default async function Home() {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    redirect("/discover");
-  }
-
-  return <SplashAuth />;
+  // Public-first growth flow: discovery is the default entrypoint.
+  redirect("/discover");
 }

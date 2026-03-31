@@ -549,7 +549,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link
-                  href="/"
+                  href="/auth"
                   onClick={() => setShowAuthSheet(false)}
                   className="inline-flex h-11 items-center justify-center rounded-xl border text-sm font-semibold"
                   style={{
@@ -561,7 +561,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
                   Einloggen
                 </Link>
                 <Link
-                  href="/"
+                  href="/auth"
                   onClick={() => setShowAuthSheet(false)}
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 text-sm font-semibold text-white"
                 >

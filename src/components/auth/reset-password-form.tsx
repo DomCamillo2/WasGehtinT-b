@@ -86,7 +86,7 @@ export function ResetPasswordForm() {
       {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
 
       <p className="text-sm text-zinc-600">
-        Zurück zum Login: <Link href="/" className="font-medium text-zinc-900 underline">Startseite</Link>
+        Zurück zum Login: <Link href="/auth" className="font-medium text-zinc-900 underline">Einloggen</Link>
       </p>
     </Card>
   );
