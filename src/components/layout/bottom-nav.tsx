@@ -121,7 +121,7 @@ export function BottomNav() {
             </form>
 
             <Link
-              href="/host"
+              href="/host?intent=club"
               onClick={() => setIsComposerOpen(false)}
               className="block rounded-2xl border border-violet-200 bg-violet-50 p-3"
             >

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 function clampRoundedCoordinate(value: number | null, min: number, max: number) {
   if (value === null || !Number.isFinite(value)) {
@@ -37,6 +38,10 @@ export async function createPartyAction(
   const startsAt = String(formData.get("startsAt") ?? "");
   const endsAt = String(formData.get("endsAt") ?? "");
   const vibeId = Number(formData.get("vibeId"));
+  const defaultVibeId = Number(formData.get("defaultVibeId"));
+  const customVibeLabelRaw = String(formData.get("customVibeLabel") ?? "").trim();
+  const publishMode = String(formData.get("publishMode") ?? "published").trim().toLowerCase();
+  const wantsPublished = publishMode !== "draft";
   const locationNameRaw = String(formData.get("locationName") ?? "").trim();
   const maxGuests = Number(formData.get("maxGuests"));
   const contributionCents = Math.round(Number(formData.get("contributionEur")) * 100);
@@ -50,12 +55,56 @@ export async function createPartyAction(
   const publicLng = clampRoundedCoordinate(rawLng, -180, 180);
   const locationName = locationNameRaw.length > 140 ? locationNameRaw.slice(0, 140) : locationNameRaw;
 
+  let resolvedVibeId = Number.isFinite(vibeId) && vibeId > 0 ? vibeId : defaultVibeId;
+
+  const customVibeLabel = customVibeLabelRaw.replace(/\s+/g, " ").slice(0, 48);
+  if (customVibeLabel.length >= 2) {
+    const existingResult = await supabase
+      .from("party_vibes")
+      .select("id")
+      .ilike("label", customVibeLabel)
+      .maybeSingle();
+
+    if (existingResult.data?.id) {
+      resolvedVibeId = Number(existingResult.data.id);
+    } else {
+      const insertWithClient = await supabase
+        .from("party_vibes")
+        .insert({ label: customVibeLabel, is_active: true })
+        .select("id")
+        .single();
+
+      if (insertWithClient.data?.id) {
+        resolvedVibeId = Number(insertWithClient.data.id);
+      } else {
+        try {
+          const admin = getSupabaseAdmin();
+          const adminInsert = await admin
+            .from("party_vibes")
+            .insert({ label: customVibeLabel, is_active: true })
+            .select("id")
+            .single();
+
+          if (adminInsert.data?.id) {
+            resolvedVibeId = Number(adminInsert.data.id);
+          }
+        } catch {
+          // Fall back to the selected/default vibe if admin config is unavailable.
+        }
+      }
+    }
+  }
+
+  const shouldAutoApprove = role === "admin";
+  const nextStatus = shouldAutoApprove && wantsPublished ? "published" : "draft";
+  const nextReviewStatus = shouldAutoApprove ? "approved" : "pending";
+
   if (
     !title ||
     !startsAt ||
     !endsAt ||
-    !Number.isFinite(vibeId) ||
-    vibeId <= 0 ||
+    !Number.isFinite(resolvedVibeId) ||
+    resolvedVibeId <= 0 ||
     !Number.isFinite(maxGuests) ||
     maxGuests < 1 ||
     maxGuests > 200 ||
@@ -74,14 +123,14 @@ export async function createPartyAction(
       description: description || null,
       starts_at: startDate.toISOString(),
       ends_at: endDate.toISOString(),
-      vibe_id: vibeId,
+      vibe_id: resolvedVibeId,
       max_guests: maxGuests,
       contribution_cents: Number.isFinite(contributionCents) ? Math.max(contributionCents, 0) : 0,
       public_lat: publicLat,
       public_lng: publicLng,
       location_name: locationName || null,
-      status: role === "admin" ? "published" : "draft",
-      review_status: role === "admin" ? "approved" : "pending",
+      status: nextStatus,
+      review_status: nextReviewStatus,
     })
     .select("id")
     .single();

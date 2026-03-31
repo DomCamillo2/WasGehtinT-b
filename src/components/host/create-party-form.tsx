@@ -43,6 +43,8 @@ export function CreatePartyForm({ vibes }: Props) {
   }, [vibes]);
 
   const [selectedVibeId, setSelectedVibeId] = useState<string>(() => String(safeVibes[0]?.id ?? ""));
+  const [customVibeLabel, setCustomVibeLabel] = useState<string>("");
+  const [publishMode, setPublishMode] = useState<"published" | "draft">("published");
   const [bringItems, setBringItems] = useState<string[]>([""]);
   const [locationState, setLocationState] = useState<string>("Noch kein Standort gesetzt.");
   const [addressInput, setAddressInput] = useState<string>("");
@@ -109,7 +111,7 @@ export function CreatePartyForm({ vibes }: Props) {
       return;
     }
 
-    const exists = safeVibes.some((vibe) => String(vibe.id) === selectedVibeId);
+    const exists = selectedVibeId === "__custom__" || safeVibes.some((vibe) => String(vibe.id) === selectedVibeId);
     if (!exists) {
       setSelectedVibeId(String(safeVibes[0].id));
     }
@@ -361,10 +363,61 @@ export function CreatePartyForm({ vibes }: Props) {
                   {getVibeEmoji(vibe.label)} {vibe.label}
                 </option>
               ))}
+              <option value="__custom__">✨ Eigenen Vibe eingeben</option>
             </select>
             <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-400">⌄</span>
           </div>
+          {selectedVibeId === "__custom__" ? (
+            <div className="space-y-1.5">
+              <input
+                name="customVibeLabel"
+                value={customVibeLabel}
+                onChange={(event) => setCustomVibeLabel(event.target.value)}
+                maxLength={48}
+                required
+                placeholder="z. B. Volleyball, Beerpong, Study Break"
+                className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+              />
+              <p className="text-xs text-zinc-500">Dein eigener Vibe wird gespeichert und künftig auswählbar.</p>
+            </div>
+          ) : (
+            <input type="hidden" name="customVibeLabel" value="" />
+          )}
+          <input type="hidden" name="defaultVibeId" value={String(safeVibes[0]?.id ?? "")} />
           <p className="text-xs text-zinc-500">Wähle den Party-Style in einem schnellen Dropdown.</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">Veröffentlichung</label>
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-1">
+            <button
+              type="button"
+              onClick={() => setPublishMode("published")}
+              className={`h-10 rounded-xl text-sm font-semibold transition ${
+                publishMode === "published"
+                  ? "bg-white text-violet-700 shadow-[0_6px_14px_rgba(99,102,241,0.16)]"
+                  : "text-zinc-600"
+              }`}
+            >
+              Öffentlich
+            </button>
+            <button
+              type="button"
+              onClick={() => setPublishMode("draft")}
+              className={`h-10 rounded-xl text-sm font-semibold transition ${
+                publishMode === "draft"
+                  ? "bg-white text-violet-700 shadow-[0_6px_14px_rgba(99,102,241,0.16)]"
+                  : "text-zinc-600"
+              }`}
+            >
+              Entwurf
+            </button>
+          </div>
+          <input type="hidden" name="publishMode" value={publishMode} />
+          <p className="text-xs text-zinc-500">
+            Öffentlich sendet das Event direkt in den Feed (oder in den Admin-Review bei Nicht-Admins). Entwurf speichert es nur als
+            Draft.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -504,7 +557,7 @@ export function CreatePartyForm({ vibes }: Props) {
           type="submit"
           className="h-12 w-full rounded-2xl bg-gradient-to-r from-violet-600 to-blue-600 text-base font-semibold text-white shadow-[0_12px_28px_rgba(79,70,229,0.35)] transition hover:from-violet-500 hover:to-blue-500 active:scale-[0.985]"
         >
-          Party veröffentlichen
+          {publishMode === "published" ? "Party veröffentlichen" : "Entwurf speichern"}
         </PrimaryButton>
       </form>
     </Card>
