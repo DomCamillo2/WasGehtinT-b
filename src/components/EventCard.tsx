@@ -161,6 +161,7 @@ export function EventCard({
   const musicGenre = resolveMusicGenre(party);
   const partnerLogo = resolvePartnerLogo(party);
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
+  const [showFlameTooltip, setShowFlameTooltip] = useState(false);
 
   const hostAvatarSrc = party.host_avatar_url ?? null;
   const partnerLogoSrc = partnerLogo?.src ?? null;
@@ -229,34 +230,56 @@ export function EventCard({
             <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-500">
               {typeTag.label}
             </span>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                if (!canUpvote) {
-                  return;
-                }
-                onToggleUpvote?.();
-              }}
-              className="inline-flex h-7 min-w-12 items-center justify-center gap-1 rounded-full border px-2 transition-colors"
-              style={{
-                borderColor: upvoted ? "#fb7185" : "var(--nav-border)",
-                backgroundColor: upvoted ? "#fff1f2" : "var(--surface-soft)",
-                color: upvoted ? "#e11d48" : "var(--muted-foreground)",
-                opacity: canUpvote ? 1 : 0.55,
-              }}
-              aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur für WG-Partys"}
-              disabled={!canUpvote}
-            >
-              <motion.span
-                animate={isHotNow ? { scale: [1, 1.2, 1], rotate: [0, -6, 6, 0] } : undefined}
-                transition={isHotNow ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" } : undefined}
-                className="inline-flex"
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (!canUpvote) {
+                    return;
+                  }
+                  onToggleUpvote?.();
+                }}
+                onMouseEnter={() => setShowFlameTooltip(true)}
+                onMouseLeave={() => setShowFlameTooltip(false)}
+                className="inline-flex h-7 min-w-12 items-center justify-center gap-1 rounded-full border px-2 transition-colors"
+                style={{
+                  borderColor: upvoted ? "#fb7185" : "var(--nav-border)",
+                  backgroundColor: upvoted ? "#fff1f2" : "var(--surface-soft)",
+                  color: upvoted ? "#e11d48" : "var(--muted-foreground)",
+                  opacity: canUpvote ? 1 : 0.55,
+                }}
+                aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur für WG-Partys"}
+                disabled={!canUpvote}
               >
-                <Flame size={13} fill={upvoted || isHotNow ? "currentColor" : "none"} />
-              </motion.span>
-              <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
-            </button>
+                <motion.span
+                  animate={isHotNow ? { scale: [1, 1.2, 1], rotate: [0, -6, 6, 0] } : undefined}
+                  transition={isHotNow ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" } : undefined}
+                  className="inline-flex"
+                >
+                  <Flame size={13} fill={upvoted || isHotNow ? "currentColor" : "none"} />
+                </motion.span>
+                <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
+              </button>
+              
+              {/* Flame Tooltip */}
+              <AnimatePresence>
+                {showFlameTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.9 }}
+                    animate={{ opacity: 1, y: -12, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg pointer-events-none"
+                  >
+                    <span>
+                      🔥 {canUpvote ? "Upvotes zeigen Hype" : "Nur bei Partys aktiviert"}
+                    </span>
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full h-1.5 w-1.5 -translate-y-0.5 rotate-45 bg-gray-900" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
