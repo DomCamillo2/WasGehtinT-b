@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { moderateContent } from "@/lib/moderation";
 
 export type HangoutActionState = {
@@ -71,17 +70,8 @@ export async function createHangoutAction(
       return { error: descriptionModeration.message };
     }
 
-    // Get admin client for service-role insert
-    let supabaseClient = supabase;
-    try {
-      supabaseClient = getSupabaseAdmin();
-    } catch {
-      // Fallback to regular client if admin client is not available
-      supabaseClient = supabase;
-    }
-
-    // Simple, clean insert matching the actual schema
-    const { error: insertError } = await supabaseClient
+    // Public submissions should use the regular server client and RLS policies.
+    const { error: insertError } = await supabase
       .from("hangouts")
       .insert({
         user_id: user?.id ?? null,
@@ -97,7 +87,7 @@ export async function createHangoutAction(
 
     if (insertError) {
       console.error("[createHangoutAction] insert failed:", insertError);
-      return { error: "Posten fehlgeschlagen. Bitte versuche es erneut." };
+      return { error: `Posten fehlgeschlagen (${insertError.code ?? "unknown"}). Bitte versuche es erneut.` };
     }
 
     // Clear caches
