@@ -174,7 +174,7 @@ export function EventCard({
   const locationLine = party.location_name || party.vibe_label;
   const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
   const effectiveUpvoteCount = Math.max(0, upvoteCount ?? party.upvote_count ?? 0);
-  const canUpvote = !party.is_external;
+  const canUpvote = true;
   const startsAtDate = new Date(party.starts_at);
   const formattedDate = new Intl.DateTimeFormat("de-DE", {
     timeZone: "Europe/Berlin",
@@ -273,7 +273,7 @@ export function EventCard({
                     className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg pointer-events-none"
                   >
                     <span>
-                      🔥 {canUpvote ? "Upvotes zeigen Hype" : "Nur bei Partys aktiviert"}
+                      🔥 Upvotes zeigen Hype
                     </span>
                     <div className="absolute left-1/2 -translate-x-1/2 top-full h-1.5 w-1.5 -translate-y-0.5 rotate-45 bg-gray-900" />
                   </motion.div>
