@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -32,6 +32,8 @@ const DiscoverMap = dynamic(
 
 type FilterKey = "all" | "clubs" | "liked";
 type ViewKey = "list" | "map" | "calendar";
+
+const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
 
 type Props = {
   parties: PartyCardType[];
@@ -162,6 +164,47 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(initialUpvoteCounts);
   const [upvotedPartyIds, setUpvotedPartyIds] = useState<string[]>(initialUpvotedIds);
 
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(LOCAL_UPVOTED_EVENTS_KEY);
+      if (!raw) {
+        return;
+      }
+
+      const storedIds = JSON.parse(raw) as string[];
+      if (!Array.isArray(storedIds) || storedIds.length === 0) {
+        return;
+      }
+
+      const knownEventIds = new Set(parties.map((party) => party.id));
+      const validStoredIds = storedIds.filter((id) => typeof id === "string" && knownEventIds.has(id));
+      if (validStoredIds.length === 0) {
+        return;
+      }
+
+      setUpvotedPartyIds((current) => Array.from(new Set([...current, ...validStoredIds])));
+      setUpvoteCounts((current) => {
+        const next = { ...current };
+        for (const id of validStoredIds) {
+          if ((next[id] ?? 0) <= 0) {
+            next[id] = 1;
+          }
+        }
+        return next;
+      });
+    } catch {
+      // Ignore malformed local cache.
+    }
+  }, [parties]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LOCAL_UPVOTED_EVENTS_KEY, JSON.stringify(upvotedPartyIds));
+    } catch {
+      // Ignore storage write issues.
+    }
+  }, [upvotedPartyIds]);
+
   const fromDate = useMemo(() => parseGermanDateToIso(fromDateInput), [fromDateInput]);
   const toDate = useMemo(() => parseGermanDateToIso(toDateInput), [toDateInput]);
   const fromDateGerman = useMemo(() => formatIsoToGerman(fromDate), [fromDate]);
@@ -290,18 +333,23 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
   async function toggleUpvote(eventId: string) {
     const wasUpvoted = upvotedPartyIds.includes(eventId);
+    const nextUpvoted = !wasUpvoted;
 
     setUpvotedPartyIds((current) =>
-      wasUpvoted ? current.filter((id) => id !== eventId) : [...current, eventId],
+      nextUpvoted ? Array.from(new Set([...current, eventId])) : current.filter((id) => id !== eventId),
     );
     setUpvoteCounts((current) => ({
       ...current,
-      [eventId]: Math.max(0, (current[eventId] ?? 0) + (wasUpvoted ? -1 : 1)),
+      [eventId]: Math.max(0, (current[eventId] ?? 0) + (nextUpvoted ? 1 : -1)),
     }));
 
     try {
-      const response = await fetch(`/api/parties/${eventId}/upvote`, {
+      const response = await fetch(`/api/parties/${encodeURIComponent(eventId)}/upvote`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ upvoted: nextUpvoted }),
       });
 
       if (!response.ok) {
@@ -319,13 +367,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         [eventId]: Math.max(0, Number(data.upvoteCount ?? 0)),
       }));
     } catch {
-      setUpvotedPartyIds((current) =>
-        wasUpvoted ? Array.from(new Set([...current, eventId])) : current.filter((id) => id !== eventId),
-      );
-      setUpvoteCounts((current) => ({
-        ...current,
-        [eventId]: Math.max(0, (current[eventId] ?? 0) + (wasUpvoted ? 1 : -1)),
-      }));
+      // Keep optimistic state on network/backend issues so votes do not disappear in UI.
     }
   }
 
