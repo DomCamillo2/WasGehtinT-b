@@ -14,8 +14,12 @@ type Props = {
   party: PartyCard;
   expanded: boolean;
   onToggle: () => void;
-  liked?: boolean;
-  onToggleLike?: () => void;
+  isAuthenticated: boolean;
+  upvoted?: boolean;
+  upvoteCount?: number;
+  onToggleUpvote?: () => void;
+  onRequestAction?: () => void;
+  onChatAction?: () => void;
 };
 
 type TypeTagKey = "club-bar" | "wg-privat" | "treffen" | "extern";
@@ -137,7 +141,17 @@ function resolveMusicGenre(party: PartyCard): string | null {
   return party.is_external ? "Nicht angegeben" : null;
 }
 
-export function EventCard({ party, expanded, onToggle, liked = false, onToggleLike }: Props) {
+export function EventCard({
+  party,
+  expanded,
+  onToggle,
+  isAuthenticated,
+  upvoted = false,
+  upvoteCount,
+  onToggleUpvote,
+  onRequestAction,
+  onChatAction,
+}: Props) {
   const typeTag = getTypeTag(party);
   const musicGenre = resolveMusicGenre(party);
   const partnerLogo = resolvePartnerLogo(party);
@@ -153,6 +167,8 @@ export function EventCard({ party, expanded, onToggle, liked = false, onToggleLi
         : null;
   const locationLine = party.location_name || party.vibe_label;
   const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
+  const effectiveUpvoteCount = Math.max(0, upvoteCount ?? party.upvote_count ?? 0);
+  const canUpvote = !party.is_external;
   const startsAtDate = new Date(party.starts_at);
   const formattedDate = new Intl.DateTimeFormat("de-DE", {
     timeZone: "Europe/Berlin",
@@ -212,17 +228,23 @@ export function EventCard({ party, expanded, onToggle, liked = false, onToggleLi
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                onToggleLike?.();
+                if (!canUpvote) {
+                  return;
+                }
+                onToggleUpvote?.();
               }}
-              className="grid h-7 w-7 place-items-center rounded-full border transition-colors"
+              className="inline-flex h-7 min-w-12 items-center justify-center gap-1 rounded-full border px-2 transition-colors"
               style={{
-                borderColor: liked ? "#fb7185" : "var(--nav-border)",
-                backgroundColor: liked ? "#fff1f2" : "var(--surface-soft)",
-                color: liked ? "#e11d48" : "var(--muted-foreground)",
+                borderColor: upvoted ? "#fb7185" : "var(--nav-border)",
+                backgroundColor: upvoted ? "#fff1f2" : "var(--surface-soft)",
+                color: upvoted ? "#e11d48" : "var(--muted-foreground)",
+                opacity: canUpvote ? 1 : 0.55,
               }}
-              aria-label={liked ? "Event aus Favoriten entfernen" : "Event als Favorit speichern"}
+              aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur für WG-Partys"}
+              disabled={!canUpvote}
             >
-              <Heart size={13} fill={liked ? "currentColor" : "none"} />
+              <Heart size={13} fill={upvoted ? "currentColor" : "none"} />
+              <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
             </button>
           </div>
         </div>
@@ -290,10 +312,28 @@ export function EventCard({ party, expanded, onToggle, liked = false, onToggleLi
                   </p>
                 ) : null}
                 {!party.is_external && party.host_user_id ? (
-                  <div className="mt-2">
-                    <Link
-                      href={`/profile/${party.host_user_id}`}
-                      onClick={(event) => event.stopPropagation()}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {isAuthenticated ? (
+                      <Link
+                        href={`/profile/${party.host_user_id}`}
+                        onClick={(event) => event.stopPropagation()}
+                        className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                        style={{
+                          borderColor: "var(--nav-border)",
+                          backgroundColor: "var(--surface-elevated)",
+                          color: "var(--foreground)",
+                        }}
+                      >
+                        Host-Profil
+                      </Link>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRequestAction?.();
+                      }}
                       className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
                       style={{
                         borderColor: "var(--nav-border)",
@@ -301,8 +341,24 @@ export function EventCard({ party, expanded, onToggle, liked = false, onToggleLi
                         color: "var(--foreground)",
                       }}
                     >
-                      Host-Profil ansehen
-                    </Link>
+                      Anfragen
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onChatAction?.();
+                      }}
+                      className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                      style={{
+                        borderColor: "var(--nav-border)",
+                        backgroundColor: "var(--surface-elevated)",
+                        color: "var(--foreground)",
+                      }}
+                    >
+                      Chatten
+                    </button>
                   </div>
                 ) : null}
               </div>

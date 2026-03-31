@@ -37,6 +37,22 @@ export async function getPublicParties() {
   return (data ?? []) as PartyCard[];
 }
 
+export async function getExternalEvents() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("v_external_events_public")
+    .select("*")
+    .order("starts_at", { ascending: true });
+
+  if (error) {
+    console.error("[getExternalEvents] Failed to fetch external events:", error.message);
+    return [] as PartyCard[];
+  }
+
+  return (data ?? []) as PartyCard[];
+}
+
 export async function getBringProgressMap(partyIds: string[]) {
   if (!partyIds.length) {
     return {} as Record<string, BringProgress[]>;

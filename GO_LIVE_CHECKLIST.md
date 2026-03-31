@@ -87,6 +87,17 @@ Minimaler Launch-Plan:
 - 2x pro Woche Partner-Events prüfen.
 - Top-Friktionen aus Userfeedback priorisieren (Signup, Discover, Anfrageflow).
 
+## Optional: Background-Worker (GitHub Actions)
+
+Für saubere Frontend/Backend-Trennung laufen externe Scraper-Jobs ausserhalb von Vercel:
+
+1. Workflow aktivieren: `.github/workflows/external-events-refresh.yml`.
+2. GitHub Secrets setzen: `NEXT_PUBLIC_SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`.
+3. Optional fuer schnelle Source-Fixes: `DIGINIGHTS_URLS` als kommaseparierte URL-Liste.
+4. Sicherstellen, dass `./supabase/08_external_events_cache.sql` ausgefuehrt wurde.
+
+Damit scraped GitHub alle 6 Stunden direkt und schreibt die Ergebnisse in Supabase.
+
 ---
 
 ## Was ich für dich vorbereitet habe

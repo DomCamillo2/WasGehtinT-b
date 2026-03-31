@@ -25,6 +25,8 @@ export type PartyCard = {
   host_user_id?: string | null;
   host_avatar_url?: string | null;
   music_genre?: string | null;
+  upvote_count?: number;
+  upvoted_by_me?: boolean;
 };
 
 export type BringProgress = {

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { PartyCard } from "@/lib/types";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
 import { createBaseMapStyle } from "@/lib/map-style";
+import { ensurePerformanceMarkApi } from "@/lib/performance-compat";
 
 type Props = {
   parties: PartyCard[];
@@ -27,73 +27,89 @@ export function DiscoverMap({ parties }: Props) {
       return;
     }
 
-    const map = new maplibregl.Map({
-      container: mapRef.current,
-      style: createBaseMapStyle(),
-      center: [9.0599431, 48.5413588],
-      zoom: 12,
-    });
+    let mounted = true;
+    let mapInstance: import("maplibre-gl").Map | null = null;
 
-    parties.forEach((party) => {
-      if (party.public_lng && party.public_lat) {
-        const popup = new maplibregl.Popup({ offset: 16 });
+    void (async () => {
+      ensurePerformanceMarkApi();
+      const maplibre = (await import("maplibre-gl")).default;
 
-        if (party.is_external) {
-          const isClubhaus = party.vibe_label.toLowerCase().includes("clubhaus");
-          const isKuckuck = party.vibe_label.toLowerCase().includes("kuckuck");
-          const isSchlachthaus = party.vibe_label.toLowerCase().includes("schlachthaus");
-          const popupNode = document.createElement("div");
-          popupNode.className = "space-y-1";
-          const titleNode = document.createElement("p");
-          titleNode.className = "text-sm font-semibold";
-          titleNode.textContent = party.title;
-          if (isKuckuck) {
-            titleNode.style.color = KUCKUCK_RED;
-          } else if (isClubhaus) {
-            titleNode.style.color = CLUBHAUS_BLUE;
-          } else if (isSchlachthaus) {
-            titleNode.style.color = SCHLACHTHAUS_BROWN;
-          }
-          const infoNode = document.createElement("p");
-          infoNode.className = "text-xs text-zinc-600";
-          if (isClubhaus) {
-            infoNode.textContent = "Clubhaus · Wilhelmstraße 30, 72074 Tübingen";
-            infoNode.style.color = CLUBHAUS_BLUE;
-            popupNode.appendChild(titleNode);
-            popupNode.appendChild(infoNode);
-          } else {
-            popupNode.appendChild(titleNode);
-          }
-          popup.setDOMContent(popupNode);
-
-          const kuckuckMarker = document.createElement("div");
-          kuckuckMarker.className =
-            "grid h-8 w-8 place-items-center rounded-full border border-zinc-200 bg-zinc-900 text-xs font-bold text-white";
-          kuckuckMarker.textContent = isClubhaus ? "C" : isSchlachthaus ? "S" : "K";
-          if (isKuckuck) {
-            kuckuckMarker.style.backgroundColor = KUCKUCK_RED;
-          } else if (isClubhaus) {
-            kuckuckMarker.style.backgroundColor = CLUBHAUS_BLUE;
-          } else if (isSchlachthaus) {
-            kuckuckMarker.style.backgroundColor = SCHLACHTHAUS_BROWN;
-          }
-
-          new maplibregl.Marker({ element: kuckuckMarker })
-            .setLngLat([party.public_lng, party.public_lat])
-            .setPopup(popup)
-            .addTo(map);
-
-          return;
-        }
-
-        new maplibregl.Marker({ color: "#18181b" })
-          .setLngLat([party.public_lng, party.public_lat])
-          .setPopup(popup.setText(party.title))
-          .addTo(map);
+      if (!mounted || !mapRef.current) {
+        return;
       }
-    });
 
-    return () => map.remove();
+      const map = new maplibre.Map({
+        container: mapRef.current,
+        style: createBaseMapStyle(),
+        center: [9.0599431, 48.5413588],
+        zoom: 12,
+      });
+      mapInstance = map;
+
+      parties.forEach((party) => {
+        if (party.public_lng && party.public_lat) {
+          const popup = new maplibre.Popup({ offset: 16 });
+
+          if (party.is_external) {
+            const isClubhaus = party.vibe_label.toLowerCase().includes("clubhaus");
+            const isKuckuck = party.vibe_label.toLowerCase().includes("kuckuck");
+            const isSchlachthaus = party.vibe_label.toLowerCase().includes("schlachthaus");
+            const popupNode = document.createElement("div");
+            popupNode.className = "space-y-1";
+            const titleNode = document.createElement("p");
+            titleNode.className = "text-sm font-semibold";
+            titleNode.textContent = party.title;
+            if (isKuckuck) {
+              titleNode.style.color = KUCKUCK_RED;
+            } else if (isClubhaus) {
+              titleNode.style.color = CLUBHAUS_BLUE;
+            } else if (isSchlachthaus) {
+              titleNode.style.color = SCHLACHTHAUS_BROWN;
+            }
+            const infoNode = document.createElement("p");
+            infoNode.className = "text-xs text-zinc-600";
+            if (isClubhaus) {
+              infoNode.textContent = "Clubhaus · Wilhelmstraße 30, 72074 Tübingen";
+              infoNode.style.color = CLUBHAUS_BLUE;
+              popupNode.appendChild(titleNode);
+              popupNode.appendChild(infoNode);
+            } else {
+              popupNode.appendChild(titleNode);
+            }
+            popup.setDOMContent(popupNode);
+
+            const kuckuckMarker = document.createElement("div");
+            kuckuckMarker.className =
+              "grid h-8 w-8 place-items-center rounded-full border border-zinc-200 bg-zinc-900 text-xs font-bold text-white";
+            kuckuckMarker.textContent = isClubhaus ? "C" : isSchlachthaus ? "S" : "K";
+            if (isKuckuck) {
+              kuckuckMarker.style.backgroundColor = KUCKUCK_RED;
+            } else if (isClubhaus) {
+              kuckuckMarker.style.backgroundColor = CLUBHAUS_BLUE;
+            } else if (isSchlachthaus) {
+              kuckuckMarker.style.backgroundColor = SCHLACHTHAUS_BROWN;
+            }
+
+            new maplibre.Marker({ element: kuckuckMarker })
+              .setLngLat([party.public_lng, party.public_lat])
+              .setPopup(popup)
+              .addTo(map);
+
+            return;
+          }
+
+          new maplibre.Marker({ color: "#18181b" })
+            .setLngLat([party.public_lng, party.public_lat])
+            .setPopup(popup.setText(party.title))
+            .addTo(map);
+        }
+      });
+    })();
+
+    return () => {
+      mounted = false;
+      mapInstance?.remove();
+    };
   }, [canLoadMap, parties]);
 
   if (!canLoadMap) {

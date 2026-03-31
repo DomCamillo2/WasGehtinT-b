@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   ChevronLeft,
@@ -30,11 +31,11 @@ const DiscoverMap = dynamic(
 
 type FilterKey = "all" | "wg" | "clubs" | "today" | "liked";
 type ViewKey = "list" | "map" | "calendar";
-const LIKED_EVENTS_STORAGE_KEY = "wgt-liked-events";
 
 type Props = {
   parties: PartyCardType[];
   avatarFallback: string;
+  isAuthenticated: boolean;
 };
 
 const itemVariants = {
@@ -135,49 +136,30 @@ function shiftIsoMonth(isoDate: string, monthDelta: number): string {
 }
 
 
-export function DiscoverPremium({ parties, avatarFallback }: Props) {
+export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Props) {
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [view, setView] = useState<ViewKey>("list");
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
+  const [authSheetReason, setAuthSheetReason] = useState("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
   const [fromDateInput, setFromDateInput] = useState("");
   const [toDateInput, setToDateInput] = useState("");
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
-  const [likedEventIds, setLikedEventIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
+  const initialUpvoteCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const party of parties) {
+      map[party.id] = Math.max(0, Number(party.upvote_count ?? 0));
     }
-
-    try {
-      const raw = window.localStorage.getItem(LIKED_EVENTS_STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
-
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        return;
-      }
-
-      const sanitized = parsed
-        .map((value) => String(value).trim())
-        .filter(Boolean);
-
-      setLikedEventIds(Array.from(new Set(sanitized)));
-    } catch {
-      return;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(LIKED_EVENTS_STORAGE_KEY, JSON.stringify(likedEventIds));
-  }, [likedEventIds]);
+    return map;
+  }, [parties]);
+  const initialUpvotedIds = useMemo(
+    () => parties.filter((party) => party.upvoted_by_me).map((party) => party.id),
+    [parties],
+  );
+  const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(initialUpvoteCounts);
+  const [upvotedPartyIds, setUpvotedPartyIds] = useState<string[]>(initialUpvotedIds);
 
   const fromDate = useMemo(() => parseGermanDateToIso(fromDateInput), [fromDateInput]);
   const toDate = useMemo(() => parseGermanDateToIso(toDateInput), [toDateInput]);
@@ -191,9 +173,16 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(todayKey);
 
   const filteredParties = useMemo(() => {
-    const sorted = [...parties].sort(
-      (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
-    );
+    const sorted = [...parties].sort((left, right) => {
+      const leftScore = upvoteCounts[left.id] ?? left.upvote_count ?? 0;
+      const rightScore = upvoteCounts[right.id] ?? right.upvote_count ?? 0;
+
+      if (rightScore !== leftScore) {
+        return rightScore - leftScore;
+      }
+
+      return new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime();
+    });
 
     return sorted.filter((party) => {
       const dateKey = toDateKeyBerlin(party.starts_at);
@@ -211,7 +200,7 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
       }
 
       if (filter === "liked") {
-        if (!likedEventIds.includes(party.id)) return false;
+        if (!upvotedPartyIds.includes(party.id)) return false;
       }
 
       if (fromDate && dateKey < fromDate) {
@@ -224,22 +213,85 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
 
       return true;
     });
-  }, [filter, fromDate, likedEventIds, parties, toDate, todayKey]);
+  }, [filter, fromDate, parties, toDate, todayKey, upvoteCounts, upvotedPartyIds]);
 
   const filterItems: Array<{ key: FilterKey; label: string }> = [
     { key: "all", label: "Alle" },
     { key: "wg", label: "🏠 WGs" },
     { key: "clubs", label: "🪩 Clubs" },
     { key: "today", label: "🔥 Heute" },
-    { key: "liked", label: "❤️ Liked" },
+    { key: "liked", label: "🔥 Upvoted" },
   ];
 
-  function toggleLikedEvent(eventId: string) {
-    setLikedEventIds((current) =>
-      current.includes(eventId)
-        ? current.filter((id) => id !== eventId)
-        : [...current, eventId],
+  function requireAuth(reason: string) {
+    if (isAuthenticated) {
+      return true;
+    }
+
+    setAuthSheetReason(reason);
+    setShowAuthSheet(true);
+    return false;
+  }
+
+  async function toggleUpvote(eventId: string) {
+    if (!requireAuth("Um Events zu pushen und den Hot Feed zu formen, logge dich mit deiner Uni-Mail ein.")) {
+      return;
+    }
+
+    const wasUpvoted = upvotedPartyIds.includes(eventId);
+
+    setUpvotedPartyIds((current) =>
+      wasUpvoted ? current.filter((id) => id !== eventId) : [...current, eventId],
     );
+    setUpvoteCounts((current) => ({
+      ...current,
+      [eventId]: Math.max(0, (current[eventId] ?? 0) + (wasUpvoted ? -1 : 1)),
+    }));
+
+    try {
+      const response = await fetch(`/api/parties/${eventId}/upvote`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as { upvoted: boolean; upvoteCount: number };
+      setUpvotedPartyIds((current) =>
+        data.upvoted
+          ? Array.from(new Set([...current, eventId]))
+          : current.filter((id) => id !== eventId),
+      );
+      setUpvoteCounts((current) => ({
+        ...current,
+        [eventId]: Math.max(0, Number(data.upvoteCount ?? 0)),
+      }));
+    } catch {
+      setUpvotedPartyIds((current) =>
+        wasUpvoted ? Array.from(new Set([...current, eventId])) : current.filter((id) => id !== eventId),
+      );
+      setUpvoteCounts((current) => ({
+        ...current,
+        [eventId]: Math.max(0, (current[eventId] ?? 0) + (wasUpvoted ? 1 : -1)),
+      }));
+    }
+  }
+
+  function handleRequestAction() {
+    if (!requireAuth("Um bei einer Party anzufragen und die genaue Location zu sehen, logge dich mit deiner Uni-Mail ein.")) {
+      return;
+    }
+
+    router.push("/requests");
+  }
+
+  function handleChatAction() {
+    if (!requireAuth("Um mit Hosts und Gästen zu chatten, logge dich mit deiner Uni-Mail ein.")) {
+      return;
+    }
+
+    router.push("/chat");
   }
 
   const eventsByDate = useMemo(() => {
@@ -312,13 +364,27 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
           </motion.button>
 
           <motion.div whileTap={{ scale: 0.97 }} className="grid">
-            <Link
-              href="/profile"
-              className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
-              aria-label="Profil öffnen"
-            >
-              {avatarFallback}
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/profile"
+                className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
+                aria-label="Profil öffnen"
+              >
+                {avatarFallback}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthSheetReason("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
+                  setShowAuthSheet(true);
+                }}
+                className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
+                aria-label="Login öffnen"
+              >
+                {avatarFallback}
+              </button>
+            )}
           </motion.div>
         </div>
       </header>
@@ -447,6 +513,60 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                 >
                   Anwenden
                 </button>
+              </div>
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence initial={false}>
+        {showAuthSheet ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Login-Hinweis schließen"
+              className="fixed inset-0 z-40 bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAuthSheet(false)}
+            />
+            <motion.div
+              initial={{ y: "100%", opacity: 0.85 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0.85 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border p-4 shadow-2xl"
+              style={{
+                borderColor: "var(--nav-border)",
+                backgroundColor: "var(--surface-elevated)",
+              }}
+            >
+              <div className="mx-auto mb-3 h-1.5 w-12 rounded-full" style={{ backgroundColor: "var(--nav-border)" }} />
+              <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>Mit Uni-Mail freischalten</h2>
+              <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                {authSheetReason}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Link
+                  href="/"
+                  onClick={() => setShowAuthSheet(false)}
+                  className="inline-flex h-11 items-center justify-center rounded-xl border text-sm font-semibold"
+                  style={{
+                    borderColor: "var(--nav-border)",
+                    backgroundColor: "var(--surface-elevated)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  Einloggen
+                </Link>
+                <Link
+                  href="/"
+                  onClick={() => setShowAuthSheet(false)}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 text-sm font-semibold text-white"
+                >
+                  Account erstellen
+                </Link>
               </div>
             </motion.div>
           </>
@@ -648,8 +768,12 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                       key={party.id}
                       party={party}
                       expanded={expandedCardId === party.id}
-                      liked={likedEventIds.includes(party.id)}
-                      onToggleLike={() => toggleLikedEvent(party.id)}
+                      isAuthenticated={isAuthenticated}
+                      upvoted={upvotedPartyIds.includes(party.id)}
+                      upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                      onToggleUpvote={() => toggleUpvote(party.id)}
+                      onRequestAction={handleRequestAction}
+                      onChatAction={handleChatAction}
                       onToggle={() =>
                         setExpandedCardId((current) => (current === party.id ? null : party.id))
                       }
@@ -677,8 +801,12 @@ export function DiscoverPremium({ parties, avatarFallback }: Props) {
                 <EventCard
                   party={party}
                   expanded={expandedCardId === party.id}
-                  liked={likedEventIds.includes(party.id)}
-                  onToggleLike={() => toggleLikedEvent(party.id)}
+                  isAuthenticated={isAuthenticated}
+                  upvoted={upvotedPartyIds.includes(party.id)}
+                  upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                  onToggleUpvote={() => toggleUpvote(party.id)}
+                  onRequestAction={handleRequestAction}
+                  onChatAction={handleChatAction}
                   onToggle={() =>
                     setExpandedCardId((current) => (current === party.id ? null : party.id))
                   }

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { createPartyAction } from "@/app/actions/parties";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Card } from "@/components/ui/card";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
 import { createBaseMapStyle } from "@/lib/map-style";
+import { ensurePerformanceMarkApi } from "@/lib/performance-compat";
 
 type Props = {
   vibes: Array<{ id: number; label: string }>;
@@ -57,49 +57,52 @@ export function CreatePartyForm({ vibes }: Props) {
   const [lng, setLng] = useState<number>(DEFAULT_CENTER.lng);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const mapRef = useRef<import("maplibre-gl").Map | null>(null);
+  const markerRef = useRef<import("maplibre-gl").Marker | null>(null);
 
   const formattedLat = useMemo(() => lat.toFixed(6), [lat]);
   const formattedLng = useMemo(() => lng.toFixed(6), [lng]);
 
-  const reverseGeocodeCoordinates = async (nextLat: number, nextLng: number) => {
-    if (!canLoadExternalServices) {
-      return;
-    }
-
-    setIsReverseGeocoding(true);
-    setLocationState("Adresse wird aus Pin-Position ermittelt...");
-
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${encodeURIComponent(
-          String(nextLat),
-        )}&lon=${encodeURIComponent(String(nextLng))}`,
-      );
-
-      if (!response.ok) {
-        setLocationState("Pin gesetzt. Adresse konnte nicht automatisch aufgelöst werden.");
+  const reverseGeocodeCoordinates = useCallback(
+    async (nextLat: number, nextLng: number) => {
+      if (!canLoadExternalServices) {
         return;
       }
 
-      const result = (await response.json()) as { display_name?: string };
-      const displayName = (result.display_name ?? "").trim();
+      setIsReverseGeocoding(true);
+      setLocationState("Adresse wird aus Pin-Position ermittelt...");
 
-      if (!displayName) {
-        setLocationState("Pin gesetzt. Keine genaue Adresse gefunden.");
-        return;
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${encodeURIComponent(
+            String(nextLat),
+          )}&lon=${encodeURIComponent(String(nextLng))}`,
+        );
+
+        if (!response.ok) {
+          setLocationState("Pin gesetzt. Adresse konnte nicht automatisch aufgelöst werden.");
+          return;
+        }
+
+        const result = (await response.json()) as { display_name?: string };
+        const displayName = (result.display_name ?? "").trim();
+
+        if (!displayName) {
+          setLocationState("Pin gesetzt. Keine genaue Adresse gefunden.");
+          return;
+        }
+
+        setAddressInput(displayName);
+        setResolvedAddress(displayName);
+        setLocationState("Pin gesetzt und Adresse übernommen.");
+      } catch {
+        setLocationState("Pin gesetzt. Adresse konnte nicht automatisch geladen werden.");
+      } finally {
+        setIsReverseGeocoding(false);
       }
-
-      setAddressInput(displayName);
-      setResolvedAddress(displayName);
-      setLocationState("Pin gesetzt und Adresse übernommen.");
-    } catch {
-      setLocationState("Pin gesetzt. Adresse konnte nicht automatisch geladen werden.");
-    } finally {
-      setIsReverseGeocoding(false);
-    }
-  };
+    },
+    [canLoadExternalServices],
+  );
 
   useEffect(() => {
     if (!safeVibes.length) {
@@ -117,57 +120,69 @@ export function CreatePartyForm({ vibes }: Props) {
       return;
     }
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: createBaseMapStyle(),
-      center: [DEFAULT_CENTER.lng, DEFAULT_CENTER.lat],
-      zoom: 12,
-    });
+    let mounted = true;
 
-    const markerElement = document.createElement("div");
-    markerElement.style.width = "24px";
-    markerElement.style.height = "24px";
-    markerElement.style.borderRadius = "9999px";
-    markerElement.style.background = "radial-gradient(circle at 30% 30%, #a78bfa 0%, #7c3aed 45%, #5b21b6 100%)";
-    markerElement.style.border = "2px solid #ffffff";
-    markerElement.style.boxShadow = "0 10px 22px rgba(124,58,237,0.45), 0 0 0 8px rgba(124,58,237,0.16)";
-    markerElement.style.transform = "translateZ(0)";
+    void (async () => {
+      ensurePerformanceMarkApi();
+      const maplibre = (await import("maplibre-gl")).default;
 
-    const marker = new maplibregl.Marker({
-      element: markerElement,
-      draggable: true,
-    })
-      .setLngLat([DEFAULT_CENTER.lng, DEFAULT_CENTER.lat])
-      .addTo(map);
+      if (!mounted || !mapContainerRef.current || mapRef.current) {
+        return;
+      }
 
-    marker.on("dragend", () => {
-      const pos = marker.getLngLat();
-      setLat(pos.lat);
-      setLng(pos.lng);
-      void reverseGeocodeCoordinates(pos.lat, pos.lng);
-    });
+      const map = new maplibre.Map({
+        container: mapContainerRef.current,
+        style: createBaseMapStyle(),
+        center: [DEFAULT_CENTER.lng, DEFAULT_CENTER.lat],
+        zoom: 12,
+      });
 
-    map.on("click", (event) => {
-      marker.setLngLat(event.lngLat);
-      setLat(event.lngLat.lat);
-      setLng(event.lngLat.lng);
-      void reverseGeocodeCoordinates(event.lngLat.lat, event.lngLat.lng);
-    });
+      const markerElement = document.createElement("div");
+      markerElement.style.width = "24px";
+      markerElement.style.height = "24px";
+      markerElement.style.borderRadius = "9999px";
+      markerElement.style.background = "radial-gradient(circle at 30% 30%, #a78bfa 0%, #7c3aed 45%, #5b21b6 100%)";
+      markerElement.style.border = "2px solid #ffffff";
+      markerElement.style.boxShadow = "0 10px 22px rgba(124,58,237,0.45), 0 0 0 8px rgba(124,58,237,0.16)";
+      markerElement.style.transform = "translateZ(0)";
 
-    mapRef.current = map;
-    markerRef.current = marker;
+      const marker = new maplibre.Marker({
+        element: markerElement,
+        draggable: true,
+      })
+        .setLngLat([DEFAULT_CENTER.lng, DEFAULT_CENTER.lat])
+        .addTo(map);
 
-    map.on("load", () => {
-      map.resize();
-    });
+      marker.on("dragend", () => {
+        const pos = marker.getLngLat();
+        setLat(pos.lat);
+        setLng(pos.lng);
+        void reverseGeocodeCoordinates(pos.lat, pos.lng);
+      });
+
+      map.on("click", (event) => {
+        marker.setLngLat(event.lngLat);
+        setLat(event.lngLat.lat);
+        setLng(event.lngLat.lng);
+        void reverseGeocodeCoordinates(event.lngLat.lat, event.lngLat.lng);
+      });
+
+      mapRef.current = map;
+      markerRef.current = marker;
+
+      map.on("load", () => {
+        map.resize();
+      });
+    })();
 
     return () => {
-      marker.remove();
-      map.remove();
+      mounted = false;
+      markerRef.current?.remove();
+      mapRef.current?.remove();
       markerRef.current = null;
       mapRef.current = null;
     };
-  }, [canLoadExternalServices]);
+  }, [canLoadExternalServices, reverseGeocodeCoordinates]);
 
   useEffect(() => {
     markerRef.current?.setLngLat([lng, lat]);

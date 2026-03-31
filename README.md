@@ -41,8 +41,11 @@ cp .env.example .env.local
 - Erst dein Schema-SQL ausführen (das ausführliche Schema aus dem Projektkontext/Chat)
 - Danach `../supabase/02_seed_and_views.sql` ausführen
 - Danach `../supabase/03_webhook_idempotency.sql` ausführen
+- Danach `../supabase/04_external_partner_events.sql` ausführen
 - Danach `../supabase/05_hangouts.sql` ausführen
 - Danach `../supabase/06_content_reports.sql` ausführen
+- Danach `../supabase/07_user_profile_onboarding.sql` ausführen
+- Danach `./supabase/08_external_events_cache.sql` ausführen
 
 5) Dev-Server starten
 
@@ -71,17 +74,29 @@ Zusätzlich gibt es Status-Filter (`all`, `failed`, `pending`, `processed`) und 
 
 ## Partner-Events automatisch aktualisieren
 
-- Externe Events (z. B. Kuckuck + Clubhausfeste) werden serverseitig gecacht und automatisch alle 6 Stunden revalidiert.
-- Für aktives Pull-Refresh per Scheduler kann optional ein Cronjob den Endpoint aufrufen:
+Externe Events sind jetzt sauber vom Frontend getrennt:
+
+- Frontend liest nur aus Supabase (`v_external_events_public`).
+- Background-Worker scraped Quellen und schreibt direkt in `external_events_cache`.
+- Der Worker laeuft in GitHub Actions (`.github/workflows/external-events-refresh.yml`).
+
+Benötigte GitHub Repository Secrets:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `DIGINIGHTS_URLS` (optional, kommaseparierte Fallback-URLs)
+
+Lokal testen:
 
 ```bash
-GET /api/external-events/refresh
-Header: x-refresh-token: <EXTERNAL_EVENTS_REFRESH_TOKEN>
+NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run external-events:sync
 ```
 
-- Alternativ als Query: `/api/external-events/refresh?token=<EXTERNAL_EVENTS_REFRESH_TOKEN>`
-- In diesem Projekt ist zusätzlich `vercel.json` mit einem Cron auf `/api/external-events/refresh` hinterlegt (täglich um 03:00 UTC; kompatibel mit Vercel Hobby).
-- Für den Vercel-Cron muss `CRON_SECRET` in den Umgebungsvariablen gesetzt sein; der Endpoint akzeptiert `Authorization: Bearer <CRON_SECRET>`.
+Optionaler Diginights-Override (z. B. bei URL-Aenderungen):
+
+```bash
+DIGINIGHTS_URLS="https://diginights.com,https://diginights.com/city/tuebingen" npm run external-events:sync
+```
 
 ## Reports API
 

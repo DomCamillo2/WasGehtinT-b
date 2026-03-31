@@ -1,7 +1,6 @@
-import { fetchExternalEventsAction } from "@/app/actions/external-events";
 import { AppShell } from "@/components/layout/app-shell";
 import { DiscoverPremium } from "@/components/party/discover-premium";
-import { getPublicParties, requireUser } from "@/lib/data";
+import { getExternalEvents, getPublicParties } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
 
@@ -98,20 +97,76 @@ export default async function DiscoverPage({
   searchParams: Promise<{ view?: string; date?: string; type?: string }>;
 }) {
   void searchParams;
-  const { user } = await requireUser();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const [dbParties, externalParties] = await Promise.all([
     getPublicParties(),
-    fetchExternalEventsAction(),
+    getExternalEvents(),
   ]);
 
   const enrichedDbParties = await enrichPartiesForDiscover(dbParties);
   const parties = [...enrichedDbParties, ...externalParties];
-  const avatarFallback = String(user.email?.[0] ?? "U").toUpperCase();
+
+  const internalPartyIds = enrichedDbParties.map((party) => party.id);
+  const upvoteCountMap = new Map<string, number>();
+  const upvotedByMe = new Set<string>();
+
+  if (internalPartyIds.length) {
+    const upvoteCountResult = await supabase
+      .from("party_upvotes")
+      .select("party_id")
+      .in("party_id", internalPartyIds);
+
+    if (!upvoteCountResult.error) {
+      for (const row of (upvoteCountResult.data ?? []) as Array<{ party_id: string }>) {
+        const current = upvoteCountMap.get(row.party_id) ?? 0;
+        upvoteCountMap.set(row.party_id, current + 1);
+      }
+    }
+
+    if (user) {
+      const myUpvotesResult = await supabase
+        .from("party_upvotes")
+        .select("party_id")
+        .eq("user_id", user.id)
+        .in("party_id", internalPartyIds);
+
+      if (!myUpvotesResult.error) {
+        for (const row of (myUpvotesResult.data ?? []) as Array<{ party_id: string }>) {
+          upvotedByMe.add(row.party_id);
+        }
+      }
+    }
+  }
+
+  const partiesWithUpvotes = parties.map((party) => {
+    if (party.is_external) {
+      return {
+        ...party,
+        upvote_count: 0,
+        upvoted_by_me: false,
+      };
+    }
+
+    return {
+      ...party,
+      upvote_count: upvoteCountMap.get(party.id) ?? 0,
+      upvoted_by_me: upvotedByMe.has(party.id),
+    };
+  });
+
+  const avatarFallback = String(user?.email?.[0] ?? "G").toUpperCase();
 
   return (
     <AppShell>
-      <DiscoverPremium parties={parties} avatarFallback={avatarFallback} />
+      <DiscoverPremium
+        parties={partiesWithUpvotes}
+        avatarFallback={avatarFallback}
+        isAuthenticated={Boolean(user)}
+      />
     </AppShell>
   );
 }
