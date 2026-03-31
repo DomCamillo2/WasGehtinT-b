@@ -169,7 +169,17 @@ export async function createPartyAction(
     submitter_name: submitterName || null,
   };
 
-  const insertClient = user ? supabase : getSupabaseAdmin();
+  const insertClient = (() => {
+    if (user) {
+      return supabase;
+    }
+
+    try {
+      return getSupabaseAdmin();
+    } catch {
+      return supabase;
+    }
+  })();
 
   let partyResult = await insertClient
     .from("parties")
@@ -260,9 +270,13 @@ export async function createPartyAction(
     }
   }
 
-  revalidatePath("/discover");
-  revalidatePath("/host");
-  revalidatePath("/admin");
+  try {
+    revalidatePath("/discover");
+    revalidatePath("/host");
+    revalidatePath("/admin");
+  } catch (err) {
+    console.warn("[createPartyAction] revalidate warning:", err);
+  }
 
   return { ok: true, message: "Event eingereicht. Es wird vor der Veroeffentlichung im Admin-Panel geprueft." };
 }

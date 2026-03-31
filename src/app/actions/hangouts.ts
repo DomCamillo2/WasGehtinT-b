@@ -27,12 +27,14 @@ export async function createHangoutAction(
   formData: FormData,
 ): Promise<HangoutActionState> {
   void prevState;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const submitterNameRaw = String(formData.get("submitterName") ?? "").trim();
-  const submitterName = submitterNameRaw.slice(0, 80);
+
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const submitterNameRaw = String(formData.get("submitterName") ?? "").trim();
+    const submitterName = submitterNameRaw.slice(0, 80);
 
   if (!user && !submitterName) {
     return { error: "Bitte gib einen Namen an, wenn du ohne Account einreichst." };
@@ -83,13 +85,18 @@ export async function createHangoutAction(
     return { error: descriptionModeration.message };
   }
 
-  const admin = getSupabaseAdmin();
-  const adminHangouts = admin as unknown as AdminHangoutInsertClient;
+  let adminHangouts: AdminHangoutInsertClient;
+  try {
+    adminHangouts = getSupabaseAdmin() as unknown as AdminHangoutInsertClient;
+  } catch {
+    adminHangouts = supabase as unknown as AdminHangoutInsertClient;
+  }
   const baseInsert = {
     user_id: user?.id ?? null,
     title: titleModeration.sanitizedText,
     description: descriptionModeration.sanitizedText,
     activity_type: safeType,
+    kind: safeType,
     location_text: locationRaw,
     meetup_at: meetupAtDate.toISOString(),
     review_status: "pending",
@@ -110,6 +117,20 @@ export async function createHangoutAction(
   }
 
   if (isMissingColumnError(insertResult.error?.code)) {
+    insertResult = await adminHangouts.from("hangouts").insert({
+      ...baseInsert,
+      activity_type: undefined,
+    });
+  }
+
+  if (isMissingColumnError(insertResult.error?.code)) {
+    insertResult = await adminHangouts.from("hangouts").insert({
+      ...baseInsert,
+      kind: undefined,
+    });
+  }
+
+  if (isMissingColumnError(insertResult.error?.code)) {
     // Backward-compatible fallback while the new migration is not applied yet.
     const legacyDescription = `Wo: ${locationRaw}\nWann: ${meetupAtDate.toISOString()}\n\n${descriptionModeration.sanitizedText}`;
     insertResult = await adminHangouts.from("hangouts").insert({
@@ -117,6 +138,21 @@ export async function createHangoutAction(
       title: titleModeration.sanitizedText,
       description: legacyDescription,
       activity_type: safeType,
+      kind: safeType,
+      review_status: "pending",
+      status: "pending",
+      is_published: false,
+      submitter_name: submitterName || null,
+    });
+  }
+
+  if (isMissingColumnError(insertResult.error?.code)) {
+    const legacyDescription = `Wo: ${locationRaw}\nWann: ${meetupAtDate.toISOString()}\n\n${descriptionModeration.sanitizedText}`;
+    insertResult = await adminHangouts.from("hangouts").insert({
+      user_id: user?.id ?? null,
+      title: titleModeration.sanitizedText,
+      description: legacyDescription,
+      kind: safeType,
       review_status: "pending",
       status: "pending",
       is_published: false,
@@ -133,17 +169,39 @@ export async function createHangoutAction(
     });
   }
 
+  if (isMissingColumnError(insertResult.error?.code)) {
+    insertResult = await adminHangouts.from("hangouts").insert({
+      user_id: user?.id ?? null,
+      title: titleModeration.sanitizedText,
+      description: `Einreichung: ${submitterName || "Gast"}\nWo: ${locationRaw}\nWann: ${meetupAtDate.toISOString()}\n\n${descriptionModeration.sanitizedText}`,
+      kind: safeType,
+    });
+  }
+
   const error = insertResult.error;
 
   if (error) {
+    console.error("[createHangoutAction] insert rejected", error);
     return { error: "Posten fehlgeschlagen. Bitte versuche es erneut." };
   }
 
-  revalidatePath("/spontan");
-
-  if (titleModeration.wasSanitized || descriptionModeration.wasSanitized) {
-    return { success: "Eingereicht. Einige Wörter wurden automatisch zensiert und der Post wird nach Admin-Review sichtbar." };
+  try {
+    revalidatePath("/admin");
+    revalidatePath("/discover");
+  } catch (err) {
+    console.warn("[createHangoutAction] revalidate warning:", err);
   }
 
-  return { success: "Eingereicht. Sichtbar nach Admin-Freigabe." };
+    if (titleModeration.wasSanitized || descriptionModeration.wasSanitized) {
+      return {
+        success:
+          "Eingereicht. Einige Wörter wurden automatisch zensiert und der Post wird nach Admin-Review sichtbar.",
+      };
+    }
+
+    return { success: "Eingereicht. Zur Freigabe eingesendet." };
+  } catch (error) {
+    console.error("[createHangoutAction] submit failed", error);
+    return { error: "Einreichen fehlgeschlagen. Bitte versuche es erneut." };
+  }
 }

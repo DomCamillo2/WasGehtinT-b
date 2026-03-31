@@ -65,9 +65,13 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
     return;
   }
 
-  revalidatePath("/admin");
-  revalidatePath("/discover");
-  revalidatePath("/host");
+  try {
+    revalidatePath("/admin");
+    revalidatePath("/discover");
+    revalidatePath("/host");
+  } catch (err) {
+    console.warn("[reviewPartySubmissionAction] revalidate warning:", err);
+  }
 }
 
 export async function reviewHangoutSubmissionAction(formData: FormData): Promise<void> {
@@ -117,6 +121,10 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
     return;
   }
 
-  revalidatePath("/admin");
-  revalidatePath("/spontan");
+  try {
+    revalidatePath("/admin");
+    revalidatePath("/discover");
+  } catch (err) {
+    console.warn("[reviewHangoutSubmissionAction] revalidate warning:", err);
+  }
 }
