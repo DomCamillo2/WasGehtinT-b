@@ -30,7 +30,7 @@ const DiscoverMap = dynamic(
   },
 );
 
-type FilterKey = "all" | "wg" | "clubs" | "today" | "liked" | "top";
+type FilterKey = "all" | "clubs" | "liked";
 type ViewKey = "list" | "map" | "calendar";
 
 type Props = {
@@ -252,25 +252,12 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
     return sorted.filter((party) => {
       const dateKey = toDateKeyBerlin(party.starts_at);
 
-      if (filter === "wg") {
-        if (party.is_external) return false;
-      }
-
       if (filter === "clubs") {
         if (!party.is_external) return false;
       }
 
-      if (filter === "today") {
-        if (dateKey !== todayKey) return false;
-      }
-
       if (filter === "liked") {
         if (!upvotedPartyIds.includes(party.id)) return false;
-      }
-
-      if (filter === "top") {
-        const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
-        if (score <= 0) return false;
       }
 
       if (fromDate && dateKey < fromDate) {
@@ -283,15 +270,12 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
       return true;
     });
-  }, [filter, fromDate, sortedParties, toDate, todayKey, upvoteCounts, upvotedPartyIds]);
+  }, [filter, fromDate, sortedParties, toDate, upvotedPartyIds]);
 
   const filterItems: Array<{ key: FilterKey; label: string }> = [
     { key: "all", label: "Alle" },
-    { key: "wg", label: "🏠 WGs" },
     { key: "clubs", label: "🪩 Clubs" },
-    { key: "today", label: "🔥 Heute" },
     { key: "liked", label: "❤️ Gemerkt" },
-    { key: "top", label: "🔥 Top Upvotes" },
   ];
 
   function requireAuth(reason: string) {

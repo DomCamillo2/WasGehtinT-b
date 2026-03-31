@@ -192,11 +192,16 @@ export function EventCard({
     <motion.article
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.985, y: -1 }}
-      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      animate={
+        isHotNow
+          ? { boxShadow: ["0 0 0 1px rgba(251,146,60,0.45), 0 8px 24px rgba(249,115,22,0.2)", "0 0 0 2px rgba(251,146,60,0.8), 0 12px 28px rgba(249,115,22,0.28)", "0 0 0 1px rgba(251,146,60,0.45), 0 8px 24px rgba(249,115,22,0.2)"] }
+          : { boxShadow: "0 6px 20px rgba(20,24,40,0.06)" }
+      }
+      transition={isHotNow ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" } : { type: "spring", stiffness: 320, damping: 24 }}
       onClick={onToggle}
       className="relative rounded-2xl border p-3.5 shadow-[0_6px_20px_rgba(20,24,40,0.06)] transition-shadow hover:shadow-[0_12px_30px_rgba(20,24,40,0.12)]"
       style={{
-        borderColor: party.is_external ? "#d4d4d8" : "#dbeafe",
+        borderColor: isHotNow ? "#fb923c" : party.is_external ? "#d4d4d8" : "#dbeafe",
         backgroundColor: "var(--surface-elevated)",
       }}
     >

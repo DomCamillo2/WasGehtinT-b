@@ -39,9 +39,9 @@ export async function POST(_: Request, context: RouteContext) {
   const identifier = user?.id ?? (await getOrCreateSessionId());
 
   const existingVoteResult = await supabase
-    .from("party_upvotes")
+    .from("event_upvotes")
     .select("id")
-    .eq("party_id", partyId)
+    .eq("event_id", partyId)
     .eq(user?.id ? "user_id" : "anonymous_session_id", identifier)
     .maybeSingle();
 
@@ -53,7 +53,7 @@ export async function POST(_: Request, context: RouteContext) {
 
   if (existingVoteResult.data?.id) {
     const deleteResult = await supabase
-      .from("party_upvotes")
+      .from("event_upvotes")
       .delete()
       .eq("id", existingVoteResult.data.id);
 
@@ -62,11 +62,11 @@ export async function POST(_: Request, context: RouteContext) {
     }
   } else {
     const insertData = {
-      party_id: partyId,
+      event_id: partyId,
       ...(user?.id ? { user_id: user.id } : { anonymous_session_id: identifier }),
     };
 
-    const insertResult = await supabase.from("party_upvotes").insert(insertData);
+    const insertResult = await supabase.from("event_upvotes").insert(insertData);
 
     if (insertResult.error) {
       return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
@@ -76,9 +76,9 @@ export async function POST(_: Request, context: RouteContext) {
   }
 
   const countResult = await supabase
-    .from("party_upvotes")
+    .from("event_upvotes")
     .select("id", { count: "exact", head: true })
-    .eq("party_id", partyId);
+    .eq("event_id", partyId);
 
   if (countResult.error) {
     return Response.json({ ok: false, error: "count_failed" }, { status: 500 });

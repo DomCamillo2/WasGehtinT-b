@@ -3,6 +3,7 @@ import { DiscoverPremium } from "@/components/party/discover-premium";
 import { getExternalEvents, getPublicParties } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
+import { cookies } from "next/headers";
 
 async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard[]> {
   if (!parties.length) {
@@ -110,58 +111,56 @@ export default async function DiscoverPage({
   const enrichedDbParties = await enrichPartiesForDiscover(dbParties);
   const parties = [...enrichedDbParties, ...externalParties];
 
-  const internalPartyIds = enrichedDbParties.map((party) => party.id);
+  const eventIds = parties.map((party) => party.id);
   const upvoteCountMap = new Map<string, number>();
   const upvotedByMe = new Set<string>();
 
-  if (internalPartyIds.length) {
-    const upvoteCountResult = await supabase
-      .from("v_party_upvote_counts")
-      .select("party_id, upvote_count")
-      .in("party_id", internalPartyIds);
+  if (eventIds.length) {
+    const genericCountResult = await supabase
+      .from("event_upvotes")
+      .select("event_id")
+      .in("event_id", eventIds);
 
-    if (!upvoteCountResult.error) {
-      for (const row of (upvoteCountResult.data ?? []) as Array<{ party_id: string; upvote_count: number }>) {
-        upvoteCountMap.set(row.party_id, Math.max(0, Number(row.upvote_count ?? 0)));
-      }
-    } else {
-      const fallbackCountResult = await supabase
-        .from("party_upvotes")
-        .select("party_id")
-        .in("party_id", internalPartyIds);
-
-      if (!fallbackCountResult.error) {
-        for (const row of (fallbackCountResult.data ?? []) as Array<{ party_id: string }>) {
-          const current = upvoteCountMap.get(row.party_id) ?? 0;
-          upvoteCountMap.set(row.party_id, current + 1);
-        }
+    if (!genericCountResult.error) {
+      for (const row of (genericCountResult.data ?? []) as Array<{ event_id: string }>) {
+        const current = upvoteCountMap.get(row.event_id) ?? 0;
+        upvoteCountMap.set(row.event_id, current + 1);
       }
     }
 
     if (user) {
       const myUpvotesResult = await supabase
-        .from("party_upvotes")
-        .select("party_id")
+        .from("event_upvotes")
+        .select("event_id")
         .eq("user_id", user.id)
-        .in("party_id", internalPartyIds);
+        .in("event_id", eventIds);
 
       if (!myUpvotesResult.error) {
-        for (const row of (myUpvotesResult.data ?? []) as Array<{ party_id: string }>) {
-          upvotedByMe.add(row.party_id);
+        for (const row of (myUpvotesResult.data ?? []) as Array<{ event_id: string }>) {
+          upvotedByMe.add(row.event_id);
+        }
+      }
+    } else {
+      const cookieStore = await cookies();
+      const anonSessionId = cookieStore.get("anon_session_id")?.value;
+
+      if (anonSessionId) {
+        const anonUpvotesResult = await supabase
+          .from("event_upvotes")
+          .select("event_id")
+          .eq("anonymous_session_id", anonSessionId)
+          .in("event_id", eventIds);
+
+        if (!anonUpvotesResult.error) {
+          for (const row of (anonUpvotesResult.data ?? []) as Array<{ event_id: string }>) {
+            upvotedByMe.add(row.event_id);
+          }
         }
       }
     }
   }
 
   const partiesWithUpvotes = parties.map((party) => {
-    if (party.is_external) {
-      return {
-        ...party,
-        upvote_count: 0,
-        upvoted_by_me: false,
-      };
-    }
-
     return {
       ...party,
       upvote_count: upvoteCountMap.get(party.id) ?? 0,
