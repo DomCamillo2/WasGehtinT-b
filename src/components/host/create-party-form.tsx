@@ -34,11 +34,10 @@ function getVibeEmoji(label: string) {
   return "✨";
 }
 
-function SubmitPartyButton({ publishMode }: { publishMode: "published" | "draft" }) {
+function SubmitPartyButton() {
   const { pending } = useFormStatus();
-
-  const idleLabel = publishMode === "published" ? "Party veroeffentlichen" : "Entwurf speichern";
-  const pendingLabel = publishMode === "published" ? "Wird gespeichert..." : "Entwurf wird gespeichert...";
+  const idleLabel = "Event zur Freigabe einreichen";
+  const pendingLabel = "Wird eingereicht...";
 
   return (
     <PrimaryButton
@@ -62,7 +61,6 @@ export function CreatePartyForm({ vibes }: Props) {
 
   const [selectedVibeId, setSelectedVibeId] = useState<string>(() => String(safeVibes[0]?.id ?? ""));
   const [customVibeLabel, setCustomVibeLabel] = useState<string>("");
-  const [publishMode, setPublishMode] = useState<"published" | "draft">("published");
   const [bringItems, setBringItems] = useState<string[]>([""]);
   const [locationState, setLocationState] = useState<string>("Noch kein Standort gesetzt.");
   const [addressInput, setAddressInput] = useState<string>("");
@@ -219,7 +217,6 @@ export function CreatePartyForm({ vibes }: Props) {
     formRef.current?.reset();
     setSelectedVibeId(String(safeVibes[0]?.id ?? ""));
     setCustomVibeLabel("");
-    setPublishMode("published");
     setBringItems([""]);
     setAddressInput("");
     setResolvedAddress("");
@@ -424,38 +421,8 @@ export function CreatePartyForm({ vibes }: Props) {
           <p className="text-xs text-zinc-500">Wähle den Party-Style in einem schnellen Dropdown.</p>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">Veröffentlichung</label>
-          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-1">
-            <button
-              type="button"
-              onClick={() => setPublishMode("published")}
-              className={`h-10 rounded-xl text-sm font-semibold transition ${
-                publishMode === "published"
-                  ? "bg-white text-violet-700 shadow-[0_6px_14px_rgba(99,102,241,0.16)]"
-                  : "text-zinc-600"
-              }`}
-            >
-              Öffentlich
-            </button>
-            <button
-              type="button"
-              onClick={() => setPublishMode("draft")}
-              className={`h-10 rounded-xl text-sm font-semibold transition ${
-                publishMode === "draft"
-                  ? "bg-white text-violet-700 shadow-[0_6px_14px_rgba(99,102,241,0.16)]"
-                  : "text-zinc-600"
-              }`}
-            >
-              Entwurf
-            </button>
-          </div>
-          <input type="hidden" name="publishMode" value={publishMode} />
-          <p className="text-xs text-zinc-500">
-            Öffentlich sendet das Event direkt in den Feed (oder in den Admin-Review bei Nicht-Admins). Entwurf speichert es nur als
-            Draft.
-          </p>
-        </div>
+        <input type="hidden" name="publishMode" value="published" />
+        <p className="text-xs text-zinc-500">Alle Club-Events werden immer zuerst vom Admin geprüft und erst danach veröffentlicht.</p>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -590,7 +557,7 @@ export function CreatePartyForm({ vibes }: Props) {
           </button>
         </div>
 
-        <SubmitPartyButton publishMode={publishMode} />
+        <SubmitPartyButton />
 
         {actionState.message ? (
           <div

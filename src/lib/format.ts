@@ -6,11 +6,16 @@ export function formatEuroFromCents(cents: number) {
 }
 
 export function formatDateTime(input: string) {
+  const parsed = new Date(input);
+  if (Number.isNaN(parsed.getTime())) {
+    return "Datum offen";
+  }
+
   return new Intl.DateTimeFormat("de-DE", {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(input));
+  }).format(parsed);
 }

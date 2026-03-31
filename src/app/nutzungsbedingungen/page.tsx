@@ -5,7 +5,7 @@ export default function NutzungsbedingungenPage() {
     <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold tracking-tight text-zinc-900">AGB & Nutzungsbedingungen</h1>
       <p className="mt-2 text-sm text-zinc-600">
-        Professionelle Vorlage für WasGehtTüb. Bitte Platzhalter ersetzen und rechtlich final prüfen lassen.
+        Gültige Bedingungen für die Nutzung von WasGehtTüb.
       </p>
 
       <section className="mt-6 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
@@ -30,29 +30,25 @@ export default function NutzungsbedingungenPage() {
       </section>
 
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">4. Zahlungen</h2>
-        <p className="text-sm text-zinc-700">
-          Zahlungsabwicklung erfolgt über Stripe. WasGehtTüb verarbeitet keine vollständigen Zahlungsdaten, sondern nur abrechnungsrelevante Referenzen.
-        </p>
-      </section>
-
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">5. Inhalte, Chat und Meldungen</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">4. Inhalte, Chat und Meldungen</h2>
         <p className="text-sm text-zinc-700">
           Illegale Inhalte (z. B. Beleidigungen, Gewaltaufrufe, Diskriminierung, strafbare Inhalte) sind verboten. Inhalte können über „Beitrag melden“ gemeldet werden und werden nach Prüfung entfernt.
         </p>
       </section>
 
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">6. Sanktionen</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">5. Sanktionen</h2>
         <p className="text-sm text-zinc-700">
           Bei Verstößen können Inhalte gelöscht, Accounts eingeschränkt oder gesperrt werden.
         </p>
       </section>
 
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">7. Kontakt für Meldungen</h2>
-        <p className="text-sm text-zinc-700">E-Mail: [abuse@example.com]</p>
+        <h2 className="text-lg font-semibold text-zinc-900">6. Kontakt für Meldungen</h2>
+        <p className="text-sm text-zinc-700">Domile UG (haftungsbeschränkt)</p>
+        <p className="text-sm text-zinc-700">Graf-Wartenberg-Ring 11, 84577 Tüßling</p>
+        <p className="text-sm text-zinc-700">Telefon: +49 (0) 1606969914</p>
+        <p className="text-sm text-zinc-700">E-Mail: info@mentor-pro.de</p>
       </section>
 
       <p className="mt-6 text-sm text-zinc-600">

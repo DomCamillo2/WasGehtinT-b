@@ -274,6 +274,8 @@ export async function signInAction(
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const requestedRedirect = String(formData.get("redirectTo") ?? "").trim();
+  const redirectTarget = requestedRedirect.startsWith("/") ? requestedRedirect : "/discover";
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -283,7 +285,7 @@ export async function signInAction(
   }
 
   revalidatePath("/");
-  redirect("/discover");
+  redirect(redirectTarget);
 }
 
 export async function requestPasswordResetAction(

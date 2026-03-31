@@ -14,7 +14,7 @@ export default async function MeldenPage({
   const params = await searchParams;
   const type = params.type ?? "unbekannt";
   const id = params.id ?? "-";
-  const reportLink = `mailto:abuse@example.com?subject=${encodeURIComponent(`Meldung Inhalt (${type})`)}`;
+  const reportLink = `mailto:info@mentor-pro.de?subject=${encodeURIComponent(`Meldung Inhalt (${type})`)}`;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8">
@@ -40,6 +40,7 @@ export default async function MeldenPage({
       <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
         <h2 className="text-lg font-semibold text-zinc-900">Fallback</h2>
         <p className="text-sm text-zinc-700">Falls das Formular nicht funktioniert, kannst du uns alternativ per E-Mail schreiben.</p>
+        <p className="text-sm text-zinc-700">Kontakt: info@mentor-pro.de · +49 (0) 1606969914</p>
         <a href={reportLink} className="inline-flex h-10 items-center rounded-xl border border-zinc-300 px-4 text-sm font-semibold text-zinc-700">
           Meldung per E-Mail
         </a>

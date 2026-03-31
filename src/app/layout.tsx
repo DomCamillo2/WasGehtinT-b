@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <CookieConsentBanner />
+        <Analytics />
       </body>
     </html>
   );

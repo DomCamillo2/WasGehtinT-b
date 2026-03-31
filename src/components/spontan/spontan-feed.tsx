@@ -12,6 +12,8 @@ type HangoutFeedItem = {
   id: string;
   title: string;
   description: string;
+  location_text?: string | null;
+  meetup_at?: string | null;
   activity_type: "sport" | "chill" | "party" | "meetup" | "other";
   created_at: string;
   user_display_name: string;
@@ -45,7 +47,14 @@ export function SpontanFeed({ items }: Props) {
     <div className="space-y-4 pb-24">
       <Card className="space-y-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
         <h1 className="text-2xl font-black tracking-tight text-zinc-900">Spontan</h1>
+        <p className="text-xs text-zinc-500">Einreichungen sind auch ohne Account möglich und werden vor Anzeige vom Admin geprüft.</p>
         <form action={action} className="space-y-2">
+          <input
+            name="submitterName"
+            maxLength={80}
+            placeholder="Dein Name (bei Einreichung ohne Account)"
+            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+          />
           <input
             name="title"
             required
@@ -53,12 +62,25 @@ export function SpontanFeed({ items }: Props) {
             placeholder="Worauf hast du spontan Bock?"
             className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
           />
+          <input
+            name="locationText"
+            required
+            maxLength={160}
+            placeholder="Wo? z. B. Neckarinsel"
+            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+          />
+          <input
+            name="meetupAt"
+            type="datetime-local"
+            required
+            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+          />
           <textarea
             name="description"
             required
             maxLength={600}
             rows={3}
-            placeholder="z. B. Volleyball auf der Neckarinsel um 18:30"
+            placeholder="Beschreibung: was geplant ist und was man mitbringen soll"
             className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
           />
           <div className="flex items-center gap-2">
@@ -121,6 +143,12 @@ export function SpontanFeed({ items }: Props) {
               </div>
 
               <h2 className="text-base font-bold tracking-tight text-zinc-900">{item.title}</h2>
+              {item.location_text ? <p className="mt-1 text-sm text-zinc-600">Wo: {item.location_text}</p> : null}
+              {item.meetup_at ? (
+                <p className="mt-0.5 text-sm text-zinc-600">
+                  Wann: {new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.meetup_at))}
+                </p>
+              ) : null}
               <p className="mt-1 text-sm text-zinc-700">{item.description}</p>
 
               <div className="mt-3 flex items-center gap-3">

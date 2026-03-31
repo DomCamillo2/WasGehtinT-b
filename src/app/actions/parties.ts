@@ -14,6 +14,20 @@ export const INITIAL_CREATE_PARTY_STATE: CreatePartyActionState = {
   message: "",
 };
 
+function isMissingColumnError(code: string | undefined) {
+  return code === "42703" || code === "PGRST204";
+}
+
+type AdminPartyVibesInsertClient = {
+  from: (table: "party_vibes") => {
+    insert: (values: { label: string; is_active: boolean }) => {
+      select: (columns: "id") => {
+        single: () => Promise<{ data: { id: number | string } | null }>;
+      };
+    };
+  };
+};
+
 function clampRoundedCoordinate(value: number | null, min: number, max: number) {
   if (value === null || !Number.isFinite(value)) {
     return null;
@@ -31,18 +45,16 @@ export async function createPartyAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const submitterNameRaw = String(formData.get("submitterName") ?? "").trim();
+  const submitterName = submitterNameRaw.slice(0, 80);
 
-  if (!user) {
-    return { ok: false, message: "Bitte logge dich ein, um ein Event einzureichen." };
+  if (!user && !submitterName) {
+    return { ok: false, message: "Bitte gib einen Namen an, wenn du ohne Account einreichst." };
   }
 
-  const profileResult = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const role = (profileResult.data?.role ?? "student") as string;
+  if (user) {
+    await supabase.from("user_profiles").upsert({ id: user.id });
+  }
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -51,8 +63,6 @@ export async function createPartyAction(
   const vibeId = Number(formData.get("vibeId"));
   const defaultVibeId = Number(formData.get("defaultVibeId"));
   const customVibeLabelRaw = String(formData.get("customVibeLabel") ?? "").trim();
-  const publishMode = String(formData.get("publishMode") ?? "published").trim().toLowerCase();
-  const wantsPublished = publishMode !== "draft";
   const locationNameRaw = String(formData.get("locationName") ?? "").trim();
   const maxGuests = Number(formData.get("maxGuests"));
   const contributionCents = Math.round(Number(formData.get("contributionEur")) * 100);
@@ -67,6 +77,20 @@ export async function createPartyAction(
   const locationName = locationNameRaw.length > 140 ? locationNameRaw.slice(0, 140) : locationNameRaw;
 
   let resolvedVibeId = Number.isFinite(vibeId) && vibeId > 0 ? vibeId : defaultVibeId;
+
+  if (!Number.isFinite(resolvedVibeId) || resolvedVibeId <= 0) {
+    const fallbackVibeResult = await supabase
+      .from("party_vibes")
+      .select("id")
+      .eq("is_active", true)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (fallbackVibeResult.data?.id) {
+      resolvedVibeId = Number(fallbackVibeResult.data.id);
+    }
+  }
 
   const customVibeLabel = customVibeLabelRaw.replace(/\s+/g, " ").slice(0, 48);
   if (customVibeLabel.length >= 2) {
@@ -90,7 +114,7 @@ export async function createPartyAction(
       } else {
         try {
           const admin = getSupabaseAdmin();
-          const adminInsert = await admin
+          const adminInsert = await (admin as unknown as AdminPartyVibesInsertClient)
             .from("party_vibes")
             .insert({ label: customVibeLabel, is_active: true })
             .select("id")
@@ -106,9 +130,9 @@ export async function createPartyAction(
     }
   }
 
-  const shouldAutoApprove = role === "admin";
-  const nextStatus = shouldAutoApprove && wantsPublished ? "published" : "draft";
-  const nextReviewStatus = shouldAutoApprove ? "approved" : "pending";
+  const shouldAutoApprove = false;
+  const nextStatus = "draft";
+  const nextReviewStatus = "pending";
 
   if (
     !title ||
@@ -130,7 +154,7 @@ export async function createPartyAction(
   }
 
   const baseInsert = {
-    host_user_id: user.id,
+    host_user_id: user?.id ?? null,
     title,
     description: description || null,
     starts_at: startDate.toISOString(),
@@ -142,9 +166,12 @@ export async function createPartyAction(
     public_lng: publicLng,
     location_name: locationName || null,
     status: nextStatus,
+    submitter_name: submitterName || null,
   };
 
-  let partyResult = await supabase
+  const insertClient = user ? supabase : getSupabaseAdmin();
+
+  let partyResult = await insertClient
     .from("parties")
     .insert({
       ...baseInsert,
@@ -153,13 +180,45 @@ export async function createPartyAction(
     .select("id")
     .single();
 
-  if (partyResult.error && partyResult.error.code === "42703") {
+  if (partyResult.error && isMissingColumnError(partyResult.error.code)) {
     // Backward-compatible fallback if review_status migration is not applied yet.
-    partyResult = await supabase
+    partyResult = await insertClient
       .from("parties")
-      .insert(baseInsert)
+      .insert({
+        ...baseInsert,
+        submitter_name: undefined,
+      })
       .select("id")
       .single();
+  }
+
+  if (partyResult.error && isMissingColumnError(partyResult.error.code)) {
+    const legacyBaseInsert = {
+      host_id: user?.id ?? null,
+      title,
+      description: description || null,
+      date: startDate.toISOString(),
+      location: locationName || "Tuebingen",
+      is_published: false,
+      submitter_name: submitterName || null,
+    };
+
+    partyResult = await insertClient
+      .from("parties")
+      .insert({
+        ...legacyBaseInsert,
+        review_status: nextReviewStatus,
+      })
+      .select("id")
+      .single();
+
+    if (partyResult.error && isMissingColumnError(partyResult.error.code)) {
+      partyResult = await insertClient
+        .from("parties")
+        .insert({ ...legacyBaseInsert, submitter_name: undefined })
+        .select("id")
+        .single();
+    }
   }
 
   const party = partyResult.data;
@@ -205,13 +264,5 @@ export async function createPartyAction(
   revalidatePath("/host");
   revalidatePath("/admin");
 
-  if (nextStatus === "draft") {
-    return { ok: true, message: "Entwurf gespeichert." };
-  }
-
-  if (nextReviewStatus === "pending") {
-    return { ok: true, message: "Event eingereicht. Es wird im Admin-Panel geprueft." };
-  }
-
-  return { ok: true, message: "Event veroeffentlicht." };
+  return { ok: true, message: "Event eingereicht. Es wird vor der Veroeffentlichung im Admin-Panel geprueft." };
 }

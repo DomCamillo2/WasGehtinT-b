@@ -7,6 +7,10 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import { CirclePlus, Compass, Flame, Inbox, MessageCircle, Sparkles, X, Zap } from "lucide-react";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
+import {
+  createPartyAction,
+  INITIAL_CREATE_PARTY_STATE,
+} from "@/app/actions/parties";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const NAV = [
@@ -24,6 +28,7 @@ export function BottomNav() {
   const router = useRouter();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [hangoutState, hangoutAction, hangoutPending] = useActionState(createHangoutAction, initialHangoutState);
+  const [partyState, partyAction, partyPending] = useActionState(createPartyAction, INITIAL_CREATE_PARTY_STATE);
 
   useEffect(() => {
     for (const item of NAV) {
@@ -50,6 +55,20 @@ export function BottomNav() {
     return () => window.clearTimeout(timeoutId);
   }, [hangoutState.success, router]);
 
+  useEffect(() => {
+    if (!partyState.ok) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsComposerOpen(false);
+      router.push("/discover");
+      router.refresh();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [partyState.ok, router]);
+
   return (
     <>
       {isComposerOpen ? (
@@ -61,7 +80,7 @@ export function BottomNav() {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-semibold text-zinc-900">Was willst du posten?</h3>
-                <p className="text-xs text-zinc-500">Spontan geht sofort live, Club-Events werden von Admin freigegeben.</p>
+                <p className="text-xs text-zinc-500">Auch ohne Account möglich. Alle Einreichungen werden zuerst vom Admin geprüft.</p>
               </div>
               <button
                 type="button"
@@ -80,10 +99,29 @@ export function BottomNav() {
               </div>
               <div className="space-y-2">
                 <input
+                  name="submitterName"
+                  maxLength={80}
+                  placeholder="Dein Name (bei Einreichung ohne Account)"
+                  className="h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm outline-none focus:border-emerald-400"
+                />
+                <input
                   name="title"
                   required
                   maxLength={120}
                   placeholder="z. B. Vorgluehen 20:00 auf dem Sand"
+                  className="h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm outline-none focus:border-emerald-400"
+                />
+                <input
+                  name="locationText"
+                  required
+                  maxLength={160}
+                  placeholder="Wo? z. B. Neckarinsel"
+                  className="h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm outline-none focus:border-emerald-400"
+                />
+                <input
+                  name="meetupAt"
+                  type="datetime-local"
+                  required
                   className="h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm outline-none focus:border-emerald-400"
                 />
                 <textarea
@@ -91,7 +129,7 @@ export function BottomNav() {
                   required
                   maxLength={600}
                   rows={3}
-                  placeholder="Kurz schreiben: wann, wo, was mitbringen"
+                  placeholder="Beschreibung: was geplant ist und was man mitbringen soll"
                   className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
                 />
                 <div className="flex items-center gap-2">
@@ -111,7 +149,7 @@ export function BottomNav() {
                     disabled={hangoutPending}
                     className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-70"
                   >
-                    {hangoutPending ? "Postet..." : "Sofort posten"}
+                    {hangoutPending ? "Sendet..." : "Zur Freigabe einreichen"}
                   </button>
                 </div>
               </div>
@@ -120,19 +158,71 @@ export function BottomNav() {
               ) : null}
             </form>
 
-            <Link
-              href="/host?intent=club"
-              onClick={() => setIsComposerOpen(false)}
-              className="block rounded-2xl border border-violet-200 bg-violet-50 p-3"
-            >
-              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-violet-800">
+            <form action={partyAction} className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-800">
                 <Flame size={16} />
                 Club Event einreichen
               </div>
-              <p className="text-xs text-violet-700">
-                Fuer Clubs, Bars und groessere Events. Geht zuerst in den Admin-Review und wird danach freigeschaltet.
-              </p>
-            </Link>
+              <div className="space-y-2">
+                <input
+                  name="submitterName"
+                  maxLength={80}
+                  placeholder="Dein Name (bei Einreichung ohne Account)"
+                  className="h-11 w-full rounded-xl border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400"
+                />
+                <input
+                  name="title"
+                  required
+                  maxLength={120}
+                  placeholder="Titel des Club-Events"
+                  className="h-11 w-full rounded-xl border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400"
+                />
+                <textarea
+                  name="description"
+                  maxLength={600}
+                  rows={3}
+                  placeholder="Kurzbeschreibung"
+                  className="w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-400"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    name="startsAt"
+                    type="datetime-local"
+                    required
+                    className="h-11 w-full rounded-xl border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400"
+                  />
+                  <input
+                    name="endsAt"
+                    type="datetime-local"
+                    required
+                    className="h-11 w-full rounded-xl border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400"
+                  />
+                </div>
+                <input
+                  name="locationName"
+                  maxLength={140}
+                  placeholder="Ort (optional)"
+                  className="h-11 w-full rounded-xl border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400"
+                />
+                <input type="hidden" name="vibeId" value="1" />
+                <input type="hidden" name="defaultVibeId" value="1" />
+                <input type="hidden" name="maxGuests" value="50" />
+                <input type="hidden" name="contributionEur" value="0" />
+                <input type="hidden" name="publishMode" value="published" />
+                <button
+                  type="submit"
+                  disabled={partyPending}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white disabled:opacity-70"
+                >
+                  {partyPending ? "Sendet..." : "Zur Freigabe einreichen"}
+                </button>
+              </div>
+              {partyState.message ? (
+                <p className={clsx("mt-2 rounded-xl px-3 py-2 text-xs", partyState.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700")}>
+                  {partyState.message}
+                </p>
+              ) : null}
+            </form>
           </div>
         </div>
       ) : null}

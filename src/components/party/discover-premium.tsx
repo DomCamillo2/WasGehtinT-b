@@ -318,7 +318,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   const filterItems: Array<{ key: FilterKey; label: string }> = [
     { key: "all", label: "Alle" },
     { key: "clubs", label: "🪩 Clubs" },
-    { key: "liked", label: "❤️ Gemerkt" },
+    { key: "liked", label: "🔥 Gemerkt" },
   ];
 
   function requireAuth(reason: string) {

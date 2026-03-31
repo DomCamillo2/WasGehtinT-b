@@ -51,7 +51,7 @@ export async function requireInternalAdmin() {
 
   const user = await getInternalAdminUserOrNull();
   if (!user) {
-    redirect("/host");
+    redirect("/admin/login");
   }
 
   return user;

@@ -20,7 +20,7 @@ export function CookieConsentBanner() {
     <div className="fixed inset-x-0 bottom-2 z-50 px-3">
       <div className="mx-auto max-w-md rounded-2xl border border-zinc-200 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.12)]">
         <p className="text-sm text-zinc-700">
-          Wir verwenden technisch notwendige Cookies für Login/Sicherheit. Externe Dienste (z. B. Karten, Zahlungsabwicklung) werden nur mit deiner Einwilligung geladen.
+          Wir verwenden technisch notwendige Cookies für Login/Sicherheit. Externe Dienste (z. B. Karten) werden nur mit deiner Einwilligung geladen.
         </p>
         <div className="mt-3 flex gap-2">
           <button
