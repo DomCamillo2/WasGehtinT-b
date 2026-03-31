@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Flame,
   Funnel,
   List,
   Map as MapIcon,
@@ -29,7 +30,7 @@ const DiscoverMap = dynamic(
   },
 );
 
-type FilterKey = "all" | "wg" | "clubs" | "today" | "liked";
+type FilterKey = "all" | "wg" | "clubs" | "today" | "liked" | "top";
 type ViewKey = "list" | "map" | "calendar";
 
 type Props = {
@@ -172,8 +173,8 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   );
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(todayKey);
 
-  const filteredParties = useMemo(() => {
-    const sorted = [...parties].sort((left, right) => {
+  const sortedParties = useMemo(() => {
+    return [...parties].sort((left, right) => {
       const leftScore = upvoteCounts[left.id] ?? left.upvote_count ?? 0;
       const rightScore = upvoteCounts[right.id] ?? right.upvote_count ?? 0;
 
@@ -183,6 +184,67 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
       return new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime();
     });
+  }, [parties, upvoteCounts]);
+
+  const topScore = useMemo(() => {
+    let max = 0;
+    for (const party of sortedParties) {
+      if (party.is_external) {
+        continue;
+      }
+
+      const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
+      if (score > max) {
+        max = score;
+      }
+    }
+    return max;
+  }, [sortedParties, upvoteCounts]);
+
+  const hotPartyIds = useMemo(() => {
+    if (topScore <= 0) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      sortedParties
+        .filter((party) => !party.is_external)
+        .filter((party) => (upvoteCounts[party.id] ?? party.upvote_count ?? 0) === topScore)
+        .map((party) => party.id),
+    );
+  }, [sortedParties, topScore, upvoteCounts]);
+
+  const rankByPartyId = useMemo(() => {
+    const rankMap = new Map<string, number>();
+    let rank = 1;
+
+    for (const party of sortedParties) {
+      if (party.is_external) {
+        continue;
+      }
+
+      const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
+      if (score <= 0) {
+        continue;
+      }
+
+      rankMap.set(party.id, rank);
+      rank += 1;
+    }
+
+    return rankMap;
+  }, [sortedParties, upvoteCounts]);
+
+  const hottestParty = useMemo(
+    () =>
+      sortedParties.find(
+        (party) => !party.is_external && (upvoteCounts[party.id] ?? party.upvote_count ?? 0) === topScore,
+      ) ?? null,
+    [sortedParties, topScore, upvoteCounts],
+  );
+
+  const filteredParties = useMemo(() => {
+    const sorted = sortedParties;
 
     return sorted.filter((party) => {
       const dateKey = toDateKeyBerlin(party.starts_at);
@@ -203,6 +265,11 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         if (!upvotedPartyIds.includes(party.id)) return false;
       }
 
+      if (filter === "top") {
+        const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
+        if (score <= 0) return false;
+      }
+
       if (fromDate && dateKey < fromDate) {
         return false;
       }
@@ -213,14 +280,15 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
       return true;
     });
-  }, [filter, fromDate, parties, toDate, todayKey, upvoteCounts, upvotedPartyIds]);
+  }, [filter, fromDate, sortedParties, toDate, todayKey, upvoteCounts, upvotedPartyIds]);
 
   const filterItems: Array<{ key: FilterKey; label: string }> = [
     { key: "all", label: "Alle" },
     { key: "wg", label: "🏠 WGs" },
     { key: "clubs", label: "🪩 Clubs" },
     { key: "today", label: "🔥 Heute" },
-    { key: "liked", label: "🔥 Upvoted" },
+    { key: "liked", label: "❤️ Gemerkt" },
+    { key: "top", label: "🔥 Top Upvotes" },
   ];
 
   function requireAuth(reason: string) {
@@ -579,6 +647,33 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         </p>
       ) : null}
 
+      {hottestParty && topScore > 0 ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-1 flex items-center justify-between rounded-2xl border px-3 py-2 text-xs"
+          style={{
+            borderColor: "#fed7aa",
+            backgroundColor: "#fff7ed",
+            color: "#9a3412",
+          }}
+        >
+          <div className="inline-flex min-w-0 items-center gap-2">
+            <motion.span
+              animate={{ scale: [1, 1.2, 1], rotate: [0, -8, 8, 0] }}
+              transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+              className="inline-flex"
+            >
+              <Flame size={14} fill="currentColor" />
+            </motion.span>
+            <span className="truncate font-semibold">Hot jetzt: {hottestParty.title}</span>
+          </div>
+          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold text-orange-700">
+            {topScore} Upvotes
+          </span>
+        </motion.div>
+      ) : null}
+
       <div className="fixed bottom-28 right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2">
         <AnimatePresence>
           {showViewMenu ? (
@@ -771,6 +866,12 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
                       isAuthenticated={isAuthenticated}
                       upvoted={upvotedPartyIds.includes(party.id)}
                       upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                      isHotNow={hotPartyIds.has(party.id)}
+                      rankLabel={
+                        rankByPartyId.has(party.id)
+                          ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
+                          : null
+                      }
                       onToggleUpvote={() => toggleUpvote(party.id)}
                       onRequestAction={handleRequestAction}
                       onChatAction={handleChatAction}
@@ -804,6 +905,12 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
                   isAuthenticated={isAuthenticated}
                   upvoted={upvotedPartyIds.includes(party.id)}
                   upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                  isHotNow={hotPartyIds.has(party.id)}
+                  rankLabel={
+                    rankByPartyId.has(party.id)
+                      ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
+                      : null
+                  }
                   onToggleUpvote={() => toggleUpvote(party.id)}
                   onRequestAction={handleRequestAction}
                   onChatAction={handleChatAction}

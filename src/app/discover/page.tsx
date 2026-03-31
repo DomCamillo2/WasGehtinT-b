@@ -116,14 +116,25 @@ export default async function DiscoverPage({
 
   if (internalPartyIds.length) {
     const upvoteCountResult = await supabase
-      .from("party_upvotes")
-      .select("party_id")
+      .from("v_party_upvote_counts")
+      .select("party_id, upvote_count")
       .in("party_id", internalPartyIds);
 
     if (!upvoteCountResult.error) {
-      for (const row of (upvoteCountResult.data ?? []) as Array<{ party_id: string }>) {
-        const current = upvoteCountMap.get(row.party_id) ?? 0;
-        upvoteCountMap.set(row.party_id, current + 1);
+      for (const row of (upvoteCountResult.data ?? []) as Array<{ party_id: string; upvote_count: number }>) {
+        upvoteCountMap.set(row.party_id, Math.max(0, Number(row.upvote_count ?? 0)));
+      }
+    } else {
+      const fallbackCountResult = await supabase
+        .from("party_upvotes")
+        .select("party_id")
+        .in("party_id", internalPartyIds);
+
+      if (!fallbackCountResult.error) {
+        for (const row of (fallbackCountResult.data ?? []) as Array<{ party_id: string }>) {
+          const current = upvoteCountMap.get(row.party_id) ?? 0;
+          upvoteCountMap.set(row.party_id, current + 1);
+        }
       }
     }
 

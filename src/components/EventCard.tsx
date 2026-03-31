@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   CalendarDays,
   Clock3,
+  Flame,
   Heart,
 } from "lucide-react";
 import { PartyCard } from "@/lib/types";
@@ -17,6 +18,8 @@ type Props = {
   isAuthenticated: boolean;
   upvoted?: boolean;
   upvoteCount?: number;
+  rankLabel?: string | null;
+  isHotNow?: boolean;
   onToggleUpvote?: () => void;
   onRequestAction?: () => void;
   onChatAction?: () => void;
@@ -148,6 +151,8 @@ export function EventCard({
   isAuthenticated,
   upvoted = false,
   upvoteCount,
+  rankLabel,
+  isHotNow = false,
   onToggleUpvote,
   onRequestAction,
   onChatAction,
@@ -243,7 +248,13 @@ export function EventCard({
               aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur für WG-Partys"}
               disabled={!canUpvote}
             >
-              <Heart size={13} fill={upvoted ? "currentColor" : "none"} />
+              <motion.span
+                animate={isHotNow ? { scale: [1, 1.2, 1], rotate: [0, -6, 6, 0] } : undefined}
+                transition={isHotNow ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" } : undefined}
+                className="inline-flex"
+              >
+                <Flame size={13} fill={upvoted || isHotNow ? "currentColor" : "none"} />
+              </motion.span>
               <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
             </button>
           </div>
@@ -253,6 +264,29 @@ export function EventCard({
           <h3 className="text-xl font-extrabold leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
             {party.title}
           </h3>
+
+          {rankLabel || isHotNow ? (
+            <div className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+              style={{
+                borderColor: isHotNow ? "#fdba74" : "var(--nav-border)",
+                backgroundColor: isHotNow ? "#fff7ed" : "var(--surface-soft)",
+                color: isHotNow ? "#c2410c" : "var(--muted-foreground)",
+              }}
+            >
+              {isHotNow ? (
+                <motion.span
+                  animate={{ scale: [1, 1.2, 1], rotate: [0, -8, 8, 0] }}
+                  transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-flex"
+                >
+                  <Flame size={11} fill="currentColor" />
+                </motion.span>
+              ) : (
+                <Heart size={11} />
+              )}
+              <span>{rankLabel ?? "Hot gerade"}</span>
+            </div>
+          ) : null}
 
           <p className="inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[11.5px] font-medium text-gray-400 sm:text-[12px]">
             <span className="inline-flex shrink-0 items-center gap-1">
