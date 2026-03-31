@@ -3,6 +3,8 @@ import { hasSupabaseEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { BringProgress, ChatPreview, PartyCard } from "@/lib/types";
 
+export type UserRole = "student" | "owner" | "admin";
+
 export async function requireUser() {
   if (!hasSupabaseEnv()) {
     redirect("/?setup=1");
@@ -34,7 +36,45 @@ export async function getPublicParties() {
     return [] as PartyCard[];
   }
 
-  return (data ?? []) as PartyCard[];
+  const parties = (data ?? []) as PartyCard[];
+  if (!parties.length) {
+    return parties;
+  }
+
+  const partyIds = parties.map((party) => party.id);
+  const approvedResult = await supabase
+    .from("parties")
+    .select("id")
+    .in("id", partyIds)
+    .eq("review_status", "approved");
+
+  if (approvedResult.error) {
+    // Keep backwards compatibility until the review_status migration is applied everywhere.
+    return parties;
+  }
+
+  const approvedIds = new Set((approvedResult.data ?? []).map((row) => String(row.id)));
+  return parties.filter((party) => approvedIds.has(party.id));
+}
+
+export async function getUserRole(userId: string): Promise<UserRole> {
+  const supabase = await createClient();
+  const result = await supabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (result.error) {
+    return "student";
+  }
+
+  const role = (result.data?.role ?? "student") as string;
+  if (role === "owner" || role === "admin") {
+    return role;
+  }
+
+  return "student";
 }
 
 export async function getExternalEvents() {

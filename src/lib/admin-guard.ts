@@ -27,7 +27,17 @@ export async function getInternalAdminUserOrNull() {
   }
 
   const admins = getAdminMailSet();
-  if (!admins.has(user.email.toLowerCase())) {
+  const isEnvAdmin = admins.has(user.email.toLowerCase());
+
+  const roleResult = await supabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const isRoleAdmin = !roleResult.error && roleResult.data?.role === "admin";
+
+  if (!isEnvAdmin && !isRoleAdmin) {
     return null;
   }
 

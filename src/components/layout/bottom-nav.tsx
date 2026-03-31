@@ -5,13 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { Compass, House, Inbox, MessageCircle, Zap } from "lucide-react";
+import { CirclePlus, Compass, Inbox, MessageCircle, Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const NAV = [
   { href: "/discover", label: "Entdecken", icon: Compass },
   { href: "/spontan", label: "Spontan", icon: Zap },
-  { href: "/host", label: "Host", icon: House },
+  { href: "/host", label: "Plus", icon: CirclePlus },
   { href: "/requests", label: "Anfragen", icon: Inbox },
   { href: "/chat", label: "Chat", icon: MessageCircle },
 ];

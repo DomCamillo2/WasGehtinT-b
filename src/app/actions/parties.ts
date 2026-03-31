@@ -24,6 +24,19 @@ export async function createPartyAction(
     return;
   }
 
+  const profileResult = await supabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = (profileResult.data?.role ?? "student") as string;
+  const canCreate = role === "owner" || role === "admin";
+
+  if (!canCreate) {
+    return;
+  }
+
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const startsAt = String(formData.get("startsAt") ?? "");
@@ -72,7 +85,8 @@ export async function createPartyAction(
       public_lat: publicLat,
       public_lng: publicLng,
       location_name: locationName || null,
-      status: "published",
+      status: role === "admin" ? "published" : "draft",
+      review_status: role === "admin" ? "approved" : "pending",
     })
     .select("id")
     .single();
@@ -109,4 +123,5 @@ export async function createPartyAction(
 
   revalidatePath("/discover");
   revalidatePath("/host");
+  revalidatePath("/admin");
 }

@@ -6,7 +6,7 @@ import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
 import { formatDateTime, formatEuroFromCents } from "@/lib/format";
 import { getRequestStatusMeta } from "@/lib/status-ui";
-import { getHostDashboard, requireUser } from "@/lib/data";
+import { getHostDashboard, getUserRole, requireUser } from "@/lib/data";
 
 const CreatePartyForm = dynamic(
   () => import("@/components/host/create-party-form").then((module) => module.CreatePartyForm),
@@ -21,7 +21,10 @@ const CreatePartyForm = dynamic(
 
 export default async function HostPage() {
   const { user } = await requireUser();
+  const role = await getUserRole(user.id);
   const { dashboard, pending, vibes } = await getHostDashboard(user.id);
+  const canSubmitEvents = role === "owner" || role === "admin";
+  const isAdmin = role === "admin";
 
   return (
     <AppShell>
@@ -34,7 +37,31 @@ export default async function HostPage() {
         Interne Webhook Events
       </Link>
 
-      <CreatePartyForm vibes={vibes} />
+      {isAdmin ? (
+        <Link
+          href="/admin"
+          className="mb-3 ml-2 inline-flex h-10 items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-xs font-semibold text-emerald-700 shadow-[0_6px_16px_rgba(15,23,42,0.04)]"
+        >
+          Admin Freigaben
+        </Link>
+      ) : null}
+
+      {canSubmitEvents ? (
+        <>
+          <Card className="mb-4 border-amber-200 bg-amber-50">
+            <p className="text-sm font-medium text-amber-800">
+              Neue Events werden nach Einreichung geprueft und erst nach Freigabe veroeffentlicht.
+            </p>
+          </Card>
+          <CreatePartyForm vibes={vibes} />
+        </>
+      ) : (
+        <Card className="mb-4 border-zinc-200 bg-white">
+          <p className="text-sm text-zinc-700">
+            Event einreichen ist fuer verifizierte Betreiber freigeschaltet. Melde dich fuer ein Owner-Upgrade.
+          </p>
+        </Card>
+      )}
 
       <section className="mt-5 space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Offene Anfragen</h2>
