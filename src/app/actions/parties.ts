@@ -31,11 +31,6 @@ export async function createPartyAction(
     .maybeSingle();
 
   const role = (profileResult.data?.role ?? "student") as string;
-  const canCreate = role === "owner" || role === "admin";
-
-  if (!canCreate) {
-    return;
-  }
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();

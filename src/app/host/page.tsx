@@ -23,7 +23,6 @@ export default async function HostPage() {
   const { user } = await requireUser();
   const role = await getUserRole(user.id);
   const { dashboard, pending, vibes } = await getHostDashboard(user.id);
-  const canSubmitEvents = role === "owner" || role === "admin";
   const isAdmin = role === "admin";
 
   return (
@@ -46,22 +45,14 @@ export default async function HostPage() {
         </Link>
       ) : null}
 
-      {canSubmitEvents ? (
-        <>
-          <Card className="mb-4 border-amber-200 bg-amber-50">
-            <p className="text-sm font-medium text-amber-800">
-              Neue Events werden nach Einreichung geprueft und erst nach Freigabe veroeffentlicht.
-            </p>
-          </Card>
-          <CreatePartyForm vibes={vibes} />
-        </>
-      ) : (
-        <Card className="mb-4 border-zinc-200 bg-white">
-          <p className="text-sm text-zinc-700">
-            Event einreichen ist fuer verifizierte Betreiber freigeschaltet. Melde dich fuer ein Owner-Upgrade.
+      <>
+        <Card className="mb-4 border-amber-200 bg-amber-50">
+          <p className="text-sm font-medium text-amber-800">
+            Club-Event einreichen: Nicht-Admins gehen zuerst in den Review und werden nach Freigabe veroeffentlicht.
           </p>
         </Card>
-      )}
+        <CreatePartyForm vibes={vibes} />
+      </>
 
       <section className="mt-5 space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Offene Anfragen</h2>
