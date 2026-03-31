@@ -15,16 +15,24 @@ create table if not exists public.party_upvotes (
   user_id uuid references auth.users(id) on delete cascade,
   anonymous_session_id text,
   created_at timestamptz not null default now(),
-  constraint party_upvotes_unique_party_user_or_anon unique (party_id, coalesce(user_id, '')), 
-  constraint party_upvotes_unique_party_anon unique (party_id, anonymous_session_id),
   constraint party_upvotes_has_identifier check (user_id is not null or anonymous_session_id is not null)
 );
+
+-- Separate unique indexes handle NULL correctly better than coalesce
+create unique index if not exists idx_party_upvotes_unique_user
+  on public.party_upvotes (party_id, user_id)
+  where user_id is not null;
+
+create unique index if not exists idx_party_upvotes_unique_anon
+  on public.party_upvotes (party_id, anonymous_session_id)
+  where anonymous_session_id is not null;
 
 create index if not exists idx_party_upvotes_party_id
   on public.party_upvotes (party_id);
 
 create index if not exists idx_party_upvotes_user_id
-  on public.party_upvotes (user_id);
+  on public.party_upvotes (user_id)
+  where user_id is not null;
 
 alter table public.party_upvotes enable row level security;
 
