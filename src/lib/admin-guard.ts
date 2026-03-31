@@ -29,13 +29,22 @@ export async function getInternalAdminUserOrNull() {
   const admins = getAdminMailSet();
   const isEnvAdmin = admins.has(user.email.toLowerCase());
 
-  const roleResult = await supabase
+  const roleById = await supabase
     .from("user_profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
-  const isRoleAdmin = !roleResult.error && roleResult.data?.role === "admin";
+  const roleResult =
+    roleById.error?.code === "42703" || roleById.error?.code === "PGRST204"
+      ? await supabase
+          .from("user_profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : roleById;
+
+  const isRoleAdmin = !roleResult.error && (roleResult.data?.role === "admin" || roleResult.data?.role === "owner");
 
   if (!isEnvAdmin && !isRoleAdmin) {
     return null;

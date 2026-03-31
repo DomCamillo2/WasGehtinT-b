@@ -25,6 +25,31 @@ type Props = {
 
 const initialState: HangoutActionState = {};
 
+function formatDateTimeOrFallback(value: string, fallback: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(parsed);
+}
+
+function formatMeetupOrFallback(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "offen";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(parsed);
+}
+
 function mapActivityLabel(activityType: HangoutFeedItem["activity_type"]): string {
   if (activityType === "sport") return "Sport";
   if (activityType === "chill") return "Chill";
@@ -128,11 +153,7 @@ export function SpontanFeed({ items }: Props) {
                   <div>
                     <p className="text-sm font-semibold text-zinc-900">{item.user_display_name}</p>
                     <p className="text-xs text-zinc-500">
-                      {new Intl.DateTimeFormat("de-DE", {
-                        timeZone: "Europe/Berlin",
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      }).format(new Date(item.created_at))}
+                      {formatDateTimeOrFallback(item.created_at, "gerade eben")}
                     </p>
                   </div>
                 </div>
@@ -146,7 +167,7 @@ export function SpontanFeed({ items }: Props) {
               {item.location_text ? <p className="mt-1 text-sm text-zinc-600">Wo: {item.location_text}</p> : null}
               {item.meetup_at ? (
                 <p className="mt-0.5 text-sm text-zinc-600">
-                  Wann: {new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.meetup_at))}
+                  Wann: {formatMeetupOrFallback(item.meetup_at)}
                 </p>
               ) : null}
               <p className="mt-1 text-sm text-zinc-700">{item.description}</p>

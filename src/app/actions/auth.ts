@@ -127,6 +127,14 @@ export async function signUpAction(
   _: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const signUpEnabled = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === "true";
+  if (!signUpEnabled) {
+    void formData;
+    return {
+      error: "Kontoerstellung ist voruebergehend pausiert. Stay tuned - dieses Feature kommt spaeter.",
+    };
+  }
+
   if (!hasSupabaseEnv()) {
     return { error: "Supabase ist noch nicht konfiguriert (.env.local)." };
   }

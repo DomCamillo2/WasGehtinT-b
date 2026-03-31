@@ -39,14 +39,14 @@ export default async function AdminPage() {
 
   const pendingQuery = await supabase
     .from("parties")
-    .select("id, host_user_id, submitter_name, title, description, starts_at, max_guests, contribution_cents, created_at")
+    .select("*")
     .eq("review_status", "pending")
     .order("created_at", { ascending: true });
 
   const fallbackPendingQuery = await (isMissingColumnError(pendingQuery.error?.code)
     ? supabase
         .from("parties")
-        .select("id, host_user_id, submitter_name, title, description, starts_at, max_guests, contribution_cents, created_at")
+      .select("*")
         .eq("status", "draft")
         .order("created_at", { ascending: true })
     : Promise.resolve({ data: null as null, error: null as null }));
@@ -57,7 +57,7 @@ export default async function AdminPage() {
   const legacyPendingQuery = await (isMissingColumnError(fallbackErrorCode)
     ? supabase
         .from("parties")
-        .select("id, host_id, submitter_name, title, description, date, created_at")
+      .select("*")
         .eq("is_published", false)
         .order("created_at", { ascending: true })
     : Promise.resolve({ data: null as null, error: null as null }));
@@ -85,14 +85,14 @@ export default async function AdminPage() {
 
   const pendingHangoutsQuery = await supabase
     .from("hangouts")
-    .select("id, user_id, submitter_name, title, description, location_text, meetup_at, created_at, activity_type")
+    .select("*")
     .eq("review_status", "pending")
     .order("created_at", { ascending: true });
 
   const pendingHangoutsFallback = await (isMissingColumnError(pendingHangoutsQuery.error?.code)
     ? supabase
         .from("hangouts")
-        .select("id, user_id, submitter_name, title, description, location_text, meetup_at, created_at, activity_type")
+      .select("*")
         .eq("is_published", false)
         .order("created_at", { ascending: true })
     : Promise.resolve({ data: null as null, error: null as null }));
@@ -104,7 +104,7 @@ export default async function AdminPage() {
   )
     ? supabase
         .from("hangouts")
-        .select("id, user_id, title, description, created_at, activity_type")
+      .select("*")
         .order("created_at", { ascending: true })
     : Promise.resolve({ data: null as null, error: null as null }));
 
@@ -133,7 +133,12 @@ export default async function AdminPage() {
     location_text: typeof row.location_text === "string" ? row.location_text : null,
     meetup_at: typeof row.meetup_at === "string" ? row.meetup_at : null,
     created_at: String(row.created_at ?? ""),
-    activity_type: typeof row.activity_type === "string" ? row.activity_type : null,
+    activity_type:
+      typeof row.activity_type === "string"
+        ? row.activity_type
+        : typeof row.kind === "string"
+          ? row.kind
+          : null,
   }));
 
   const hostIds = Array.from(

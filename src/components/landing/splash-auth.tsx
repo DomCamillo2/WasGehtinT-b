@@ -7,25 +7,19 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   requestPasswordResetAction,
   signInAction,
-  signUpAction,
 } from "@/app/actions/auth";
 
-type SheetMode = "login" | "signup" | null;
+type SheetMode = "login" | null;
 
 const initialState = { error: "", success: "" };
 
 export function SplashAuth() {
   const [sheet, setSheet] = useState<SheetMode>(null);
   const [showReset, setShowReset] = useState(false);
-  const [showOptionalProfileFields, setShowOptionalProfileFields] = useState(false);
   const resetPanelId = useId();
 
   const [signInState, signInFormAction, signInPending] = useActionState(
     signInAction,
-    initialState,
-  );
-  const [signUpState, signUpFormAction, signUpPending] = useActionState(
-    signUpAction,
     initialState,
   );
   const [resetState, resetFormAction, resetPending] = useActionState(
@@ -75,10 +69,10 @@ export function SplashAuth() {
           <div className="rounded-3xl border border-white/10 bg-black/35 p-3 backdrop-blur-xl">
             <button
               type="button"
-              onClick={() => setSheet("signup")}
-              className="h-12 w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 via-rose-500 to-orange-400 px-4 text-sm font-bold text-white shadow-[0_10px_30px_rgba(244,63,94,0.35)]"
+              disabled
+              className="h-12 w-full cursor-not-allowed rounded-2xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white/65"
             >
-              Account erstellen
+              Kontoerstellung kommt spaeter (Stay tuned)
             </button>
             <button
               type="button"
@@ -201,104 +195,9 @@ export function SplashAuth() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4 overflow-y-auto pb-3">
-                  <div>
-                    <h2 className="text-2xl font-bold text-zinc-900">Registrieren</h2>
-                    <p className="text-sm text-zinc-500">Erstelle deinen Account mit @student.uni-tuebingen.de.</p>
-                  </div>
-
-                  <form action={signUpFormAction} className="space-y-3">
-                    <input
-                      name="displayName"
-                      type="text"
-                      placeholder="Anzeigename"
-                      autoComplete="nickname"
-                      required
-                      className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
-                    />
-                    <input
-                      name="email"
-                      type="email"
-                      placeholder="du@student.uni-tuebingen.de"
-                      autoComplete="email"
-                      inputMode="email"
-                      required
-                      className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
-                    />
-                    <input
-                      name="password"
-                      type="password"
-                      placeholder="Mind. 8 Zeichen"
-                      autoComplete="new-password"
-                      required
-                      className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
-                    />
-
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                      <button
-                        type="button"
-                        onClick={() => setShowOptionalProfileFields((prev) => !prev)}
-                        className="flex w-full items-center justify-between text-left"
-                        aria-expanded={showOptionalProfileFields}
-                      >
-                        <span className="text-sm font-medium text-zinc-800">Optionale Profilangaben</span>
-                        <span className="text-zinc-500">{showOptionalProfileFields ? "−" : "+"}</span>
-                      </button>
-
-                      {showOptionalProfileFields ? (
-                        <div className="mt-3 space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <select
-                              name="gender"
-                              defaultValue=""
-                              className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-sm text-zinc-900 outline-none focus:border-zinc-400"
-                            >
-                              <option value="">Geschlecht</option>
-                              <option value="female">weiblich</option>
-                              <option value="male">männlich</option>
-                              <option value="diverse">divers</option>
-                            </select>
-                            <input
-                              name="age"
-                              type="number"
-                              min={16}
-                              max={99}
-                              placeholder="Alter"
-                              className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
-                            />
-                          </div>
-                          <input
-                            name="studyProgram"
-                            type="text"
-                            placeholder="Studiengang"
-                            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
-                          />
-                          <div className="space-y-1">
-                            <label htmlFor="signup-avatar" className="text-xs font-medium text-zinc-600">
-                              Profilbild
-                            </label>
-                            <input
-                              id="signup-avatar"
-                              name="avatar"
-                              type="file"
-                              accept="image/png,image/jpeg,image/webp"
-                              className="block w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-zinc-700 hover:file:bg-zinc-200"
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={signUpPending}
-                      className="h-12 w-full rounded-xl bg-zinc-900 text-base font-semibold text-white disabled:opacity-60"
-                    >
-                      Account erstellen
-                    </button>
-                    {signUpState.error ? <p className="text-sm text-red-600">{signUpState.error}</p> : null}
-                    {signUpState.success ? <p className="text-sm text-emerald-700">{signUpState.success}</p> : null}
-                  </form>
+                <div className="space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+                  <p className="font-semibold text-zinc-700">Kontoerstellung ist aktuell deaktiviert.</p>
+                  <p>Dieses Feature kommt spaeter. Stay tuned.</p>
                 </div>
               )}
             </motion.section>

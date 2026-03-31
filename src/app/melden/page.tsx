@@ -47,7 +47,7 @@ export default async function MeldenPage({
       </section>
 
       <p className="mt-6 text-sm text-zinc-600">
-        Zurück zu <Link href="/spontan" className="underline">Spontan</Link> oder <Link href="/chat" className="underline">Chat</Link>.
+        Zurück zu <Link href="/discover" className="underline">Entdecken</Link> oder <Link href="/chat" className="underline">Chat</Link>.
       </p>
     </main>
   );

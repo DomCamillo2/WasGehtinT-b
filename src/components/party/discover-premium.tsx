@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Bookmark,
+  Building2,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -315,10 +317,10 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
     });
   }, [filter, fromDate, sortedParties, toDate, upvotedPartyIds]);
 
-  const filterItems: Array<{ key: FilterKey; label: string }> = [
+  const filterItems: Array<{ key: FilterKey; label: string; icon?: typeof Flame }> = [
     { key: "all", label: "Alle" },
-    { key: "clubs", label: "🪩 Clubs" },
-    { key: "liked", label: "🔥 Gemerkt" },
+    { key: "clubs", label: "Clubs", icon: Building2 },
+    { key: "liked", label: "Gemerkt", icon: Bookmark },
   ];
 
   function requireAuth(reason: string) {
@@ -502,10 +504,11 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
                   />
                 ) : null}
                 <span
-                  className={`relative z-10 ${active ? "text-white" : ""}`}
+                  className={`relative z-10 inline-flex items-center gap-1.5 ${active ? "text-white" : ""}`}
                   style={active ? undefined : { color: "var(--muted-foreground)" }}
                 >
-                  {item.label}
+                  {item.icon ? <item.icon size={14} strokeWidth={2} /> : null}
+                  <span>{item.label}</span>
                 </span>
               </motion.button>
             );
@@ -653,13 +656,12 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
                 >
                   Einloggen
                 </Link>
-                <Link
-                  href="/auth"
-                  onClick={() => setShowAuthSheet(false)}
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 text-sm font-semibold text-white"
+                <span
+                  aria-disabled="true"
+                  className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-zinc-200 bg-zinc-100 text-sm font-semibold text-zinc-500"
                 >
-                  Account erstellen
-                </Link>
+                  Kontoerstellung folgt (Stay tuned)
+                </span>
               </div>
             </motion.div>
           </>

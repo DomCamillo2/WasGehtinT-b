@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { CirclePlus, Compass, Flame, Inbox, MessageCircle, Sparkles, X, Zap } from "lucide-react";
+import { CirclePlus, Compass, Flame, Inbox, MessageCircle, Sparkles, X } from "lucide-react";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
 import {
   createPartyAction,
@@ -15,7 +15,6 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const NAV = [
   { href: "/discover", label: "Entdecken", icon: Compass },
-  { href: "/spontan", label: "Spontan", icon: Zap },
   { href: "/plus", label: "Plus", icon: CirclePlus },
   { href: "/requests", label: "Anfragen", icon: Inbox },
   { href: "/chat", label: "Chat", icon: MessageCircle },
@@ -27,6 +26,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [submitNotice, setSubmitNotice] = useState<string | null>(null);
   const [hangoutState, hangoutAction, hangoutPending] = useActionState(createHangoutAction, initialHangoutState);
   const [partyState, partyAction, partyPending] = useActionState(createPartyAction, INITIAL_CREATE_PARTY_STATE);
 
@@ -46,14 +46,15 @@ export function BottomNav() {
       return;
     }
 
+    setIsComposerOpen(false);
+    setSubmitNotice(hangoutState.success);
+
     const timeoutId = window.setTimeout(() => {
-      setIsComposerOpen(false);
-      router.push("/spontan");
-      router.refresh();
-    }, 0);
+      setSubmitNotice(null);
+    }, 2800);
 
     return () => window.clearTimeout(timeoutId);
-  }, [hangoutState.success, router]);
+  }, [hangoutState.success]);
 
   useEffect(() => {
     if (!partyState.ok) {
@@ -227,13 +228,21 @@ export function BottomNav() {
         </div>
       ) : null}
 
+      {submitNotice ? (
+        <div className="fixed inset-x-0 top-4 z-50 mx-auto w-full max-w-md px-4">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-[0_12px_30px_rgba(5,150,105,0.2)]">
+            {submitNotice}
+          </div>
+        </div>
+      ) : null}
+
       <nav className="fixed inset-x-0 bottom-0 z-20 px-3 pb-[calc(0.4rem+env(safe-area-inset-bottom))] pt-2">
         <div className="mx-auto max-w-md">
           <div className="mb-2 flex justify-end pr-1">
             <ThemeToggle />
           </div>
           <ul
-            className="grid grid-cols-5 rounded-2xl border p-1 shadow-[0_-10px_28px_rgba(15,23,42,0.12)] backdrop-blur-md"
+            className="grid grid-cols-4 rounded-2xl border p-1 shadow-[0_-10px_28px_rgba(15,23,42,0.12)] backdrop-blur-md"
             style={{
               borderColor: "var(--nav-border)",
               backgroundColor: "var(--nav-bg)",
