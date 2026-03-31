@@ -189,8 +189,9 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   const topScore = useMemo(() => {
     let max = 0;
     for (const party of sortedParties) {
-      if (party.is_external) {
-        continue;
+      const dateKey = toDateKeyBerlin(party.starts_at);
+      if (dateKey < todayKey) {
+        continue; // Skip past events
       }
 
       const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
@@ -199,20 +200,30 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
       }
     }
     return max;
-  }, [sortedParties, upvoteCounts]);
+  }, [sortedParties, upvoteCounts, todayKey]);
 
-  const hotPartyIds = useMemo(() => {
+  const hottestParty = useMemo(() => {
     if (topScore <= 0) {
-      return new Set<string>();
+      return null;
     }
 
-    return new Set(
-      sortedParties
-        .filter((party) => !party.is_external)
-        .filter((party) => (upvoteCounts[party.id] ?? party.upvote_count ?? 0) === topScore)
-        .map((party) => party.id),
+    return (
+      sortedParties.find((party) => {
+        const dateKey = toDateKeyBerlin(party.starts_at);
+        if (dateKey < todayKey) {
+          return false; // Skip past events
+        }
+        return (upvoteCounts[party.id] ?? party.upvote_count ?? 0) === topScore;
+      }) ?? null
     );
-  }, [sortedParties, topScore, upvoteCounts]);
+  }, [sortedParties, topScore, upvoteCounts, todayKey]);
+
+  const hotPartyIds = useMemo(() => {
+    if (!hottestParty) {
+      return new Set<string>();
+    }
+    return new Set([hottestParty.id]); // Only 1 event with the badge
+  }, [hottestParty]);
 
   const rankByPartyId = useMemo(() => {
     const rankMap = new Map<string, number>();
@@ -234,14 +245,6 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
     return rankMap;
   }, [sortedParties, upvoteCounts]);
-
-  const hottestParty = useMemo(
-    () =>
-      sortedParties.find(
-        (party) => !party.is_external && (upvoteCounts[party.id] ?? party.upvote_count ?? 0) === topScore,
-      ) ?? null,
-    [sortedParties, topScore, upvoteCounts],
-  );
 
   const filteredParties = useMemo(() => {
     const sorted = sortedParties;
