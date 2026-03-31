@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getMissingSupabaseEnv } from "@/lib/env";
+import { getMissingSupabaseEnv, getSupabasePublicKey } from "@/lib/env";
 
 export async function createClient() {
   const missing = getMissingSupabaseEnv();
@@ -9,10 +9,11 @@ export async function createClient() {
   }
 
   const cookieStore = await cookies();
+  const publicKey = getSupabasePublicKey();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    publicKey!,
     {
       cookies: {
         getAll() {
