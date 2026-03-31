@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
+import { LegalLinks } from "@/components/layout/legal-links";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
@@ -52,6 +53,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
+        <footer className="mt-auto border-t border-zinc-200 bg-white py-6">
+          <LegalLinks className="mt-2" />
+        </footer>
         <CookieConsentBanner />
         <Analytics />
       </body>
