@@ -157,6 +157,70 @@ export async function getExternalEvents() {
   });
 }
 
+export async function getExternalEventById(eventId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("v_external_events_public")
+    .select("*")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[getExternalEventById] Failed to fetch external event:", error.message);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const event = data as {
+    id: string | number;
+    source?: string | null;
+    title: string;
+    description?: string | null;
+    location_name?: string | null;
+    location?: string | null;
+    public_lat?: number | null;
+    lat?: number | null;
+    public_lng?: number | null;
+    lng?: number | null;
+    starts_at: string;
+    ends_at?: string | null;
+    external_link?: string | null;
+    vibe_label?: string | null;
+    music_genre?: string | null;
+  };
+
+  const isOfficialScraperLabel = (value?: string | null) => {
+    const normalized = (value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+    return normalized === "official scraper";
+  };
+
+  return {
+    id: String(event.id),
+    title: event.title,
+    description: event.description ?? null,
+    starts_at: event.starts_at,
+    ends_at: event.ends_at ?? event.starts_at,
+    max_guests: 0,
+    contribution_cents: 0,
+    public_lat: event.public_lat ?? event.lat ?? null,
+    public_lng: event.public_lng ?? event.lng ?? null,
+    is_external: true,
+    external_link: event.external_link ?? null,
+    vibe_label: event.vibe_label ?? "Sonstiges",
+    spots_left: 0,
+    location_name: event.location_name ?? event.location ?? null,
+    music_genre: event.music_genre ?? null,
+    source_badge: event.source && !isOfficialScraperLabel(event.source) ? event.source : null,
+    is_community: false,
+    upvote_count: 0,
+    upvoted_by_me: false,
+  } as PartyCard;
+}
+
 export async function getCommunityHangoutsForDiscover() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();

@@ -7,31 +7,28 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-neutral-200 bg-white mt-16 mb-20 md:mb-0">
-      {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand Section */}
+    <footer className="mt-16 mb-20 border-t border-neutral-200 bg-white md:mb-0">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">WG</span>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                <span className="text-sm font-bold text-white">WG</span>
               </div>
               <span className="font-semibold text-neutral-900">WasGehtTüb</span>
             </div>
-            <p className="text-sm text-neutral-600 max-w-sm">
-              Deine Plattform für spontane Aktivitäten und Clubevents in Tüßlingen und Umgebung.
+            <p className="max-w-sm text-sm text-neutral-600">
+              Deine Plattform für spontane Aktivitäten, Studentenpartys und Clubevents in Tübingen.
             </p>
           </div>
 
-          {/* Quick Links */}
           <div>
-            <h3 className="font-semibold text-neutral-900 mb-4 text-sm">Links</h3>
+            <h3 className="mb-4 text-sm font-semibold text-neutral-900">Links</h3>
             <ul className="space-y-3">
               <li>
                 <Link
                   href="/discover"
-                  className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
                 >
                   Entdecken
                 </Link>
@@ -39,7 +36,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/"
-                  className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
                 >
                   Startseite
                 </Link>
@@ -47,14 +44,13 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Legal */}
           <div>
-            <h3 className="font-semibold text-neutral-900 mb-4 text-sm">Rechtliches</h3>
+            <h3 className="mb-4 text-sm font-semibold text-neutral-900">Rechtliches</h3>
             <ul className="space-y-3">
               <li>
                 <Link
                   href="/impressum"
-                  className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
                 >
                   Impressum
                 </Link>
@@ -62,7 +58,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/datenschutz"
-                  className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
                 >
                   Datenschutz
                 </Link>
@@ -70,7 +66,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/nutzungsbedingungen"
-                  className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
                 >
                   AGB
                 </Link>
@@ -78,7 +74,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/melden"
-                  className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
                 >
                   Melden
                 </Link>
@@ -87,17 +83,25 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-neutral-200 my-8" />
+        <div className="my-8 border-t border-neutral-200" />
 
-        {/* Bottom Footer */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
+          <h3 className="text-sm font-semibold text-neutral-900">Tübingen am Wochenende</h3>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
+            WasGehtTüb hilft dir dabei, das Nachtleben Tübingen schneller zu checken: Studentenpartys,
+            Clubevents, spontane Treffen und Tipps dazu, was man in Tübingen am Wochenende machen kann.
+            Egal ob Clubhausfest, Kuckuck, Schwarzes Schaf oder andere Partys in Tübingen - hier findest
+            du aktuelle Events, Uhrzeiten und Orte auf einen Blick.
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-xs text-neutral-600">
             © {currentYear} Domile UG (haftungsbeschränkt). Alle Rechte vorbehalten.
           </p>
           <div className="flex items-center gap-1 text-xs text-neutral-600">
             Made with
-            <Heart className="w-3 h-3 text-red-500 fill-red-500" />
+            <Heart className="h-3 w-3 fill-red-500 text-red-500" />
             for the community
           </div>
         </div>
