@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  BookmarkCheck,
   Building2,
   CalendarDays,
   ChevronLeft,
@@ -312,7 +311,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
     { key: "daytime", label: "Tagesevents", icon: CalendarDays },
     { key: "community", label: "Community", icon: UsersRound },
     { key: "clubs", label: "Clubs", icon: Building2 },
-    { key: "liked", label: "Gemerkt", icon: BookmarkCheck },
+    { key: "liked", label: "Gemerkt", icon: Flame },
   ];
 
   function requireAuth(reason: string) {
