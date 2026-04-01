@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireInternalAdmin } from "@/lib/admin-guard";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -157,6 +158,10 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
       message: decision === "approve" ? "Party wurde freigegeben." : "Party wurde abgelehnt.",
     });
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     console.error("[reviewPartySubmissionAction] Unexpected failure:", error);
     adminRedirectWithStatus({
       type: "error",
@@ -278,6 +283,10 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
           : "Community-Event wurde abgelehnt.",
     });
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     console.error("[reviewHangoutSubmissionAction] Unexpected failure:", error);
     adminRedirectWithStatus({
       type: "error",
