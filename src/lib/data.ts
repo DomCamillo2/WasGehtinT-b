@@ -110,10 +110,10 @@ export async function getCommunityHangoutsForDiscover() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
+  // Fetch ALL hangouts and filter client-side for approve/reject OR publish status
   const { data, error } = await supabase
     .from("hangouts")
     .select("id, title, description, meetup_at, created_at, location_text, review_status, status, is_published")
-    .or("review_status.eq.approved,status.eq.published,is_published.eq.true")
     .gte("meetup_at", nowIso)
     .order("meetup_at", { ascending: true });
 
@@ -130,9 +130,20 @@ export async function getCommunityHangoutsForDiscover() {
       meetup_at: string | null;
       created_at: string | null;
       location_text: string | null;
+      review_status?: string;
+      status?: string;
+      is_published?: boolean;
     }>;
 
-  return rows
+  // Filter for approved events
+  const filteredRows = rows.filter((row) => {
+    const approved = row.review_status === "approved";
+    const published = row.status === "published";
+    const isPublished = row.is_published === true;
+    return approved || published || isPublished;
+  });
+
+  return filteredRows
     .filter((row) => typeof row.meetup_at === "string" && row.meetup_at.length > 0)
     .map((row) => {
       const startsAt = row.meetup_at as string;
