@@ -11,6 +11,8 @@ const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
 const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
 const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
+const TUEBINGEN_MARKETS_URL = "https://www.tuebingen.de/3393.html";
+const TUEBINGEN_FLEA_MARKETS_URL = "https://www.tuebingen.de/3392.html";
 
 const KUCKUCK_COORDS = { lat: 48.5413588, lng: 9.0599431 };
 const CLUBHAUS_COORDS = { lat: 48.5243852, lng: 9.0605991 };
@@ -80,6 +82,89 @@ function decodeIcsText(value) {
     .replace(/\\,/g, ",")
     .replace(/\\;/g, ";")
     .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function normalizeGermanWord(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function parseGermanMonthName(name) {
+  const normalized = normalizeGermanWord(name);
+  const months = {
+    januar: 1,
+    februar: 2,
+    marz: 3,
+    april: 4,
+    mai: 5,
+    juni: 6,
+    juli: 7,
+    august: 8,
+    september: 9,
+    oktober: 10,
+    november: 11,
+    dezember: 12,
+  };
+
+  return months[normalized] ?? null;
+}
+
+function buildBerlinIsoDate(year, month, day, hour = 9, minute = 0) {
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  const hh = String(hour).padStart(2, "0");
+  const min = String(minute).padStart(2, "0");
+  const date = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00+02:00`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function extractDateRangeFromLabel(label) {
+  const normalized = String(label ?? "").replace(/\u00a0/g, " ").trim();
+
+  const sameMonthRange = normalized.match(
+    /^(\d{1,2})\.\s*(?:und|bis)\s*(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)\s*(\d{4})/i,
+  );
+  if (sameMonthRange) {
+    const [, startDayRaw, endDayRaw, monthName, yearRaw] = sameMonthRange;
+    const month = parseGermanMonthName(monthName);
+    if (!month) {
+      return null;
+    }
+
+    const year = Number(yearRaw);
+    const startDay = Number(startDayRaw);
+    const endDay = Number(endDayRaw);
+    const startsAt = buildBerlinIsoDate(year, month, startDay, 9, 0);
+    const endsAt = buildBerlinIsoDate(year, month, endDay, 18, 0);
+    return startsAt && endsAt ? { startsAt, endsAt } : null;
+  }
+
+  const singleDay = normalized.match(/^(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)\s*(\d{4})/i);
+  if (singleDay) {
+    const [, dayRaw, monthName, yearRaw] = singleDay;
+    const month = parseGermanMonthName(monthName);
+    if (!month) {
+      return null;
+    }
+
+    const year = Number(yearRaw);
+    const day = Number(dayRaw);
+    const startsAt = buildBerlinIsoDate(year, month, day, 9, 0);
+    const endsAt = buildBerlinIsoDate(year, month, day, 18, 0);
+    return startsAt && endsAt ? { startsAt, endsAt } : null;
+  }
+
+  return null;
+}
+
+function sanitizeMarketTitle(raw) {
+  return String(raw ?? "")
+    .replace(/^\d{1,2}\.\s*(?:und|bis)\s*\d{1,2}\.\s*[A-Za-zÄÖÜäöüß]+\s*\d{4}:\s*/i, "")
+    .replace(/^\d{1,2}\.\s*[A-Za-zÄÖÜäöüß]+\s*\d{4}:\s*/i, "")
     .trim();
 }
 
@@ -406,6 +491,113 @@ async function fetchEpplehausEvents() {
       .filter(Boolean);
   } catch (error) {
     console.error("[worker] Epplehaus scrape failed:", error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}
+
+async function fetchTuebingenMarketEvents() {
+  try {
+    const html = await fetchWithTimeout(TUEBINGEN_MARKETS_URL);
+    const $ = cheerio.load(html);
+
+    return $(".klappe a.kl")
+      .toArray()
+      .map((element) => {
+        const rawLabel = $(element).text().trim();
+        const parsedRange = extractDateRangeFromLabel(rawLabel);
+        if (!rawLabel || !parsedRange) {
+          return null;
+        }
+
+        const title = sanitizeMarketTitle(rawLabel) || "Markt in Tuebingen";
+        const relativeHref = $(element).attr("href")?.trim() ?? "";
+        const externalLink = relativeHref
+          ? new URL(relativeHref, TUEBINGEN_MARKETS_URL).toString()
+          : TUEBINGEN_MARKETS_URL;
+
+        return {
+          id: `tuebingen-market-${slugify(rawLabel)}`,
+          title,
+          description: "Offizieller Markttermin der Universitaetsstadt Tuebingen",
+          starts_at: parsedRange.startsAt,
+          ends_at: parsedRange.endsAt,
+          public_lat: null,
+          public_lng: null,
+          external_link: externalLink,
+          vibe_label: "Markt",
+          location_name: title.toLowerCase().includes("rathaus") ? "Rathaus, Tuebingen" : "Tuebingen",
+          music_genre: null,
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.error("[worker] Tuebingen market scrape failed:", error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}
+
+async function fetchTuebingenFleaMarketEvents() {
+  try {
+    const html = await fetchWithTimeout(TUEBINGEN_FLEA_MARKETS_URL);
+    const $ = cheerio.load(html);
+    const yearHeading = $("#content h4")
+      .toArray()
+      .find((element) => /Termine\s+fuer\s+\d{4}|Termine\s+für\s+\d{4}/i.test($(element).text()));
+
+    if (!yearHeading) {
+      return [];
+    }
+
+    const yearMatch = $(yearHeading).text().match(/(\d{4})/);
+    const year = Number(yearMatch?.[1] ?? "0");
+    if (!year) {
+      return [];
+    }
+
+    const list = $(yearHeading).nextAll("ul").first();
+    if (!list.length) {
+      return [];
+    }
+
+    return list
+      .find("li")
+      .toArray()
+      .map((element) => {
+        const raw = $(element).text().replace(/\(.*?\)/g, "").trim();
+        const match = raw.match(/^(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)/i);
+        if (!match) {
+          return null;
+        }
+
+        const day = Number(match[1]);
+        const month = parseGermanMonthName(match[2]);
+        if (!month) {
+          return null;
+        }
+
+        const startsAt = buildBerlinIsoDate(year, month, day, 8, 0);
+        const endsAt = buildBerlinIsoDate(year, month, day, 15, 0);
+        if (!startsAt || !endsAt) {
+          return null;
+        }
+
+        return {
+          id: `tuebingen-flohmarkt-${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+          title: "Staedtischer Flohmarkt in der Uhlandstrasse",
+          description: "Offizieller Flohmarkttermin der Universitaetsstadt Tuebingen",
+          starts_at: startsAt,
+          ends_at: endsAt,
+          public_lat: null,
+          public_lng: null,
+          external_link: TUEBINGEN_FLEA_MARKETS_URL,
+          vibe_label: "Flohmarkt",
+          location_name: "Uhlandstrasse, Tuebingen",
+          music_genre: null,
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.error("[worker] Tuebingen flea market scrape failed:", error instanceof Error ? error.message : String(error));
     return [];
   }
 }
@@ -782,15 +974,25 @@ async function main() {
   const startedAt = Date.now();
   console.log("[worker] Starting external events sync...");
 
-  const [kuckuck, clubhaus, schlachthaus, diginights, epplehaus] = await Promise.all([
+  const [kuckuck, clubhaus, schlachthaus, diginights, epplehaus, markets, fleaMarkets] = await Promise.all([
     fetchKuckuckEvents(),
     fetchFsrvvClubhausEvents(),
     fetchSchlachthausEvents(),
     fetchDiginightsEvents(),
     fetchEpplehausEvents(),
+    fetchTuebingenMarketEvents(),
+    fetchTuebingenFleaMarketEvents(),
   ]);
 
-  const merged = dedupeAndSort([...kuckuck, ...clubhaus, ...schlachthaus, ...diginights, ...epplehaus]);
+  const merged = dedupeAndSort([
+    ...kuckuck,
+    ...clubhaus,
+    ...schlachthaus,
+    ...diginights,
+    ...epplehaus,
+    ...markets,
+    ...fleaMarkets,
+  ]);
   const result = await syncToSupabase(merged);
 
   console.log(
