@@ -5,6 +5,59 @@ import { BringProgress, ChatPreview, PartyCard } from "@/lib/types";
 
 export type UserRole = "student" | "owner" | "admin";
 
+function inferExternalCategoryFields(input: {
+  title?: string | null;
+  description?: string | null;
+  vibe_label?: string | null;
+  category_slug?: string | null;
+  category_label?: string | null;
+  event_scope?: "nightlife" | "daytime" | "mixed" | null;
+}) {
+  if (input.category_slug || input.category_label || input.event_scope) {
+    return {
+      category_slug: input.category_slug ?? null,
+      category_label: input.category_label ?? null,
+      event_scope: input.event_scope ?? null,
+    };
+  }
+
+  const haystack = [input.title, input.description, input.vibe_label]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes("flohmarkt")) {
+    return {
+      category_slug: "flea-market",
+      category_label: "Flohmarkt",
+      event_scope: "daytime" as const,
+    };
+  }
+
+  if (
+    haystack.includes("markt") ||
+    haystack.includes("messe") ||
+    haystack.includes("weihnachtsmarkt") ||
+    haystack.includes("regionalmarkt") ||
+    haystack.includes("kunstmarkt") ||
+    haystack.includes("fairer markt") ||
+    haystack.includes("martinimarkt") ||
+    haystack.includes("georgimarkt")
+  ) {
+    return {
+      category_slug: "market",
+      category_label: "Markt",
+      event_scope: "daytime" as const,
+    };
+  }
+
+  return {
+    category_slug: null,
+    category_label: null,
+    event_scope: null,
+  };
+}
+
 export async function requireUser() {
   if (!hasSupabaseEnv()) {
     redirect("/?setup=1");
@@ -170,6 +223,7 @@ export async function getExternalEvents() {
     const lat = event.public_lat ?? event.lat ?? null;
     const lng = event.public_lng ?? event.lng ?? null;
     const endsAt = event.ends_at ?? event.starts_at;
+    const inferredCategory = inferExternalCategoryFields(event);
 
     return {
       id: String(event.id),
@@ -187,9 +241,9 @@ export async function getExternalEvents() {
       spots_left: 0,
       location_name: locationName,
       music_genre: event.music_genre ?? null,
-      category_slug: event.category_slug ?? null,
-      category_label: event.category_label ?? null,
-      event_scope: event.event_scope ?? null,
+      category_slug: inferredCategory.category_slug,
+      category_label: inferredCategory.category_label,
+      event_scope: inferredCategory.event_scope,
       is_all_day: event.is_all_day === true,
       audience_label: event.audience_label ?? null,
       price_info: event.price_info ?? null,
@@ -247,6 +301,7 @@ export async function getExternalEventById(eventId: string) {
     const normalized = (value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
     return normalized === "official scraper";
   };
+  const inferredCategory = inferExternalCategoryFields(event);
 
   return {
     id: String(event.id),
@@ -264,9 +319,9 @@ export async function getExternalEventById(eventId: string) {
     spots_left: 0,
     location_name: event.location_name ?? event.location ?? null,
     music_genre: event.music_genre ?? null,
-    category_slug: event.category_slug ?? null,
-    category_label: event.category_label ?? null,
-    event_scope: event.event_scope ?? null,
+    category_slug: inferredCategory.category_slug,
+    category_label: inferredCategory.category_label,
+    event_scope: inferredCategory.event_scope,
     is_all_day: event.is_all_day === true,
     audience_label: event.audience_label ?? null,
     price_info: event.price_info ?? null,

@@ -100,6 +100,9 @@ function getAddressLine(party: PartyCard) {
   if (party.public_lat && party.public_lng) {
     return `Koordinaten: ${party.public_lat.toFixed(4)}, ${party.public_lng.toFixed(4)}`;
   }
+  if (party.location_name && party.location_name.trim().length > 0) {
+    return party.location_name;
+  }
   return "Adresse wird vor dem Event bekannt gegeben";
 }
 

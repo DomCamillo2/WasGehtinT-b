@@ -12,6 +12,8 @@ const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
 const DIGINIGHTS_URL = "https://diginights.com/city/tuebingen";
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
+const TUEBINGEN_MARKETS_URL = "https://www.tuebingen.de/3393.html";
+const TUEBINGEN_FLEA_MARKETS_URL = "https://www.tuebingen.de/3392.html";
 
 /**
  * Parse date strings in various formats
@@ -117,6 +119,89 @@ function parseIcsDate(value: string): string | null {
   }
 
   return date.toISOString();
+}
+
+function normalizeGermanWord(value: string): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function parseGermanMonthName(name: string): number | null {
+  const normalized = normalizeGermanWord(name);
+  const months: Record<string, number> = {
+    januar: 1,
+    februar: 2,
+    marz: 3,
+    april: 4,
+    mai: 5,
+    juni: 6,
+    juli: 7,
+    august: 8,
+    september: 9,
+    oktober: 10,
+    november: 11,
+    dezember: 12,
+  };
+
+  return months[normalized] ?? null;
+}
+
+function buildBerlinIsoDate(year: number, month: number, day: number, hour = 9, minute = 0): string | null {
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  const hh = String(hour).padStart(2, "0");
+  const min = String(minute).padStart(2, "0");
+  const date = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00+02:00`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function extractDateRangeFromLabel(label: string): { startsAt: string; endsAt: string } | null {
+  const normalized = String(label ?? "").replace(/\u00a0/g, " ").trim();
+
+  const sameMonthRange = normalized.match(
+    /^(\d{1,2})\.\s*(?:und|bis)\s*(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)\s*(\d{4})/i,
+  );
+  if (sameMonthRange) {
+    const [, startDayRaw, endDayRaw, monthName, yearRaw] = sameMonthRange;
+    const month = parseGermanMonthName(monthName);
+    if (!month) {
+      return null;
+    }
+
+    const year = Number(yearRaw);
+    const startDay = Number(startDayRaw);
+    const endDay = Number(endDayRaw);
+    const startsAt = buildBerlinIsoDate(year, month, startDay, 9, 0);
+    const endsAt = buildBerlinIsoDate(year, month, endDay, 18, 0);
+    return startsAt && endsAt ? { startsAt, endsAt } : null;
+  }
+
+  const singleDay = normalized.match(/^(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)\s*(\d{4})/i);
+  if (singleDay) {
+    const [, dayRaw, monthName, yearRaw] = singleDay;
+    const month = parseGermanMonthName(monthName);
+    if (!month) {
+      return null;
+    }
+
+    const year = Number(yearRaw);
+    const day = Number(dayRaw);
+    const startsAt = buildBerlinIsoDate(year, month, day, 9, 0);
+    const endsAt = buildBerlinIsoDate(year, month, day, 18, 0);
+    return startsAt && endsAt ? { startsAt, endsAt } : null;
+  }
+
+  return null;
+}
+
+function sanitizeMarketTitle(raw: string): string {
+  return String(raw ?? "")
+    .replace(/^\d{1,2}\.\s*(?:und|bis)\s*\d{1,2}\.\s*[A-Za-zÄÖÜäöüß]+\s*\d{4}:\s*/i, "")
+    .replace(/^\d{1,2}\.\s*[A-Za-zÄÖÜäöüß]+\s*\d{4}:\s*/i, "")
+    .trim();
 }
 
 /**
@@ -433,6 +518,157 @@ export async function fetchEpplehausEvents(): Promise<PartyCard[]> {
       .filter((event): event is PartyCard => Boolean(event));
   } catch (error) {
     console.error("Error fetching Epplehaus events:", error);
+    return [];
+  }
+}
+
+export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
+  try {
+    const response = await fetch(TUEBINGEN_MARKETS_URL, {
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      console.warn("Tuebingen markets fetch failed with status:", response.status);
+      return [];
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+
+    return $(".klappe a.kl")
+      .toArray()
+      .map((element) => {
+        const rawLabel = $(element).text().trim();
+        const parsedRange = extractDateRangeFromLabel(rawLabel);
+        if (!rawLabel || !parsedRange) {
+          return null;
+        }
+
+        const title = sanitizeMarketTitle(rawLabel) || "Markt in Tuebingen";
+        const relativeHref = $(element).attr("href")?.trim() ?? "";
+        const externalLink = relativeHref
+          ? new URL(relativeHref, TUEBINGEN_MARKETS_URL).toString()
+          : TUEBINGEN_MARKETS_URL;
+
+        return {
+          id: `tuebingen-market-${slugify(rawLabel)}`,
+          title,
+          description: "Offizieller Markttermin der Universitaetsstadt Tuebingen",
+          starts_at: parsedRange.startsAt,
+          ends_at: parsedRange.endsAt,
+          max_guests: 0,
+          contribution_cents: 0,
+          public_lat: null,
+          public_lng: null,
+          is_external: true,
+          external_link: externalLink,
+          vibe_label: "Markt",
+          spots_left: 0,
+          location_name: title.toLowerCase().includes("rathaus") ? "Rathaus, Tuebingen" : "Tuebingen",
+          category_slug: "market",
+          category_label: "Markt",
+          event_scope: "daytime",
+          is_all_day: true,
+          audience_label: "Alle",
+          price_info: null,
+        } as PartyCard;
+      })
+      .filter((event): event is PartyCard => Boolean(event));
+  } catch (error) {
+    console.error("Error fetching Tuebingen market events:", error);
+    return [];
+  }
+}
+
+export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
+  try {
+    const response = await fetch(TUEBINGEN_FLEA_MARKETS_URL, {
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      console.warn("Tuebingen flea market fetch failed with status:", response.status);
+      return [];
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const yearHeading = $("#content h4")
+      .toArray()
+      .find((element) => /Termine\s+fuer\s+\d{4}|Termine\s+für\s+\d{4}/i.test($(element).text()));
+
+    if (!yearHeading) {
+      return [];
+    }
+
+    const yearMatch = $(yearHeading).text().match(/(\d{4})/);
+    const year = Number(yearMatch?.[1] ?? "0");
+    if (!year) {
+      return [];
+    }
+
+    const list = $(yearHeading).nextAll("ul").first();
+    if (!list.length) {
+      return [];
+    }
+
+    return list
+      .find("li")
+      .toArray()
+      .map((element) => {
+        const raw = $(element).text().replace(/\(.*?\)/g, "").trim();
+        const match = raw.match(/^(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)/i);
+        if (!match) {
+          return null;
+        }
+
+        const day = Number(match[1]);
+        const month = parseGermanMonthName(match[2]);
+        if (!month) {
+          return null;
+        }
+
+        const startsAt = buildBerlinIsoDate(year, month, day, 8, 0);
+        const endsAt = buildBerlinIsoDate(year, month, day, 15, 0);
+        if (!startsAt || !endsAt) {
+          return null;
+        }
+
+        return {
+          id: `tuebingen-flohmarkt-${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+          title: "Staedtischer Flohmarkt in der Uhlandstrasse",
+          description: "Offizieller Flohmarkttermin der Universitaetsstadt Tuebingen",
+          starts_at: startsAt,
+          ends_at: endsAt,
+          max_guests: 0,
+          contribution_cents: 0,
+          public_lat: null,
+          public_lng: null,
+          is_external: true,
+          external_link: TUEBINGEN_FLEA_MARKETS_URL,
+          vibe_label: "Flohmarkt",
+          spots_left: 0,
+          location_name: "Uhlandstrasse, Tuebingen",
+          category_slug: "flea-market",
+          category_label: "Flohmarkt",
+          event_scope: "daytime",
+          is_all_day: false,
+          audience_label: "Alle",
+          price_info: null,
+        } as PartyCard;
+      })
+      .filter((event): event is PartyCard => Boolean(event));
+  } catch (error) {
+    console.error("Error fetching Tuebingen flea market events:", error);
     return [];
   }
 }

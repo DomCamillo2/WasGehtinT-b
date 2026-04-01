@@ -1,5 +1,6 @@
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { fetchExternalEventsAction } from "@/app/actions/external-events";
+import { syncExternalEventsToCache } from "@/lib/external-events-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +41,14 @@ export async function GET(request: Request) {
 
   revalidateTag("external-events", "max");
   const events = await fetchExternalEventsAction();
+  const syncResult = await syncExternalEventsToCache(events);
+  revalidatePath("/discover");
 
   return Response.json({
     ok: true,
     refreshedAt: new Date().toISOString(),
     count: events.length,
+    upserted: syncResult.upserted,
     durationMs: Date.now() - startedAt,
   }, {
     status: 200,
