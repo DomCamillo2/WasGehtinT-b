@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -27,10 +27,10 @@ export function BottomNav() {
   const router = useRouter();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [submitNotice, setSubmitNotice] = useState<string | null>(null);
-  const [hangoutState, setHangoutState] = useState<HangoutActionState>(initialHangoutState);
-  const [partyState, setPartyState] = useState(INITIAL_CREATE_PARTY_STATE);
-  const [isHangoutPending, startHangoutTransition] = useTransition();
-  const [isPartyPending, startPartyTransition] = useTransition();
+  const hangoutFormRef = useRef<HTMLFormElement>(null);
+  const partyFormRef = useRef<HTMLFormElement>(null);
+  const [hangoutState, hangoutFormAction, isHangoutPending] = useActionState(createHangoutAction, initialHangoutState);
+  const [partyState, partyFormAction, isPartyPending] = useActionState(createPartyAction, INITIAL_CREATE_PARTY_STATE);
 
   useEffect(() => {
     for (const item of NAV) {
@@ -48,6 +48,7 @@ export function BottomNav() {
       return;
     }
 
+    hangoutFormRef.current?.reset();
     setIsComposerOpen(false);
     setSubmitNotice(hangoutState.success);
 
@@ -63,6 +64,7 @@ export function BottomNav() {
       return;
     }
 
+    partyFormRef.current?.reset();
     const timeoutId = window.setTimeout(() => {
       setIsComposerOpen(false);
       router.push("/discover");
@@ -71,46 +73,6 @@ export function BottomNav() {
 
     return () => window.clearTimeout(timeoutId);
   }, [partyState.ok, router]);
-
-  function handleHangoutSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-
-    setHangoutState(initialHangoutState);
-
-    startHangoutTransition(async () => {
-      try {
-        const result = await createHangoutAction(initialHangoutState, formData);
-        setHangoutState(result);
-
-        if (result.success) {
-          event.currentTarget.reset();
-        }
-      } catch {
-        setHangoutState({ error: "Einreichen fehlgeschlagen. Bitte versuche es erneut." });
-      }
-    });
-  }
-
-  function handlePartySubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-
-    setPartyState(INITIAL_CREATE_PARTY_STATE);
-
-    startPartyTransition(async () => {
-      try {
-        const result = await createPartyAction(INITIAL_CREATE_PARTY_STATE, formData);
-        setPartyState(result);
-
-        if (result.ok) {
-          event.currentTarget.reset();
-        }
-      } catch {
-        setPartyState({ ok: false, message: "Einreichen fehlgeschlagen. Bitte versuche es erneut." });
-      }
-    });
-  }
 
   return (
     <>
@@ -135,7 +97,7 @@ export function BottomNav() {
               </button>
             </div>
 
-            <form onSubmit={handleHangoutSubmit} className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+            <form ref={hangoutFormRef} action={hangoutFormAction} className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800">
                 <Sparkles size={16} />
                 Spontane Aktivitaet sofort posten
@@ -201,7 +163,7 @@ export function BottomNav() {
               ) : null}
             </form>
 
-            <form onSubmit={handlePartySubmit} className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
+            <form ref={partyFormRef} action={partyFormAction} className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-800">
                 <Flame size={16} />
                 Club Event einreichen
