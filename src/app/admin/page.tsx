@@ -248,7 +248,7 @@ export default async function AdminPage() {
                 <form action={reviewPartySubmissionAction}>
                   <input type="hidden" name="partyId" value={party.id} />
                   <input type="hidden" name="decision" value="approve" />
-                  <button className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
+                  <button type="submit" className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CheckCircle2 size={16} />
                       <span>Freigeben</span>
@@ -258,7 +258,7 @@ export default async function AdminPage() {
                 <form action={reviewPartySubmissionAction}>
                   <input type="hidden" name="partyId" value={party.id} />
                   <input type="hidden" name="decision" value="reject" />
-                  <button className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
+                  <button type="submit" className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CircleX size={16} />
                       <span>Ablehnen</span>
@@ -298,7 +298,7 @@ export default async function AdminPage() {
                 <form action={reviewHangoutSubmissionAction}>
                   <input type="hidden" name="hangoutId" value={hangout.id} />
                   <input type="hidden" name="decision" value="approve" />
-                  <button className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
+                  <button type="submit" className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CheckCircle2 size={16} />
                       <span>Freigeben</span>
@@ -308,7 +308,7 @@ export default async function AdminPage() {
                 <form action={reviewHangoutSubmissionAction}>
                   <input type="hidden" name="hangoutId" value={hangout.id} />
                   <input type="hidden" name="decision" value="reject" />
-                  <button className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
+                  <button type="submit" className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CircleX size={16} />
                       <span>Ablehnen</span>
