@@ -25,6 +25,12 @@ export type PartyCard = {
   host_user_id?: string | null;
   host_avatar_url?: string | null;
   music_genre?: string | null;
+  category_slug?: string | null;
+  category_label?: string | null;
+  event_scope?: "nightlife" | "daytime" | "mixed" | null;
+  is_all_day?: boolean;
+  audience_label?: string | null;
+  price_info?: string | null;
   upvote_count?: number;
   upvoted_by_me?: boolean;
   source_badge?: string | null;

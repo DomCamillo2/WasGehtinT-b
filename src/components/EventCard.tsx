@@ -19,7 +19,7 @@ type Props = {
   onChatAction?: () => void;
 };
 
-type TypeTagKey = "club-bar" | "wg-privat" | "treffen" | "extern";
+type TypeTagKey = "club-bar" | "wg-privat" | "treffen" | "daytime" | "extern";
 
 type TypeTag = {
   key: TypeTagKey;
@@ -38,6 +38,14 @@ function getTypeTag(party: PartyCard): TypeTag {
   const description = (party.description ?? "").toLowerCase();
   const vibe = party.vibe_label.toLowerCase();
   const text = `${title} ${description} ${vibe}`;
+
+  if (party.event_scope === "daytime") {
+    return {
+      key: "daytime",
+      label: party.category_label?.trim() || "Tagesevent",
+      bookmarkClasses: "bg-sky-100/95 text-sky-800 ring-sky-300",
+    };
+  }
 
   if (text.includes("treffen") || text.includes("meetup") || text.includes("stammtisch")) {
     return {
@@ -193,6 +201,7 @@ export function EventCard({
   const startsAtDate = new Date(party.starts_at);
   const formattedDate = BERLIN_SHORT_DATE_FORMATTER.format(startsAtDate);
   const formattedTime = BERLIN_TIME_FORMATTER.format(startsAtDate);
+  const timingLabel = party.is_all_day ? "Ganztagig" : `${formattedTime} Uhr`;
 
   return (
     <article
@@ -317,8 +326,7 @@ export function EventCard({
             <span className="shrink-0">•</span>
             <span className="inline-flex shrink-0 items-center gap-1">
               <Clock3 size={11} />
-              {formattedTime}
-              Uhr
+              {timingLabel}
             </span>
           </p>
         </div>
@@ -342,6 +350,30 @@ export function EventCard({
                   Musik:
                 </span>{" "}
                 {musicGenre}
+              </p>
+            ) : null}
+            {party.category_label ? (
+              <p className="mt-1">
+                <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                  Kategorie:
+                </span>{" "}
+                {party.category_label}
+              </p>
+            ) : null}
+            {party.audience_label ? (
+              <p className="mt-1">
+                <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                  Zielgruppe:
+                </span>{" "}
+                {party.audience_label}
+              </p>
+            ) : null}
+            {party.price_info ? (
+              <p className="mt-1">
+                <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                  Preis:
+                </span>{" "}
+                {party.price_info}
               </p>
             ) : null}
             <p className="mt-1">

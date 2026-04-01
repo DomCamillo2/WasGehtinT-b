@@ -33,7 +33,7 @@ const DiscoverMap = dynamic(
   },
 );
 
-type FilterKey = "all" | "community" | "clubs" | "liked";
+type FilterKey = "all" | "community" | "clubs" | "daytime" | "liked";
 type ViewKey = "list" | "map" | "calendar";
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
@@ -297,6 +297,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
       const dateKey = toDateKeyBerlin(party.starts_at);
 
       if (filter === "clubs" && !party.is_external) return false;
+      if (filter === "daytime" && party.event_scope !== "daytime") return false;
       if (filter === "community" && !party.is_community && party.source_badge !== "Community") return false;
       if (filter === "liked" && !upvotedPartyIds.includes(party.id)) return false;
       if (fromDate && dateKey < fromDate) return false;
@@ -308,6 +309,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
   const filterItems: Array<{ key: FilterKey; label: string; icon?: typeof Flame }> = [
     { key: "all", label: "Alle", icon: Compass },
+    { key: "daytime", label: "Tagesevents", icon: CalendarDays },
     { key: "community", label: "Community", icon: UsersRound },
     { key: "clubs", label: "Clubs", icon: Building2 },
     { key: "liked", label: "Gemerkt", icon: BookmarkCheck },

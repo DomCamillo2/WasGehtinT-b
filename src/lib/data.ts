@@ -159,6 +159,12 @@ export async function getExternalEvents() {
     external_link?: string | null;
     vibe_label?: string | null;
     music_genre?: string | null;
+    category_slug?: string | null;
+    category_label?: string | null;
+    event_scope?: "nightlife" | "daytime" | "mixed" | null;
+    is_all_day?: boolean | null;
+    audience_label?: string | null;
+    price_info?: string | null;
   }>).map((event) => {
     const locationName = event.location_name ?? event.location ?? null;
     const lat = event.public_lat ?? event.lat ?? null;
@@ -181,6 +187,12 @@ export async function getExternalEvents() {
       spots_left: 0,
       location_name: locationName,
       music_genre: event.music_genre ?? null,
+      category_slug: event.category_slug ?? null,
+      category_label: event.category_label ?? null,
+      event_scope: event.event_scope ?? null,
+      is_all_day: event.is_all_day === true,
+      audience_label: event.audience_label ?? null,
+      price_info: event.price_info ?? null,
       source_badge: event.source && !isOfficialScraperLabel(event.source) ? event.source : null,
       is_community: false,
       upvote_count: 0,
@@ -223,6 +235,12 @@ export async function getExternalEventById(eventId: string) {
     external_link?: string | null;
     vibe_label?: string | null;
     music_genre?: string | null;
+    category_slug?: string | null;
+    category_label?: string | null;
+    event_scope?: "nightlife" | "daytime" | "mixed" | null;
+    is_all_day?: boolean | null;
+    audience_label?: string | null;
+    price_info?: string | null;
   };
 
   const isOfficialScraperLabel = (value?: string | null) => {
@@ -246,6 +264,12 @@ export async function getExternalEventById(eventId: string) {
     spots_left: 0,
     location_name: event.location_name ?? event.location ?? null,
     music_genre: event.music_genre ?? null,
+    category_slug: event.category_slug ?? null,
+    category_label: event.category_label ?? null,
+    event_scope: event.event_scope ?? null,
+    is_all_day: event.is_all_day === true,
+    audience_label: event.audience_label ?? null,
+    price_info: event.price_info ?? null,
     source_badge: event.source && !isOfficialScraperLabel(event.source) ? event.source : null,
     is_community: false,
     upvote_count: 0,
