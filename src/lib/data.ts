@@ -24,13 +24,13 @@ export async function requireUser() {
 
 export async function getPublicParties() {
   const supabase = await createClient();
-  const nowDate = new Date().toISOString().split('T')[0];
+  const nowIso = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("v_public_parties")
     .select("*")
-    .gte("date", nowDate)
-    .order("date", { ascending: true });
+    .gte("starts_at", nowIso)
+    .order("starts_at", { ascending: true });
 
   if (error) {
     console.error("[getPublicParties] Failed:", error.message);
@@ -41,30 +41,38 @@ export async function getPublicParties() {
     id: string;
     title: string;
     description: string | null;
-    date: string;
-    location: string | null;
-    review_status: string;
-    is_published: boolean;
+    starts_at: string;
+    ends_at: string | null;
+    max_guests: number | null;
+    contribution_cents: number | null;
+    public_lat: number | null;
+    public_lng: number | null;
+    is_external?: boolean | null;
+    external_link?: string | null;
+    status: string;
+    vibe_label: string | null;
+    spots_left: number | null;
+    location_name?: string | null;
     created_at: string;
   }>;
 
   return rows
-    .filter((row) => row.review_status === "approved" || row.is_published)
+    .filter((row) => row.status === "published")
     .map((row) => ({
       id: row.id,
       title: row.title,
       description: row.description,
-      starts_at: row.date,
-      ends_at: row.date,
-      max_guests: 50,
-      contribution_cents: 0,
-      public_lat: null,
-      public_lng: null,
-      is_external: false,
-      external_link: null,
-      vibe_label: "Party",
-      spots_left: 50,
-      location_name: row.location ?? "Somewhere",
+      starts_at: row.starts_at,
+      ends_at: row.ends_at ?? row.starts_at,
+      max_guests: Number(row.max_guests ?? 0),
+      contribution_cents: Number(row.contribution_cents ?? 0),
+      public_lat: row.public_lat ?? null,
+      public_lng: row.public_lng ?? null,
+      is_external: row.is_external === true,
+      external_link: row.external_link ?? null,
+      vibe_label: row.vibe_label ?? "Party",
+      spots_left: Number(row.spots_left ?? 0),
+      location_name: row.location_name ?? "Tuebingen",
       source_badge: "Party",
       is_community: false,
       upvote_count: 0,

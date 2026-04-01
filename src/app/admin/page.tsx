@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { formatDateTime, formatEuroFromCents } from "@/lib/format";
 import { requireInternalAdmin } from "@/lib/admin-guard";
 import { createClient } from "@/lib/supabase/server";
+import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +40,27 @@ type PendingHangout = {
 type ReviewedParty = PendingParty;
 type ReviewedHangout = PendingHangout;
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    type?: string;
+    scope?: string;
+    decision?: string;
+    message?: string;
+  }>;
+}) {
   await requireInternalAdmin();
   const supabase = await createClient();
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const adminConfig = validateSupabaseAdminConfig();
+  const actionNotice =
+    typeof resolvedSearchParams.message === "string" && resolvedSearchParams.message.trim().length > 0
+      ? {
+          type: resolvedSearchParams.type === "success" ? "success" : "error",
+          message: resolvedSearchParams.message.trim(),
+        }
+      : null;
 
   const pendingQuery = await supabase
     .from("parties")
@@ -214,6 +233,21 @@ export default async function AdminPage() {
     <AppShell>
       <ScreenHeader title="Admin" subtitle="Freigaben fuer neue Event-Einreichungen." />
 
+      {!adminConfig.valid ? (
+        <Card className="border-amber-200 bg-amber-50">
+          <p className="text-sm font-semibold text-amber-900">Moderation ist derzeit deaktiviert.</p>
+          <p className="mt-1 text-sm text-amber-800">{adminConfig.errors.join(" ")}</p>
+        </Card>
+      ) : null}
+
+      {actionNotice ? (
+        <Card className={actionNotice.type === "success" ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}>
+          <p className={actionNotice.type === "success" ? "text-sm text-emerald-800" : "text-sm text-rose-700"}>
+            {actionNotice.message}
+          </p>
+        </Card>
+      ) : null}
+
       {error ? (
         <Card>
           <p className="text-sm text-rose-600">Pending Events konnten nicht geladen werden.</p>
@@ -248,7 +282,7 @@ export default async function AdminPage() {
                 <form action={reviewPartySubmissionAction}>
                   <input type="hidden" name="partyId" value={party.id} />
                   <input type="hidden" name="decision" value="approve" />
-                  <button type="submit" className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
+                  <button type="submit" disabled={!adminConfig.valid} className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CheckCircle2 size={16} />
                       <span>Freigeben</span>
@@ -258,7 +292,7 @@ export default async function AdminPage() {
                 <form action={reviewPartySubmissionAction}>
                   <input type="hidden" name="partyId" value={party.id} />
                   <input type="hidden" name="decision" value="reject" />
-                  <button type="submit" className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
+                  <button type="submit" disabled={!adminConfig.valid} className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CircleX size={16} />
                       <span>Ablehnen</span>
@@ -298,7 +332,7 @@ export default async function AdminPage() {
                 <form action={reviewHangoutSubmissionAction}>
                   <input type="hidden" name="hangoutId" value={hangout.id} />
                   <input type="hidden" name="decision" value="approve" />
-                  <button type="submit" className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
+                  <button type="submit" disabled={!adminConfig.valid} className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CheckCircle2 size={16} />
                       <span>Freigeben</span>
@@ -308,7 +342,7 @@ export default async function AdminPage() {
                 <form action={reviewHangoutSubmissionAction}>
                   <input type="hidden" name="hangoutId" value={hangout.id} />
                   <input type="hidden" name="decision" value="reject" />
-                  <button type="submit" className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
+                  <button type="submit" disabled={!adminConfig.valid} className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]">
                     <span className="inline-flex items-center gap-1.5">
                       <CircleX size={16} />
                       <span>Ablehnen</span>

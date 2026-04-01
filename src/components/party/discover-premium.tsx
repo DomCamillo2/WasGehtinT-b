@@ -38,6 +38,22 @@ type ViewKey = "list" | "map" | "calendar";
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
 
+const BERLIN_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Europe/Berlin",
+});
+
+const BERLIN_MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  month: "long",
+  year: "numeric",
+});
+
+const BERLIN_SELECTED_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
 type Props = {
   parties: PartyCardType[];
   avatarFallback: string;
@@ -45,7 +61,7 @@ type Props = {
 };
 
 function toDateKeyBerlin(iso: string) {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date(iso));
+  return BERLIN_DAY_KEY_FORMATTER.format(new Date(iso));
 }
 
 function parseGermanDateToIso(value: string): string | null {
@@ -198,7 +214,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   const toDateGerman = useMemo(() => formatIsoToGerman(toDate), [toDate]);
 
   const todayKey = useMemo(
-    () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date()),
+    () => BERLIN_DAY_KEY_FORMATTER.format(new Date()),
     [],
   );
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(todayKey);
@@ -397,11 +413,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
       cells.push({ isoDate: null, day: null });
     }
 
-    const monthLabel = new Intl.DateTimeFormat("de-DE", {
-      timeZone: "Europe/Berlin",
-      month: "long",
-      year: "numeric",
-    }).format(monthStart);
+    const monthLabel = BERLIN_MONTH_LABEL_FORMATTER.format(monthStart);
 
     return { monthLabel, cells };
   }, [selectedCalendarDate]);
@@ -811,7 +823,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
           <div className="space-y-2">
             <p className="px-1 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-              Events am {new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${selectedCalendarDate}T12:00:00Z`))}
+              Events am {BERLIN_SELECTED_DATE_FORMATTER.format(new Date(`${selectedCalendarDate}T12:00:00Z`))}
             </p>
 
             {selectedCalendarEvents.length ? (

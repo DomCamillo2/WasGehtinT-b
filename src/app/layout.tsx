@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
+import dynamic from "next/dynamic";
 import { Footer } from "@/components/layout/footer";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
+
+const CookieConsentBanner = dynamic(
+  () => import("@/components/layout/cookie-consent-banner").then((module) => module.CookieConsentBanner),
+  { ssr: false },
+);
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.wasgehttueb.app"),
@@ -14,12 +19,9 @@ export const metadata: Metadata = {
   description:
     "Dein Party-Radar für Tübingen: Clubhaus, Kuckuck, Schlachthaus, Studentenpartys und Events heute Abend auf einen Blick.",
   icons: {
-    icon: [
-      { url: "/icon.png", type: "image/png" },
-      { url: "/Logo.png", type: "image/png" },
-    ],
-    shortcut: ["/Logo.png"],
-    apple: [{ url: "/Logo.png" }],
+    icon: [{ url: "/icon.png", type: "image/png" }],
+    shortcut: [{ url: "/favicon.ico" }],
+    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 

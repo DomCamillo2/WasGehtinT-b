@@ -28,9 +28,9 @@ type TypeTag = {
 };
 
 const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
-  { match: /kuckuck/i, src: "/logos/venues/kuckuck.png", alt: "Kuckuck Logo" },
-  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
-  { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
+  { match: /kuckuck/i, src: "/logos/venues/kuckuck.svg", alt: "Kuckuck Logo" },
+  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.svg", alt: "Schlachthaus Logo" },
+  { match: /clubhaus/i, src: "/logos/venues/clubhaus.svg", alt: "Clubhaus Logo" },
 ];
 
 function getTypeTag(party: PartyCard): TypeTag {
@@ -123,6 +123,25 @@ const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
   { regex: /mixed\s*music|all\s*styles|querbeet/i, label: "Mixed" },
 ];
 
+const BERLIN_SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  weekday: "short",
+  day: "2-digit",
+  month: "2-digit",
+});
+
+const BERLIN_TIME_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+const BERLIN_FULL_DATETIME_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  dateStyle: "full",
+  timeStyle: "short",
+});
+
 function resolveMusicGenre(party: PartyCard): string | null {
   if (party.music_genre && party.music_genre.trim().length > 0) {
     return party.music_genre.trim();
@@ -172,17 +191,8 @@ export function EventCard({
   const effectiveUpvoteCount = Math.max(0, upvoteCount ?? party.upvote_count ?? 0);
   const canUpvote = true;
   const startsAtDate = new Date(party.starts_at);
-  const formattedDate = new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-  }).format(startsAtDate);
-  const formattedTime = new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(startsAtDate);
+  const formattedDate = BERLIN_SHORT_DATE_FORMATTER.format(startsAtDate);
+  const formattedTime = BERLIN_TIME_FORMATTER.format(startsAtDate);
 
   return (
     <article
@@ -275,9 +285,9 @@ export function EventCard({
         </div>
 
         <div className="space-y-1.5">
-          <h3 className="text-xl font-extrabold leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
+          <h2 className="text-xl font-extrabold leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
             {party.title}
-          </h3>
+          </h2>
 
           {rankLabel || isHotNow ? (
             <div
@@ -344,21 +354,13 @@ export function EventCard({
               <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                 Start:
               </span>{" "}
-              {new Intl.DateTimeFormat("de-DE", {
-                timeZone: "Europe/Berlin",
-                dateStyle: "full",
-                timeStyle: "short",
-              }).format(new Date(party.starts_at))}
+              {BERLIN_FULL_DATETIME_FORMATTER.format(new Date(party.starts_at))}
             </p>
             <p className="mt-1">
               <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                 Ende:
               </span>{" "}
-              {new Intl.DateTimeFormat("de-DE", {
-                timeZone: "Europe/Berlin",
-                dateStyle: "full",
-                timeStyle: "short",
-              }).format(new Date(party.ends_at))}
+              {BERLIN_FULL_DATETIME_FORMATTER.format(new Date(party.ends_at))}
             </p>
             {party.description ? (
               <p className="mt-2" style={{ color: "var(--muted-foreground)" }}>
