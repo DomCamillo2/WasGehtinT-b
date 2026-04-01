@@ -36,6 +36,9 @@ type PendingHangout = {
   activity_type: string | null;
 };
 
+type ReviewedParty = PendingParty;
+type ReviewedHangout = PendingHangout;
+
 export default async function AdminPage() {
   await requireInternalAdmin();
   const supabase = await createClient();
@@ -111,6 +114,82 @@ export default async function AdminPage() {
           ? row.kind
           : null,
   }));
+
+  const approvedQuery = await supabase
+    .from("parties")
+    .select("*")
+    .eq("review_status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  const fallbackApprovedQuery = await (isMissingColumnError(approvedQuery.error?.code)
+    ? supabase
+        .from("parties")
+        .select("*")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(40)
+    : Promise.resolve({ data: null as null, error: null as null }));
+
+  const useApprovedFallback = isMissingColumnError(approvedQuery.error?.code);
+  const approvedFallbackErrorCode = useApprovedFallback
+    ? fallbackApprovedQuery.error?.code
+    : approvedQuery.error?.code;
+
+  const legacyApprovedQuery = await (isMissingColumnError(approvedFallbackErrorCode)
+    ? supabase
+        .from("parties")
+        .select("*")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(40)
+    : Promise.resolve({ data: null as null, error: null as null }));
+
+  const useApprovedLegacy = isMissingColumnError(approvedFallbackErrorCode);
+
+  const rawApproved = useApprovedLegacy
+    ? ((legacyApprovedQuery.data ?? []) as Array<Record<string, unknown>>)
+    : useApprovedFallback
+      ? ((fallbackApprovedQuery.data ?? []) as Array<Record<string, unknown>>)
+      : ((approvedQuery.data ?? []) as Array<Record<string, unknown>>);
+
+  const approvedParties: ReviewedParty[] = rawApproved.map((row) => ({
+    id: String(row.id ?? ""),
+    host_user_id: String(row.host_user_id ?? row.host_id ?? ""),
+    submitter_name: typeof row.submitter_name === "string" && row.submitter_name.trim() ? row.submitter_name.trim() : null,
+    title: String(row.title ?? "Unbenannt"),
+    description: typeof row.description === "string" ? row.description : null,
+    starts_at: String(row.starts_at ?? row.date ?? row.created_at ?? ""),
+    max_guests: Number(row.max_guests ?? 0),
+    contribution_cents: Number(row.contribution_cents ?? 0),
+  }));
+
+  const approvedHangoutsQuery = await supabase
+    .from("hangouts")
+    .select("*")
+    .or("review_status.eq.approved,status.eq.published,is_published.eq.true")
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  const approvedHangouts: ReviewedHangout[] = ((approvedHangoutsQuery.data ?? []) as Array<Record<string, unknown>>).map(
+    (row) => ({
+      id: String(row.id ?? ""),
+      user_id: String(row.user_id ?? ""),
+      submitter_name:
+        typeof row.submitter_name === "string" && row.submitter_name.trim() ? row.submitter_name.trim() : null,
+      title: String(row.title ?? "Unbenannt"),
+      description: typeof row.description === "string" ? row.description : null,
+      location_text: typeof row.location_text === "string" ? row.location_text : null,
+      meetup_at: typeof row.meetup_at === "string" ? row.meetup_at : null,
+      created_at: String(row.created_at ?? ""),
+      activity_type:
+        typeof row.activity_type === "string"
+          ? row.activity_type
+          : typeof row.kind === "string"
+            ? row.kind
+            : null,
+    }),
+  );
 
   const hostIds = Array.from(
     new Set(
@@ -242,6 +321,52 @@ export default async function AdminPage() {
         ) : (
           <Card>
             <p className="text-sm text-zinc-500">Aktuell keine offenen Spontan-Einreichungen.</p>
+          </Card>
+        )}
+      </section>
+
+      <section className="mt-6 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          Freigegeben Party ({approvedParties.length})
+        </h2>
+
+        {approvedParties.length ? (
+          approvedParties.map((party) => (
+            <Card key={`approved-party-${party.id}`} className="space-y-1 border-emerald-100 bg-emerald-50/40">
+              <p className="text-sm font-semibold text-zinc-900">{party.title}</p>
+              <p className="text-xs text-zinc-500">
+                von {hostNameMap.get(party.host_user_id) ?? party.submitter_name ?? "Gast"}
+              </p>
+              <p className="text-xs text-zinc-500">{formatDateTime(party.starts_at)}</p>
+              <p className="text-xs font-medium text-emerald-700">Freigegeben</p>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <p className="text-sm text-zinc-500">Noch keine freigegebenen Party-Einreichungen.</p>
+          </Card>
+        )}
+      </section>
+
+      <section className="mt-5 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          Freigegeben Community ({approvedHangouts.length})
+        </h2>
+
+        {approvedHangouts.length ? (
+          approvedHangouts.map((hangout) => (
+            <Card key={`approved-hangout-${hangout.id}`} className="space-y-1 border-emerald-100 bg-emerald-50/40">
+              <p className="text-sm font-semibold text-zinc-900">{hangout.title}</p>
+              <p className="text-xs text-zinc-500">
+                von {hostNameMap.get(hangout.user_id) ?? hangout.submitter_name ?? "Gast"}
+              </p>
+              <p className="text-xs text-zinc-500">{formatDateTime(hangout.meetup_at ?? hangout.created_at)}</p>
+              <p className="text-xs font-medium text-emerald-700">Freigegeben</p>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <p className="text-sm text-zinc-500">Noch keine freigegebenen Community-Einreichungen.</p>
           </Card>
         )}
       </section>

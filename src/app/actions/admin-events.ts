@@ -9,8 +9,31 @@ function isMissingColumnError(code: string | undefined) {
   return code === "42703" || code === "PGRST204";
 }
 
+function isMissingRelationError(code: string | undefined) {
+  return code === "42P01";
+}
+
+async function logModerationDecision(params: {
+  entityType: "party" | "hangout";
+  entityId: string;
+  decision: "approve" | "reject";
+  adminUserId: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("moderation_decisions").insert({
+    entity_type: params.entityType,
+    entity_id: params.entityId,
+    decision: params.decision,
+    reviewed_by: params.adminUserId,
+  });
+
+  if (error && !isMissingRelationError(error.code)) {
+    console.warn("[moderation_decisions] Failed to write moderation log:", error);
+  }
+}
+
 export async function reviewPartySubmissionAction(formData: FormData): Promise<void> {
-  await requireInternalAdmin();
+  const adminUser = await requireInternalAdmin();
 
   const partyId = String(formData.get("partyId") ?? "").trim();
   const decision = String(formData.get("decision") ?? "").trim();
@@ -22,12 +45,16 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
   const supabase = getSupabaseAdmin();
   const nextStatus = decision === "approve" ? "published" : "cancelled";
   const nextReviewStatus = decision === "approve" ? "approved" : "rejected";
+  const reviewedAt = new Date().toISOString();
 
   let updateResult = await supabase
     .from("parties")
     .update({
       status: nextStatus,
       review_status: nextReviewStatus,
+      is_published: decision === "approve",
+      reviewed_at: reviewedAt,
+      reviewed_by: adminUser.id,
     })
     .eq("id", partyId)
     .select("id")
@@ -38,6 +65,8 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
       .from("parties")
       .update({
         status: nextStatus,
+        review_status: nextReviewStatus,
+        is_published: decision === "approve",
       })
       .eq("id", partyId)
       .select("id")
@@ -80,6 +109,13 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
     return;
   }
 
+  await logModerationDecision({
+    entityType: "party",
+    entityId: partyId,
+    decision: decision as "approve" | "reject",
+    adminUserId: adminUser.id,
+  });
+
   try {
     revalidatePath("/admin");
     revalidatePath("/discover");
@@ -92,7 +128,7 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
 }
 
 export async function reviewHangoutSubmissionAction(formData: FormData): Promise<void> {
-  await requireInternalAdmin();
+  const adminUser = await requireInternalAdmin();
 
   const hangoutId = String(formData.get("hangoutId") ?? "").trim();
   const decision = String(formData.get("decision") ?? "").trim();
@@ -104,6 +140,7 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
   const supabase = getSupabaseAdmin();
   const nextReviewStatus = decision === "approve" ? "approved" : "rejected";
   const nextStatus = decision === "approve" ? "published" : "rejected";
+  const reviewedAt = new Date().toISOString();
 
   let updateResult = await supabase
     .from("hangouts")
@@ -111,6 +148,8 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
       review_status: nextReviewStatus,
       status: nextStatus,
       is_published: decision === "approve",
+      reviewed_at: reviewedAt,
+      reviewed_by: adminUser.id,
     })
     .eq("id", hangoutId)
     .select("id")
@@ -163,6 +202,13 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
     console.error("[reviewHangoutSubmissionAction] No row updated for hangout:", hangoutId);
     return;
   }
+
+  await logModerationDecision({
+    entityType: "hangout",
+    entityId: hangoutId,
+    decision: decision as "approve" | "reject",
+    adminUserId: adminUser.id,
+  });
 
   try {
     revalidatePath("/admin");
