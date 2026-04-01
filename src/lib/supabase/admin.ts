@@ -1,7 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { assertSupabaseAdminConfig } from "./validate";
 
-let adminSingleton: ReturnType<typeof createClient> | null = null;
+let adminSingleton: SupabaseClient<any, "public", any> | null = null;
 
 export function getSupabaseAdmin() {
   assertSupabaseAdminConfig();
@@ -14,7 +14,7 @@ export function getSupabaseAdmin() {
   }
 
   if (!adminSingleton) {
-    adminSingleton = createClient(url, serviceRoleKey, {
+    adminSingleton = createClient<any>(url, serviceRoleKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,

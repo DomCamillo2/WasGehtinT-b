@@ -142,6 +142,7 @@ export async function getCommunityHangoutsForDiscover() {
         spots_left: 99,
         location_name: safeLocation,
         source_badge: "Community",
+        is_community: true,
       };
 
       return mapped;

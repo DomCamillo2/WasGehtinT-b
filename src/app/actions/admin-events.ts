@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireInternalAdmin } from "@/lib/admin-guard";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 function isMissingColumnError(code: string | undefined) {
   return code === "42703" || code === "PGRST204";
@@ -18,7 +19,7 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
     return;
   }
 
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
   const nextStatus = decision === "approve" ? "published" : "cancelled";
   const nextReviewStatus = decision === "approve" ? "approved" : "rejected";
 
@@ -28,7 +29,9 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
       status: nextStatus,
       review_status: nextReviewStatus,
     })
-    .eq("id", partyId);
+    .eq("id", partyId)
+    .select("id")
+    .limit(1);
 
   if (isMissingColumnError(updateResult.error?.code)) {
     updateResult = await supabase
@@ -36,7 +39,9 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
       .update({
         status: nextStatus,
       })
-      .eq("id", partyId);
+      .eq("id", partyId)
+      .select("id")
+      .limit(1);
   }
 
   if (isMissingColumnError(updateResult.error?.code)) {
@@ -46,7 +51,9 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
         is_published: decision === "approve",
         review_status: nextReviewStatus,
       })
-      .eq("id", partyId);
+      .eq("id", partyId)
+      .select("id")
+      .limit(1);
   }
 
   if (isMissingColumnError(updateResult.error?.code)) {
@@ -55,13 +62,21 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
       .update({
         is_published: decision === "approve",
       })
-      .eq("id", partyId);
+      .eq("id", partyId)
+      .select("id")
+      .limit(1);
   }
 
   const error = updateResult.error;
+  const updatedRows = Array.isArray(updateResult.data) ? updateResult.data.length : 0;
 
   if (error) {
     console.error("[reviewPartySubmissionAction] Failed to review party:", error);
+    return;
+  }
+
+  if (updatedRows === 0) {
+    console.error("[reviewPartySubmissionAction] No row updated for party:", partyId);
     return;
   }
 
@@ -72,6 +87,8 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
   } catch (err) {
     console.warn("[reviewPartySubmissionAction] revalidate warning:", err);
   }
+
+  redirect("/admin");
 }
 
 export async function reviewHangoutSubmissionAction(formData: FormData): Promise<void> {
@@ -84,7 +101,7 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
     return;
   }
 
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
   const nextReviewStatus = decision === "approve" ? "approved" : "rejected";
   const nextStatus = decision === "approve" ? "published" : "rejected";
 
@@ -95,7 +112,9 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
       status: nextStatus,
       is_published: decision === "approve",
     })
-    .eq("id", hangoutId);
+    .eq("id", hangoutId)
+    .select("id")
+    .limit(1);
 
   if (isMissingColumnError(updateResult.error?.code)) {
     updateResult = await supabase
@@ -104,7 +123,9 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
         review_status: nextReviewStatus,
         is_published: decision === "approve",
       })
-      .eq("id", hangoutId);
+      .eq("id", hangoutId)
+      .select("id")
+      .limit(1);
   }
 
   if (isMissingColumnError(updateResult.error?.code)) {
@@ -114,7 +135,9 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
         status: nextStatus,
         is_published: decision === "approve",
       })
-      .eq("id", hangoutId);
+      .eq("id", hangoutId)
+      .select("id")
+      .limit(1);
   }
 
   if (isMissingColumnError(updateResult.error?.code)) {
@@ -123,13 +146,21 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
       .update({
         is_published: decision === "approve",
       })
-      .eq("id", hangoutId);
+      .eq("id", hangoutId)
+      .select("id")
+      .limit(1);
   }
 
   const updateError = updateResult.error;
+  const updatedRows = Array.isArray(updateResult.data) ? updateResult.data.length : 0;
 
   if (updateError) {
     console.error("[reviewHangoutSubmissionAction] Failed to review hangout:", updateError);
+    return;
+  }
+
+  if (updatedRows === 0) {
+    console.error("[reviewHangoutSubmissionAction] No row updated for hangout:", hangoutId);
     return;
   }
 
@@ -139,4 +170,6 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
   } catch (err) {
     console.warn("[reviewHangoutSubmissionAction] revalidate warning:", err);
   }
+
+  redirect("/admin");
 }

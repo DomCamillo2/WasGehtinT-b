@@ -28,6 +28,7 @@ export type PartyCard = {
   upvote_count?: number;
   upvoted_by_me?: boolean;
   source_badge?: string | null;
+  is_community?: boolean;
 };
 
 export type BringProgress = {

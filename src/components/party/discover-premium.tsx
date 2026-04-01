@@ -6,15 +6,17 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Bookmark,
+  BookmarkCheck,
   Building2,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Compass,
   Flame,
   Funnel,
   List,
   Map as MapIcon,
+  UsersRound,
   X,
 } from "lucide-react";
 import { EventCard } from "@/components/EventCard";
@@ -32,7 +34,7 @@ const DiscoverMap = dynamic(
   },
 );
 
-type FilterKey = "all" | "clubs" | "liked";
+type FilterKey = "all" | "community" | "clubs" | "liked";
 type ViewKey = "list" | "map" | "calendar";
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
@@ -301,6 +303,10 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         if (!party.is_external) return false;
       }
 
+      if (filter === "community") {
+        if (!party.is_community && party.source_badge !== "Community") return false;
+      }
+
       if (filter === "liked") {
         if (!upvotedPartyIds.includes(party.id)) return false;
       }
@@ -318,9 +324,10 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   }, [filter, fromDate, sortedParties, toDate, upvotedPartyIds]);
 
   const filterItems: Array<{ key: FilterKey; label: string; icon?: typeof Flame }> = [
-    { key: "all", label: "Alle" },
+    { key: "all", label: "Alle", icon: Compass },
+    { key: "community", label: "Community", icon: UsersRound },
     { key: "clubs", label: "Clubs", icon: Building2 },
-    { key: "liked", label: "Gemerkt", icon: Bookmark },
+    { key: "liked", label: "Gemerkt", icon: BookmarkCheck },
   ];
 
   function requireAuth(reason: string) {

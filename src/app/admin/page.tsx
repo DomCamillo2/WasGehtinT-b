@@ -1,4 +1,5 @@
 import { reviewHangoutSubmissionAction, reviewPartySubmissionAction } from "@/app/actions/admin-events";
+import { CheckCircle2, CircleX } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
@@ -169,14 +170,20 @@ export default async function AdminPage() {
                   <input type="hidden" name="partyId" value={party.id} />
                   <input type="hidden" name="decision" value="approve" />
                   <button className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
-                    Freigeben
+                    <span className="inline-flex items-center gap-1.5">
+                      <CheckCircle2 size={16} />
+                      <span>Freigeben</span>
+                    </span>
                   </button>
                 </form>
                 <form action={reviewPartySubmissionAction}>
                   <input type="hidden" name="partyId" value={party.id} />
                   <input type="hidden" name="decision" value="reject" />
                   <button className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
-                    Ablehnen
+                    <span className="inline-flex items-center gap-1.5">
+                      <CircleX size={16} />
+                      <span>Ablehnen</span>
+                    </span>
                   </button>
                 </form>
               </div>
@@ -213,14 +220,20 @@ export default async function AdminPage() {
                   <input type="hidden" name="hangoutId" value={hangout.id} />
                   <input type="hidden" name="decision" value="approve" />
                   <button className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
-                    Freigeben
+                    <span className="inline-flex items-center gap-1.5">
+                      <CheckCircle2 size={16} />
+                      <span>Freigeben</span>
+                    </span>
                   </button>
                 </form>
                 <form action={reviewHangoutSubmissionAction}>
                   <input type="hidden" name="hangoutId" value={hangout.id} />
                   <input type="hidden" name="decision" value="reject" />
                   <button className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
-                    Ablehnen
+                    <span className="inline-flex items-center gap-1.5">
+                      <CircleX size={16} />
+                      <span>Ablehnen</span>
+                    </span>
                   </button>
                 </form>
               </div>
