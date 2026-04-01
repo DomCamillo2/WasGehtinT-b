@@ -57,6 +57,9 @@ type Props = {
   parties: PartyCardType[];
   avatarFallback: string;
   isAuthenticated: boolean;
+  timeWindowWeeks: number;
+  canLoadMore: boolean;
+  loadMoreHref: string;
 };
 
 function toDateKeyBerlin(iso: string) {
@@ -141,7 +144,14 @@ function shiftIsoMonth(isoDate: string, monthDelta: number): string {
   return `${nextYear}-${mm}-${dd}`;
 }
 
-export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Props) {
+export function DiscoverPremium({
+  parties,
+  avatarFallback,
+  isAuthenticated,
+  timeWindowWeeks,
+  canLoadMore,
+  loadMoreHref,
+}: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [view, setView] = useState<ViewKey>("list");
@@ -667,6 +677,38 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         </div>
       ) : null}
 
+      <section
+        className="mx-1 rounded-3xl border p-4 shadow-[0_8px_26px_rgba(15,23,42,0.06)]"
+        style={{
+          borderColor: "var(--nav-border)",
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 88%, white) 0%, color-mix(in srgb, var(--surface-soft) 92%, white) 100%)",
+        }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--muted-foreground)" }}>
+              Zeitfenster
+            </p>
+            <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+              Sichtbar sind die nächsten {timeWindowWeeks} Wochen
+            </p>
+            <p className="text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
+              So lädt die erste Ansicht schneller und du siehst zuerst das, was wirklich bald ansteht.
+            </p>
+          </div>
+
+          {canLoadMore ? (
+            <Link
+              href={loadMoreHref}
+              className="inline-flex shrink-0 items-center rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-[0_6px_18px_rgba(24,26,42,0.18)] transition hover:opacity-95"
+            >
+              Mehr laden
+            </Link>
+          ) : null}
+        </div>
+      </section>
+
       <div className="fixed bottom-28 right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2">
         {showViewMenu ? (
           <div
@@ -891,6 +933,30 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
               style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}
             >
               Für den aktiven Filter sind aktuell keine Events verfügbar.
+            </div>
+          ) : null}
+
+          {filteredParties.length && canLoadMore ? (
+            <div
+              className="rounded-3xl border p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
+              style={{ borderColor: "var(--nav-border)", backgroundColor: "var(--surface-elevated)" }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold" style={{ color: "var(--foreground)" }}>
+                    Weitere Wochen ansehen
+                  </p>
+                  <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
+                    Wenn du weiter vorausplanen willst, laden wir die nächsten Wochen erst auf Wunsch nach.
+                  </p>
+                </div>
+                <Link
+                  href={loadMoreHref}
+                  className="inline-flex shrink-0 items-center rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white"
+                >
+                  Mehr laden
+                </Link>
+              </div>
             </div>
           ) : null}
         </div>

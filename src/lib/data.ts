@@ -5,6 +5,12 @@ import { BringProgress, ChatPreview, PartyCard } from "@/lib/types";
 
 export type UserRole = "student" | "owner" | "admin";
 
+type EventWindowOptions = {
+  fromIso?: string;
+  untilIso?: string;
+  limit?: number;
+};
+
 function inferExternalCategoryFields(input: {
   title?: string | null;
   description?: string | null;
@@ -75,22 +81,42 @@ export async function requireUser() {
   return { supabase, user };
 }
 
-export async function getPublicParties() {
+export async function getPublicParties(options: EventWindowOptions = {}) {
   const supabase = await createClient();
-  const nowIso = new Date().toISOString();
+  const nowIso = options.fromIso ?? new Date().toISOString();
 
-  let queryResult = await supabase
+  let query = supabase
     .from("v_public_parties")
     .select("*")
     .gte("starts_at", nowIso)
     .order("starts_at", { ascending: true });
 
+  if (options.untilIso) {
+    query = query.lte("starts_at", options.untilIso);
+  }
+
+  if (typeof options.limit === "number") {
+    query = query.limit(options.limit);
+  }
+
+  let queryResult = await query;
+
   if (queryResult.error?.code === "42703" || queryResult.error?.code === "PGRST204") {
-    queryResult = await supabase
+    let fallbackQuery = supabase
       .from("v_public_parties")
       .select("*")
       .gte("date", nowIso)
       .order("date", { ascending: true });
+
+    if (options.untilIso) {
+      fallbackQuery = fallbackQuery.lte("date", options.untilIso);
+    }
+
+    if (typeof options.limit === "number") {
+      fallbackQuery = fallbackQuery.limit(options.limit);
+    }
+
+    queryResult = await fallbackQuery;
   }
 
   const { data, error } = queryResult;
@@ -177,13 +203,26 @@ export async function getUserRole(userId: string): Promise<UserRole> {
   return "student";
 }
 
-export async function getExternalEvents() {
+export async function getExternalEvents(options: EventWindowOptions = {}) {
   const supabase = await createClient();
-
-  const { data, error } = await supabase
+  let query = supabase
     .from("v_external_events_public")
     .select("*")
     .order("starts_at", { ascending: true });
+
+  if (options.fromIso) {
+    query = query.gte("starts_at", options.fromIso);
+  }
+
+  if (options.untilIso) {
+    query = query.lte("starts_at", options.untilIso);
+  }
+
+  if (typeof options.limit === "number") {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[getExternalEvents] Failed to fetch external events:", error.message);
@@ -332,16 +371,25 @@ export async function getExternalEventById(eventId: string) {
   } as PartyCard;
 }
 
-export async function getCommunityHangoutsForDiscover() {
+export async function getCommunityHangoutsForDiscover(options: EventWindowOptions = {}) {
   const supabase = await createClient();
-  const nowIso = new Date().toISOString();
+  const nowIso = options.fromIso ?? new Date().toISOString();
 
-  // Fetch ALL hangouts and filter client-side for approve/reject OR publish status
-  const { data, error } = await supabase
+  let query = supabase
     .from("hangouts")
     .select("id, title, description, meetup_at, created_at, location_text, review_status, status, is_published")
     .gte("meetup_at", nowIso)
     .order("meetup_at", { ascending: true });
+
+  if (options.untilIso) {
+    query = query.lte("meetup_at", options.untilIso);
+  }
+
+  if (typeof options.limit === "number") {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[getCommunityHangoutsForDiscover] Failed to fetch hangouts:", error.message);

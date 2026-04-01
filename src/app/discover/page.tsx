@@ -22,6 +22,25 @@ export const metadata: Metadata = {
   },
 };
 
+const DEFAULT_WEEKS = 4;
+const WEEK_STEP = 4;
+const MAX_WEEKS = 24;
+
+function clampWeeks(value: string | undefined) {
+  const parsed = Number(value ?? DEFAULT_WEEKS);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_WEEKS;
+  }
+
+  return Math.max(DEFAULT_WEEKS, Math.min(MAX_WEEKS, Math.floor(parsed)));
+}
+
+function addWeeks(baseDate: Date, weeks: number) {
+  const next = new Date(baseDate);
+  next.setUTCDate(next.getUTCDate() + weeks * 7);
+  return next;
+}
+
 async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard[]> {
   if (!parties.length) {
     return parties;
@@ -112,22 +131,35 @@ async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; date?: string; type?: string }>;
+  searchParams: Promise<{ view?: string; date?: string; type?: string; weeks?: string }>;
 }) {
-  void searchParams;
+  const resolvedSearchParams = await searchParams;
+  const weeks = clampWeeks(resolvedSearchParams.weeks);
+  const windowStart = new Date();
+  const windowEnd = addWeeks(windowStart, weeks);
+  const nextWindowEnd = addWeeks(windowStart, weeks + WEEK_STEP);
+  const windowStartIso = windowStart.toISOString();
+  const windowEndIso = windowEnd.toISOString();
+  const nextWindowEndIso = nextWindowEnd.toISOString();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [dbParties, externalParties, communityHangouts] = await Promise.all([
-    getPublicParties(),
-    getExternalEvents(),
-    getCommunityHangoutsForDiscover(),
+  const [dbParties, externalParties, communityHangouts, nextDbParties, nextExternalParties, nextHangouts] = await Promise.all([
+    getPublicParties({ fromIso: windowStartIso, untilIso: windowEndIso }),
+    getExternalEvents({ fromIso: windowStartIso, untilIso: windowEndIso }),
+    getCommunityHangoutsForDiscover({ fromIso: windowStartIso, untilIso: windowEndIso }),
+    getPublicParties({ fromIso: windowEndIso, untilIso: nextWindowEndIso, limit: 1 }),
+    getExternalEvents({ fromIso: windowEndIso, untilIso: nextWindowEndIso, limit: 1 }),
+    getCommunityHangoutsForDiscover({ fromIso: windowEndIso, untilIso: nextWindowEndIso, limit: 1 }),
   ]);
 
   const enrichedDbParties = await enrichPartiesForDiscover(dbParties);
   const parties = [...enrichedDbParties, ...communityHangouts, ...externalParties];
+  const canLoadMore = [...nextDbParties, ...nextExternalParties, ...nextHangouts].length > 0 && weeks < MAX_WEEKS;
+  const nextWeeks = Math.min(MAX_WEEKS, weeks + WEEK_STEP);
+  const loadMoreHref = `/discover?weeks=${nextWeeks}`;
 
   const eventIds = parties.map((party) => party.id);
   const upvoteCountMap = new Map<string, number>();
@@ -194,6 +226,9 @@ export default async function DiscoverPage({
         parties={partiesWithUpvotes}
         avatarFallback={avatarFallback}
         isAuthenticated={Boolean(user)}
+        timeWindowWeeks={weeks}
+        canLoadMore={canLoadMore}
+        loadMoreHref={loadMoreHref}
       />
     </AppShell>
   );

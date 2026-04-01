@@ -301,6 +301,23 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
         </div>
       </Card>
 
+      <Card className="mt-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Feedback oder Feature Request</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Teile Bugs, Ideen oder Verbesserungswuensche direkt mit dem Team.
+            </p>
+          </div>
+          <Link
+            href="/feedback"
+            className="inline-flex h-10 items-center rounded-xl bg-zinc-900 px-4 text-xs font-semibold text-white"
+          >
+            Senden
+          </Link>
+        </div>
+      </Card>
+
       <Card className="mt-3 space-y-3 p-4">
         <div>
           <h2 className="text-sm font-semibold text-zinc-900">Meine Club-Event Einreichungen</h2>

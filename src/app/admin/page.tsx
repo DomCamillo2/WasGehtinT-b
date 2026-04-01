@@ -4,7 +4,8 @@ import {
   reviewHangoutSubmissionAction,
   reviewPartySubmissionAction,
 } from "@/app/actions/admin-events";
-import { CheckCircle2, CircleX, Trash2 } from "lucide-react";
+import { updateFeedbackStatusAction } from "@/app/actions/feedback";
+import { CheckCircle2, CircleX, Lightbulb, MessageSquareText, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
@@ -44,6 +45,29 @@ type PendingHangout = {
 
 type ReviewedParty = PendingParty;
 type ReviewedHangout = PendingHangout;
+
+type FeedbackEntry = {
+  id: string;
+  type: "feedback" | "feature_request";
+  title: string;
+  message: string;
+  contact_email: string | null;
+  status: "open" | "reviewing" | "planned" | "closed";
+  admin_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+};
+
+const FEEDBACK_STATUS_BADGE: Record<FeedbackEntry["status"], string> = {
+  open: "bg-amber-50 text-amber-700",
+  reviewing: "bg-blue-50 text-blue-700",
+  planned: "bg-violet-50 text-violet-700",
+  closed: "bg-emerald-50 text-emerald-700",
+};
+
+function feedbackTypeLabel(type: FeedbackEntry["type"]) {
+  return type === "feature_request" ? "Feature Request" : "Feedback";
+}
 
 export default async function AdminPage({
   searchParams,
@@ -215,6 +239,26 @@ export default async function AdminPage({
     }),
   );
 
+  const feedbackQuery = await supabase
+    .from("feedback_entries")
+    .select("id, type, title, message, contact_email, status, admin_note, created_at, reviewed_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  const feedbackError = feedbackQuery.error;
+  const feedbackEntries: FeedbackEntry[] = ((feedbackQuery.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id ?? ""),
+    type: row.type === "feature_request" ? "feature_request" : "feedback",
+    title: String(row.title ?? "Ohne Titel"),
+    message: String(row.message ?? ""),
+    contact_email: typeof row.contact_email === "string" ? row.contact_email : null,
+    status:
+      row.status === "reviewing" || row.status === "planned" || row.status === "closed" ? row.status : "open",
+    admin_note: typeof row.admin_note === "string" ? row.admin_note : null,
+    created_at: String(row.created_at ?? ""),
+    reviewed_at: typeof row.reviewed_at === "string" ? row.reviewed_at : null,
+  }));
+
   const hostIds = Array.from(
     new Set(
       pending
@@ -262,6 +306,12 @@ export default async function AdminPage({
       {hangoutError ? (
         <Card>
           <p className="text-sm text-rose-600">Pending Spontan-Posts konnten nicht geladen werden.</p>
+        </Card>
+      ) : null}
+
+      {feedbackError ? (
+        <Card>
+          <p className="text-sm text-rose-600">Feedback-Eintraege konnten nicht geladen werden.</p>
         </Card>
       ) : null}
 
@@ -428,6 +478,84 @@ export default async function AdminPage({
         ) : (
           <Card>
             <p className="text-sm text-zinc-500">Noch keine freigegebenen Community-Einreichungen.</p>
+          </Card>
+        )}
+      </section>
+
+      <section className="mt-6 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          Feedback & Feature Requests ({feedbackEntries.length})
+        </h2>
+
+        {feedbackEntries.length ? (
+          feedbackEntries.map((entry) => {
+            const Icon = entry.type === "feature_request" ? Lightbulb : MessageSquareText;
+
+            return (
+              <Card key={`feedback-${entry.id}`} className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-700">
+                        <Icon size={16} />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-900">{entry.title}</p>
+                        <p className="text-xs text-zinc-500">{feedbackTypeLabel(entry.type)}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-zinc-500">Eingang: {formatDateTime(entry.created_at)}</p>
+                    {entry.reviewed_at ? (
+                      <p className="text-xs text-zinc-500">Zuletzt bearbeitet: {formatDateTime(entry.reviewed_at)}</p>
+                    ) : null}
+                    {entry.contact_email ? (
+                      <p className="text-xs text-zinc-500">Kontakt: {entry.contact_email}</p>
+                    ) : (
+                      <p className="text-xs text-zinc-400">Kein Kontakt hinterlegt</p>
+                    )}
+                  </div>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${FEEDBACK_STATUS_BADGE[entry.status]}`}>
+                    {entry.status}
+                  </span>
+                </div>
+
+                <p className="text-sm text-zinc-700">{entry.message}</p>
+
+                {entry.admin_note ? (
+                  <p className="rounded-xl bg-zinc-100 px-3 py-2 text-xs text-zinc-700">Notiz: {entry.admin_note}</p>
+                ) : null}
+
+                <form action={updateFeedbackStatusAction} className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <input type="hidden" name="feedbackId" value={entry.id} />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <select
+                      name="status"
+                      defaultValue={entry.status}
+                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-xs"
+                    >
+                      <option value="open">open</option>
+                      <option value="reviewing">reviewing</option>
+                      <option value="planned">planned</option>
+                      <option value="closed">closed</option>
+                    </select>
+                    <input
+                      type="text"
+                      name="adminNote"
+                      defaultValue={entry.admin_note ?? ""}
+                      placeholder="Interne Notiz"
+                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-xs"
+                    />
+                  </div>
+                  <button type="submit" className="h-10 rounded-xl bg-zinc-900 px-4 text-xs font-semibold text-white">
+                    Speichern
+                  </button>
+                </form>
+              </Card>
+            );
+          })
+        ) : (
+          <Card>
+            <p className="text-sm text-zinc-500">Noch kein Nutzerfeedback vorhanden.</p>
           </Card>
         )}
       </section>

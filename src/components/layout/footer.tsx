@@ -41,6 +41,14 @@ export function Footer() {
                   Startseite
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/feedback"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
+                >
+                  Feedback
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -77,6 +85,14 @@ export function Footer() {
                   className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
                 >
                   Melden
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/feedback"
+                  className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
+                >
+                  Feature Request
                 </Link>
               </li>
             </ul>
