@@ -144,7 +144,10 @@ export async function getExternalEvents() {
       spots_left: 0,
       location_name: locationName,
       music_genre: event.music_genre ?? null,
-      source_badge: event.source ?? "Club",
+      source_badge:
+        event.source && event.source.trim().toLowerCase() !== "official scraper"
+          ? event.source
+          : null,
       is_community: false,
       upvote_count: 0,
       upvoted_by_me: false,
