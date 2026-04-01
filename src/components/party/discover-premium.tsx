@@ -1,7 +1,6 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,16 +42,6 @@ type Props = {
   parties: PartyCardType[];
   avatarFallback: string;
   isAuthenticated: boolean;
-};
-
-const itemVariants = {
-  hidden: { opacity: 1, y: 0 },
-  show: { opacity: 1, y: 0 },
-};
-
-const listVariants = {
-  hidden: { opacity: 1 },
-  show: { opacity: 1 },
 };
 
 function toDateKeyBerlin(iso: string) {
@@ -136,7 +125,6 @@ function shiftIsoMonth(isoDate: string, monthDelta: number): string {
   const dd = String(clampedDay).padStart(2, "0");
   return `${nextYear}-${mm}-${dd}`;
 }
-
 
 export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Props) {
   const router = useRouter();
@@ -233,7 +221,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
     for (const party of sortedParties) {
       const dateKey = toDateKeyBerlin(party.starts_at);
       if (dateKey < todayKey) {
-        continue; // Skip past events
+        continue;
       }
 
       const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
@@ -253,7 +241,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
       sortedParties.find((party) => {
         const dateKey = toDateKeyBerlin(party.starts_at);
         if (dateKey < todayKey) {
-          return false; // Skip past events
+          return false;
         }
         return (upvoteCounts[party.id] ?? party.upvote_count ?? 0) === topScore;
       }) ?? null
@@ -264,7 +252,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
     if (!hottestParty) {
       return new Set<string>();
     }
-    return new Set([hottestParty.id]); // Only 1 event with the badge
+    return new Set([hottestParty.id]);
   }, [hottestParty]);
 
   const rankByPartyId = useMemo(() => {
@@ -289,30 +277,14 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
   }, [sortedParties, upvoteCounts]);
 
   const filteredParties = useMemo(() => {
-    const sorted = sortedParties;
-
-    return sorted.filter((party) => {
+    return sortedParties.filter((party) => {
       const dateKey = toDateKeyBerlin(party.starts_at);
 
-      if (filter === "clubs") {
-        if (!party.is_external) return false;
-      }
-
-      if (filter === "community") {
-        if (!party.is_community && party.source_badge !== "Community") return false;
-      }
-
-      if (filter === "liked") {
-        if (!upvotedPartyIds.includes(party.id)) return false;
-      }
-
-      if (fromDate && dateKey < fromDate) {
-        return false;
-      }
-
-      if (toDate && dateKey > toDate) {
-        return false;
-      }
+      if (filter === "clubs" && !party.is_external) return false;
+      if (filter === "community" && !party.is_community && party.source_badge !== "Community") return false;
+      if (filter === "liked" && !upvotedPartyIds.includes(party.id)) return false;
+      if (fromDate && dateKey < fromDate) return false;
+      if (toDate && dateKey > toDate) return false;
 
       return true;
     });
@@ -371,7 +343,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         [eventId]: Math.max(0, Number(data.upvoteCount ?? 0)),
       }));
     } catch {
-      // Keep optimistic state on network/backend issues so votes do not disappear in UI.
+      // Keep optimistic state on network/backend issues.
     }
   }
 
@@ -418,8 +390,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
     for (let day = 1; day <= daysInMonth; day++) {
       const mm = String(month).padStart(2, "0");
       const dd = String(day).padStart(2, "0");
-      const isoDate = `${year}-${mm}-${dd}`;
-      cells.push({ isoDate, day });
+      cells.push({ isoDate: `${year}-${mm}-${dd}`, day });
     }
 
     while (cells.length % 7 !== 0) {
@@ -442,11 +413,21 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
 
   return (
     <div className="relative space-y-4 pb-24">
-      <header className="flex items-center justify-between px-1 pt-1">
-        <h1 className="text-3xl font-black tracking-tight" style={{ color: "var(--foreground)" }}>Entdecken</h1>
+      <header className="flex items-start justify-between gap-3 px-1 pt-1">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--muted-foreground)" }}>
+            WasGehtTüb
+          </p>
+          <h1 className="mt-1 text-[1.9rem] font-black leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
+            Dein Party-Radar für Tübingen: Events und Clubs heute Abend
+          </h1>
+          <p className="mt-2 text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>
+            Finde Studentenpartys, Clubhaus, Kuckuck, Schlachthaus und spontane Events in Tübingen schneller.
+          </p>
+        </div>
+
         <div className="flex items-center gap-2">
-          <motion.button
-            whileTap={{ scale: 0.96 }}
+          <button
             type="button"
             onClick={() => setShowFilterSheet(true)}
             className="grid h-10 w-10 place-items-center rounded-full border shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
@@ -458,219 +439,197 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
             aria-label="Filter öffnen"
           >
             <Funnel size={16} />
-          </motion.button>
+          </button>
 
-          <motion.div whileTap={{ scale: 0.97 }} className="grid">
-            {isAuthenticated ? (
-              <Link
-                href="/profile"
-                className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
-                aria-label="Profil öffnen"
-              >
-                {avatarFallback}
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthSheetReason("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
-                  setShowAuthSheet(true);
-                }}
-                className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
-                aria-label="Login öffnen"
-              >
-                {avatarFallback}
-              </button>
-            )}
-          </motion.div>
+          {isAuthenticated ? (
+            <Link
+              href="/profile"
+              className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
+              aria-label="Profil öffnen"
+            >
+              {avatarFallback}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setAuthSheetReason("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
+                setShowAuthSheet(true);
+              }}
+              className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
+              aria-label="Login öffnen"
+            >
+              {avatarFallback}
+            </button>
+          )}
         </div>
       </header>
 
-        <div className="hide-scrollbar flex gap-2 overflow-x-auto px-1 py-1">
-          {filterItems.map((item) => {
-            const active = item.key === filter;
-            return (
-              <motion.button
-                key={item.key}
-                type="button"
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setFilter(item.key)}
-                className="relative whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold"
-              >
-                {active ? (
-                  <motion.span
-                    layoutId="discover-filter-chip"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 shadow-md"
-                  />
-                ) : null}
-                <span
-                  className={`relative z-10 inline-flex items-center gap-1.5 ${active ? "text-white" : ""}`}
-                  style={active ? undefined : { color: "var(--muted-foreground)" }}
-                >
-                  {item.icon ? <item.icon size={14} strokeWidth={2} /> : null}
-                  <span>{item.label}</span>
-                </span>
-              </motion.button>
-            );
-          })}
-        </div>
-
-      <AnimatePresence initial={false}>
-        {showFilterSheet ? (
-          <>
-            <motion.button
+      <div className="hide-scrollbar flex gap-2 overflow-x-auto px-1 py-1">
+        {filterItems.map((item) => {
+          const active = item.key === filter;
+          return (
+            <button
+              key={item.key}
               type="button"
-              aria-label="Filter schließen"
-              className="fixed inset-0 z-30 bg-black/40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowFilterSheet(false)}
-            />
-            <motion.div
-              initial={{ y: "100%", opacity: 0.85 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0.85 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md rounded-t-3xl border p-4 shadow-2xl"
-              style={{
-                borderColor: "var(--nav-border)",
-                backgroundColor: "var(--surface-elevated)",
-              }}
+              onClick={() => setFilter(item.key)}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
+                active ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md" : ""
+              }`}
+              style={
+                active
+                  ? undefined
+                  : { color: "var(--muted-foreground)", backgroundColor: "var(--surface-soft)" }
+              }
             >
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Filter</p>
-                <button
-                  type="button"
-                  onClick={() => setShowFilterSheet(false)}
-                  className="grid h-8 w-8 place-items-center rounded-full"
-                  style={{
-                    backgroundColor: "var(--surface-soft)",
-                    color: "var(--muted-foreground)",
-                  }}
-                  aria-label="Schließen"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+              <span className="inline-flex items-center gap-1.5">
+                {item.icon ? <item.icon size={14} strokeWidth={2} /> : null}
+                <span>{item.label}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  lang="de-DE"
-                  placeholder="Von"
-                  value={fromDateInput}
-                  onChange={(event) => setFromDateInput(event.target.value)}
-                  className="h-10 rounded-xl border px-3 text-sm outline-none focus:border-indigo-400"
-                  style={{
-                    borderColor: "var(--nav-border)",
-                    backgroundColor: "var(--surface-soft)",
-                    color: "var(--foreground)",
-                  }}
-                  aria-label="Startdatum"
-                />
-                <input
-                  type="date"
-                  lang="de-DE"
-                  placeholder="Bis"
-                  value={toDateInput}
-                  onChange={(event) => setToDateInput(event.target.value)}
-                  className="h-10 rounded-xl border px-3 text-sm outline-none focus:border-indigo-400"
-                  style={{
-                    borderColor: "var(--nav-border)",
-                    backgroundColor: "var(--surface-soft)",
-                    color: "var(--foreground)",
-                  }}
-                  aria-label="Enddatum"
-                />
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFromDateInput("");
-                    setToDateInput("");
-                  }}
-                  className="h-10 rounded-xl border px-3 text-xs font-semibold"
-                  style={{
-                    borderColor: "var(--nav-border)",
-                    backgroundColor: "var(--surface-elevated)",
-                    color: "var(--foreground)",
-                  }}
-                >
-                  Zurücksetzen
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowFilterSheet(false)}
-                  className="h-10 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
-                >
-                  Anwenden
-                </button>
-              </div>
-            </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence initial={false}>
-        {showAuthSheet ? (
-          <>
-            <motion.button
-              type="button"
-              aria-label="Login-Hinweis schließen"
-              className="fixed inset-0 z-40 bg-black/40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAuthSheet(false)}
-            />
-            <motion.div
-              initial={{ y: "100%", opacity: 0.85 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0.85 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border p-4 shadow-2xl"
-              style={{
-                borderColor: "var(--nav-border)",
-                backgroundColor: "var(--surface-elevated)",
-              }}
-            >
-              <div className="mx-auto mb-3 h-1.5 w-12 rounded-full" style={{ backgroundColor: "var(--nav-border)" }} />
-              <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>Mit Uni-Mail freischalten</h2>
-              <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
-                {authSheetReason}
+      {showFilterSheet ? (
+        <>
+          <button
+            type="button"
+            aria-label="Filter schließen"
+            className="fixed inset-0 z-30 bg-black/40"
+            onClick={() => setShowFilterSheet(false)}
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md rounded-t-3xl border p-4 shadow-2xl"
+            style={{
+              borderColor: "var(--nav-border)",
+              backgroundColor: "var(--surface-elevated)",
+            }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+                Filter
               </p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link
-                  href="/auth"
-                  onClick={() => setShowAuthSheet(false)}
-                  className="inline-flex h-11 items-center justify-center rounded-xl border text-sm font-semibold"
-                  style={{
-                    borderColor: "var(--nav-border)",
-                    backgroundColor: "var(--surface-elevated)",
-                    color: "var(--foreground)",
-                  }}
-                >
-                  Einloggen
-                </Link>
-                <span
-                  aria-disabled="true"
-                  className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-zinc-200 bg-zinc-100 text-sm font-semibold text-zinc-500"
-                >
-                  Kontoerstellung folgt (Stay tuned)
-                </span>
-              </div>
-            </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(false)}
+                className="grid h-8 w-8 place-items-center rounded-full"
+                style={{
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--muted-foreground)",
+                }}
+                aria-label="Schließen"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                lang="de-DE"
+                value={fromDateInput}
+                onChange={(event) => setFromDateInput(event.target.value)}
+                className="h-10 rounded-xl border px-3 text-sm outline-none focus:border-indigo-400"
+                style={{
+                  borderColor: "var(--nav-border)",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--foreground)",
+                }}
+                aria-label="Startdatum"
+              />
+              <input
+                type="date"
+                lang="de-DE"
+                value={toDateInput}
+                onChange={(event) => setToDateInput(event.target.value)}
+                className="h-10 rounded-xl border px-3 text-sm outline-none focus:border-indigo-400"
+                style={{
+                  borderColor: "var(--nav-border)",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--foreground)",
+                }}
+                aria-label="Enddatum"
+              />
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setFromDateInput("");
+                  setToDateInput("");
+                }}
+                className="h-10 rounded-xl border px-3 text-xs font-semibold"
+                style={{
+                  borderColor: "var(--nav-border)",
+                  backgroundColor: "var(--surface-elevated)",
+                  color: "var(--foreground)",
+                }}
+              >
+                Zurücksetzen
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(false)}
+                className="h-10 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+              >
+                Anwenden
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {showAuthSheet ? (
+        <>
+          <button
+            type="button"
+            aria-label="Login-Hinweis schließen"
+            className="fixed inset-0 z-40 bg-black/40"
+            onClick={() => setShowAuthSheet(false)}
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border p-4 shadow-2xl"
+            style={{
+              borderColor: "var(--nav-border)",
+              backgroundColor: "var(--surface-elevated)",
+            }}
+          >
+            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full" style={{ backgroundColor: "var(--nav-border)" }} />
+            <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
+              Mit Uni-Mail freischalten
+            </h2>
+            <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
+              {authSheetReason}
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Link
+                href="/auth"
+                onClick={() => setShowAuthSheet(false)}
+                className="inline-flex h-11 items-center justify-center rounded-xl border text-sm font-semibold"
+                style={{
+                  borderColor: "var(--nav-border)",
+                  backgroundColor: "var(--surface-elevated)",
+                  color: "var(--foreground)",
+                }}
+              >
+                Einloggen
+              </Link>
+              <span
+                aria-disabled="true"
+                className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-zinc-200 bg-zinc-100 text-sm font-semibold text-zinc-500"
+              >
+                Kontoerstellung folgt
+              </span>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       {fromDateGerman || toDateGerman ? (
         <p className="px-2 text-xs" style={{ color: "var(--muted-foreground)" }}>
-          Zeitraum: {fromDateGerman || "..."} – {toDateGerman || "..."}
+          Zeitraum: {fromDateGerman || "..."} - {toDateGerman || "..."}
         </p>
       ) : null}
 
@@ -696,57 +655,50 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
       ) : null}
 
       <div className="fixed bottom-28 right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2">
-        <AnimatePresence>
-          {showViewMenu ? (
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.96 }}
-              className="rounded-2xl border p-2 shadow-lg"
-              style={{
-                borderColor: "var(--nav-border)",
-                backgroundColor: "var(--surface-elevated)",
-              }}
-            >
-              <div className="grid gap-1">
-                {[
-                  { key: "list", label: "Liste", icon: List },
-                  { key: "map", label: "Karte", icon: MapIcon },
-                  { key: "calendar", label: "Kalender", icon: CalendarDays },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const active = view === item.key;
+        {showViewMenu ? (
+          <div
+            className="rounded-2xl border p-2 shadow-lg"
+            style={{
+              borderColor: "var(--nav-border)",
+              backgroundColor: "var(--surface-elevated)",
+            }}
+          >
+            <div className="grid gap-1">
+              {[
+                { key: "list", label: "Liste", icon: List },
+                { key: "map", label: "Karte", icon: MapIcon },
+                { key: "calendar", label: "Kalender", icon: CalendarDays },
+              ].map((item) => {
+                const Icon = item.icon;
+                const active = view === item.key;
 
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => {
-                        setView(item.key as ViewKey);
-                        setShowViewMenu(false);
-                      }}
-                      className={`flex h-9 items-center gap-2 rounded-xl px-3 text-xs font-semibold ${
-                        active ? "bg-zinc-900 text-white" : ""
-                      }`}
-                      style={active ? undefined : { color: "var(--foreground)" }}
-                    >
-                      <Icon size={14} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setView(item.key as ViewKey);
+                      setShowViewMenu(false);
+                    }}
+                    className={`flex h-9 items-center gap-2 rounded-xl px-3 text-xs font-semibold ${
+                      active ? "bg-zinc-900 text-white" : ""
+                    }`}
+                    style={active ? undefined : { color: "var(--foreground)" }}
+                  >
+                    <Icon size={14} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <button
           type="button"
           onClick={() => setShowViewMenu((current) => !current)}
           className={`grid h-12 w-12 place-items-center rounded-full shadow-lg transition ${
-            showViewMenu
-              ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white"
-              : "border"
+            showViewMenu ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white" : "border"
           }`}
           style={
             showViewMenu
@@ -765,162 +717,107 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         </button>
       </div>
 
-      <AnimatePresence mode="wait">
-        {view === "map" ? (
-          <motion.div
-            key="map"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-2"
-          >
-            <DiscoverMap parties={filteredParties} />
-          </motion.div>
-        ) : view === "calendar" ? (
-          <motion.div
-            key="calendar"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-3"
-          >
-            <div className="rounded-3xl p-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" style={{ backgroundColor: "var(--surface-elevated)" }}>
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCalendarDate((current) => shiftIsoMonth(current, -1))}
-                    className="grid h-8 w-8 place-items-center rounded-lg transition hover:opacity-95"
-                    style={{
-                      backgroundColor: "var(--surface-soft)",
-                      color: "var(--foreground)",
-                    }}
-                    aria-label="Vorheriger Monat"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <p className="min-w-[140px] text-center text-sm font-semibold capitalize" style={{ color: "var(--foreground)" }}>
-                    {calendarMeta.monthLabel}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCalendarDate((current) => shiftIsoMonth(current, 1))}
-                    className="grid h-8 w-8 place-items-center rounded-lg transition hover:opacity-95"
-                    style={{
-                      backgroundColor: "var(--surface-soft)",
-                      color: "var(--foreground)",
-                    }}
-                    aria-label="Nächster Monat"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-
+      {view === "map" ? (
+        <div className="space-y-2">
+          <DiscoverMap parties={filteredParties} />
+        </div>
+      ) : view === "calendar" ? (
+        <div className="space-y-3">
+          <div className="rounded-3xl p-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" style={{ backgroundColor: "var(--surface-elevated)" }}>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setSelectedCalendarDate(todayKey)}
-                  className="rounded-xl px-2.5 py-1 text-[11px] font-semibold"
+                  onClick={() => setSelectedCalendarDate((current) => shiftIsoMonth(current, -1))}
+                  className="grid h-8 w-8 place-items-center rounded-lg transition hover:opacity-95"
                   style={{
                     backgroundColor: "var(--surface-soft)",
                     color: "var(--foreground)",
                   }}
+                  aria-label="Vorheriger Monat"
                 >
-                  Heute
+                  <ChevronLeft size={16} />
+                </button>
+                <p className="min-w-[140px] text-center text-sm font-semibold capitalize" style={{ color: "var(--foreground)" }}>
+                  {calendarMeta.monthLabel}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCalendarDate((current) => shiftIsoMonth(current, 1))}
+                  className="grid h-8 w-8 place-items-center rounded-lg transition hover:opacity-95"
+                  style={{
+                    backgroundColor: "var(--surface-soft)",
+                    color: "var(--foreground)",
+                  }}
+                  aria-label="Nächster Monat"
+                >
+                  <ChevronRight size={16} />
                 </button>
               </div>
 
-              <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-                {"Mo Di Mi Do Fr Sa So".split(" ").map((weekday) => (
-                  <span key={weekday}>{weekday}</span>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {calendarMeta.cells.map((cell, index) => {
-                  if (!cell.isoDate || !cell.day) {
-                    return <div key={`empty-${index}`} className="h-10" />;
-                  }
-
-                  const isSelected = cell.isoDate === selectedCalendarDate;
-                  const isToday = cell.isoDate === todayKey;
-                  const eventCount = eventsByDate.get(cell.isoDate)?.length ?? 0;
-
-                  return (
-                    <button
-                      key={cell.isoDate}
-                      type="button"
-                      onClick={() => setSelectedCalendarDate(cell.isoDate!)}
-                      className={`relative h-10 rounded-xl text-sm font-semibold transition ${
-                        isSelected
-                          ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
-                          : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
-                      }`}
-                    >
-                      {cell.day}
-                      {eventCount > 0 ? (
-                        <span
-                          className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-                            isSelected ? "bg-white" : isToday ? "bg-red-500" : "bg-indigo-500"
-                          }`}
-                        />
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCalendarDate(todayKey)}
+                className="rounded-xl px-2.5 py-1 text-[11px] font-semibold"
+                style={{
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--foreground)",
+                }}
+              >
+                Heute
+              </button>
             </div>
 
-            <div className="space-y-2">
-              <p className="px-1 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-                Events am {new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${selectedCalendarDate}T12:00:00Z`))}
-              </p>
-
-              {selectedCalendarEvents.length ? (
-                selectedCalendarEvents.map((party) => {
-                  return (
-                    <EventCard
-                      key={party.id}
-                      party={party}
-                      expanded={expandedCardId === party.id}
-                      isAuthenticated={isAuthenticated}
-                      upvoted={upvotedPartyIds.includes(party.id)}
-                      upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
-                      isHotNow={hotPartyIds.has(party.id)}
-                      rankLabel={
-                        rankByPartyId.has(party.id)
-                          ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
-                          : null
-                      }
-                      onToggleUpvote={() => toggleUpvote(party.id)}
-                      onRequestAction={handleRequestAction}
-                      onChatAction={handleChatAction}
-                      onToggle={() =>
-                        setExpandedCardId((current) => (current === party.id ? null : party.id))
-                      }
-                    />
-                  );
-                })
-              ) : (
-                <div className="rounded-2xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]" style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}>
-                  Keine Events für diesen Tag.
-                </div>
-              )}
+            <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+              {"Mo Di Mi Do Fr Sa So".split(" ").map((weekday) => (
+                <span key={weekday}>{weekday}</span>
+              ))}
             </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="list"
-            variants={listVariants}
-            initial="hidden"
-            animate="show"
-            exit="hidden"
-            className="space-y-3"
-          >
-            {filteredParties.map((party) => (
-              <motion.div key={party.id} variants={itemVariants}>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarMeta.cells.map((cell, index) => {
+                if (!cell.isoDate || !cell.day) {
+                  return <div key={`empty-${index}`} className="h-10" />;
+                }
+
+                const isSelected = cell.isoDate === selectedCalendarDate;
+                const isToday = cell.isoDate === todayKey;
+                const eventCount = eventsByDate.get(cell.isoDate)?.length ?? 0;
+
+                return (
+                  <button
+                    key={cell.isoDate}
+                    type="button"
+                    onClick={() => setSelectedCalendarDate(cell.isoDate!)}
+                    className={`relative h-10 rounded-xl text-sm font-semibold transition ${
+                      isSelected
+                        ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                        : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                    }`}
+                  >
+                    {cell.day}
+                    {eventCount > 0 ? (
+                      <span
+                        className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
+                          isSelected ? "bg-white" : isToday ? "bg-red-500" : "bg-indigo-500"
+                        }`}
+                      />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="px-1 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+              Events am {new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${selectedCalendarDate}T12:00:00Z`))}
+            </p>
+
+            {selectedCalendarEvents.length ? (
+              selectedCalendarEvents.map((party) => (
                 <EventCard
+                  key={party.id}
                   party={party}
                   expanded={expandedCardId === party.id}
                   isAuthenticated={isAuthenticated}
@@ -939,22 +836,53 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
                     setExpandedCardId((current) => (current === party.id ? null : party.id))
                   }
                 />
-              </motion.div>
-            ))}
-
-            {!filteredParties.length ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-3xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
+              ))
+            ) : (
+              <div
+                className="rounded-2xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
                 style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}
               >
-                Für den aktiven Filter sind aktuell keine Events verfügbar.
-              </motion.div>
-            ) : null}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                Keine Events für diesen Tag.
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredParties.map((party) => (
+            <EventCard
+              key={party.id}
+              party={party}
+              expanded={expandedCardId === party.id}
+              isAuthenticated={isAuthenticated}
+              upvoted={upvotedPartyIds.includes(party.id)}
+              upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+              isHotNow={hotPartyIds.has(party.id)}
+              rankLabel={
+                rankByPartyId.has(party.id)
+                  ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
+                  : null
+              }
+              onToggleUpvote={() => toggleUpvote(party.id)}
+              onRequestAction={handleRequestAction}
+              onChatAction={handleChatAction}
+              onToggle={() =>
+                setExpandedCardId((current) => (current === party.id ? null : party.id))
+              }
+            />
+          ))}
+
+          {!filteredParties.length ? (
+            <div
+              className="rounded-3xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
+              style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}
+            >
+              Für den aktiven Filter sind aktuell keine Events verfügbar.
+            </div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
+

@@ -1,24 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { Footer } from "@/components/layout/footer";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "WasGehtTüb",
-  description: "Studenten WG-Party Radar für Tübingen",
+  metadataBase: new URL("https://www.wasgehttueb.app"),
+  title: {
+    default: "Party Tübingen heute: Clubs, Studentenpartys & Events | WasGehtTüb",
+    template: "%s | WasGehtTüb",
+  },
+  description:
+    "Dein Party-Radar für Tübingen: Clubhaus, Kuckuck, Schlachthaus, Studentenpartys und Events heute Abend auf einen Blick.",
   icons: {
     icon: [
       { url: "/icon.png", type: "image/png" },
@@ -42,11 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="de"
-      suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="de" suppressHydrationWarning className="h-full antialiased">
       <head>
         <ThemeInitScript />
       </head>

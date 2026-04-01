@@ -1,14 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import {
-  CalendarDays,
-  Clock3,
-  Flame,
-  Heart,
-} from "lucide-react";
+import { CalendarDays, Clock3, Flame, Heart } from "lucide-react";
 import { PartyCard } from "@/lib/types";
 
 type Props = {
@@ -214,15 +208,20 @@ export function EventCard({
                   src={avatarSrc}
                   alt="Club oder Host"
                   className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setFailedImageSrc(avatarSrc)}
                 />
               ) : (
-                <div className="grid h-full w-full place-items-center text-[10px] font-bold" style={{ color: "var(--muted-foreground)" }}>
+                <div
+                  className="grid h-full w-full place-items-center text-[10px] font-bold"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   {fallbackInitial}
                 </div>
               )}
             </div>
-            <span className="truncate text-sm font-bold text-gray-500">{locationLine}</span>
+            <span className="truncate text-sm font-bold text-gray-600">{locationLine}</span>
           </div>
 
           <div className="inline-flex items-center gap-1.5">
@@ -231,7 +230,7 @@ export function EventCard({
                 {party.source_badge}
               </span>
             ) : null}
-            <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-500">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-600">
               {typeTag.label}
             </span>
             <div className="relative">
@@ -264,24 +263,13 @@ export function EventCard({
                   <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
                 )}
               </button>
-              
-              {/* Flame Tooltip */}
-              <AnimatePresence>
-                {showFlameTooltip && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.9 }}
-                    animate={{ opacity: 1, y: -12, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg pointer-events-none"
-                  >
-                    <span>
-                      🔥 Upvotes zeigen Hype
-                    </span>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full h-1.5 w-1.5 -translate-y-0.5 rotate-45 bg-gray-900" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
+              {showFlameTooltip ? (
+                <div className="absolute -top-14 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg pointer-events-none">
+                  <span>Upvotes zeigen Hype</span>
+                  <div className="absolute left-1/2 top-full h-1.5 w-1.5 -translate-x-1/2 -translate-y-0.5 rotate-45 bg-gray-900" />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -292,7 +280,8 @@ export function EventCard({
           </h3>
 
           {rankLabel || isHotNow ? (
-            <div className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
               style={{
                 borderColor: isHotNow ? "#fdba74" : "var(--nav-border)",
                 backgroundColor: isHotNow ? "#fff7ed" : "var(--surface-soft)",
@@ -310,7 +299,7 @@ export function EventCard({
             </div>
           ) : null}
 
-          <p className="inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[11.5px] font-medium text-gray-400 sm:text-[12px]">
+          <p className="inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[11.5px] font-medium text-gray-500 sm:text-[12px]">
             <span className="inline-flex shrink-0 items-center gap-1">
               <CalendarDays size={11} />
               {formattedDate}
@@ -325,102 +314,113 @@ export function EventCard({
         </div>
       </div>
 
-      <AnimatePresence initial={false}>
-          {expanded ? (
-            <motion.div
-              initial={{ opacity: 0, height: 0, marginTop: 0 }}
-              animate={{ opacity: 1, height: "auto", marginTop: 8 }}
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="rounded-2xl p-3 text-sm" style={{ backgroundColor: "var(--surface-soft)", color: "var(--muted-foreground)" }}>
-                <p>
-                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Typ:</span> {typeTag.label}
-                </p>
-                {musicGenre ? (
-                  <p className="mt-1">
-                    <span className="font-semibold" style={{ color: "var(--foreground)" }}>Musik:</span> {musicGenre}
-                  </p>
+      {expanded ? (
+        <div className="mt-2 overflow-hidden">
+          <div
+            className="rounded-2xl p-3 text-sm"
+            style={{ backgroundColor: "var(--surface-soft)", color: "var(--muted-foreground)" }}
+          >
+            <p>
+              <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                Typ:
+              </span>{" "}
+              {typeTag.label}
+            </p>
+            {musicGenre ? (
+              <p className="mt-1">
+                <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                  Musik:
+                </span>{" "}
+                {musicGenre}
+              </p>
+            ) : null}
+            <p className="mt-1">
+              <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                Adresse:
+              </span>{" "}
+              {getAddressLine(party)}
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                Start:
+              </span>{" "}
+              {new Intl.DateTimeFormat("de-DE", {
+                timeZone: "Europe/Berlin",
+                dateStyle: "full",
+                timeStyle: "short",
+              }).format(new Date(party.starts_at))}
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                Ende:
+              </span>{" "}
+              {new Intl.DateTimeFormat("de-DE", {
+                timeZone: "Europe/Berlin",
+                dateStyle: "full",
+                timeStyle: "short",
+              }).format(new Date(party.ends_at))}
+            </p>
+            {party.description ? (
+              <p className="mt-2" style={{ color: "var(--muted-foreground)" }}>
+                <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                  Was passiert:
+                </span>{" "}
+                {party.description}
+              </p>
+            ) : null}
+            {!party.is_external && party.host_user_id ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {isAuthenticated ? (
+                  <Link
+                    href={`/profile/${party.host_user_id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                    style={{
+                      borderColor: "var(--nav-border)",
+                      backgroundColor: "var(--surface-elevated)",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    Host-Profil
+                  </Link>
                 ) : null}
-                <p className="mt-1">
-                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Adresse:</span> {getAddressLine(party)}
-                </p>
-                <p className="mt-1">
-                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Start:</span>{" "}
-                  {new Intl.DateTimeFormat("de-DE", {
-                    timeZone: "Europe/Berlin",
-                    dateStyle: "full",
-                    timeStyle: "short",
-                  }).format(new Date(party.starts_at))}
-                </p>
-                <p className="mt-1">
-                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>Ende:</span>{" "}
-                  {new Intl.DateTimeFormat("de-DE", {
-                    timeZone: "Europe/Berlin",
-                    dateStyle: "full",
-                    timeStyle: "short",
-                  }).format(new Date(party.ends_at))}
-                </p>
-                {party.description ? (
-                  <p className="mt-2" style={{ color: "var(--muted-foreground)" }}>
-                    <span className="font-semibold" style={{ color: "var(--foreground)" }}>Was passiert:</span> {party.description}
-                  </p>
-                ) : null}
-                {!party.is_external && party.host_user_id ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {isAuthenticated ? (
-                      <Link
-                        href={`/profile/${party.host_user_id}`}
-                        onClick={(event) => event.stopPropagation()}
-                        className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
-                        style={{
-                          borderColor: "var(--nav-border)",
-                          backgroundColor: "var(--surface-elevated)",
-                          color: "var(--foreground)",
-                        }}
-                      >
-                        Host-Profil
-                      </Link>
-                    ) : null}
 
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onRequestAction?.();
-                      }}
-                      className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
-                      style={{
-                        borderColor: "var(--nav-border)",
-                        backgroundColor: "var(--surface-elevated)",
-                        color: "var(--foreground)",
-                      }}
-                    >
-                      Anfragen
-                    </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onRequestAction?.();
+                  }}
+                  className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                  style={{
+                    borderColor: "var(--nav-border)",
+                    backgroundColor: "var(--surface-elevated)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  Anfragen
+                </button>
 
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onChatAction?.();
-                      }}
-                      className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
-                      style={{
-                        borderColor: "var(--nav-border)",
-                        backgroundColor: "var(--surface-elevated)",
-                        color: "var(--foreground)",
-                      }}
-                    >
-                      Chatten
-                    </button>
-                  </div>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onChatAction?.();
+                  }}
+                  className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                  style={{
+                    borderColor: "var(--nav-border)",
+                    backgroundColor: "var(--surface-elevated)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  Chatten
+                </button>
               </div>
-            </motion.div>
-          ) : null}
-      </AnimatePresence>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }

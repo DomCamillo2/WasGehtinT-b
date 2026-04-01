@@ -86,12 +86,19 @@ export function Footer() {
         <div className="my-8 border-t border-neutral-200" />
 
         <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-          <p className="text-sm font-semibold text-neutral-900">Tübingen am Wochenende</p>
+          <p className="text-sm font-semibold text-neutral-900">Über WasGehtTüb</p>
           <p className="mt-2 text-sm leading-6 text-neutral-600">
-            WasGehtTüb hilft dir dabei, das Nachtleben Tübingen schneller zu checken: Studentenpartys,
-            Clubevents, spontane Treffen und Tipps dazu, was man in Tübingen am Wochenende machen kann.
-            Egal ob Clubhausfest, Kuckuck, Schwarzes Schaf oder andere Partys in Tübingen - hier findest
-            du aktuelle Events, Uhrzeiten und Orte auf einen Blick.
+            WasGehtTüb ist dein kompakter Guide fürs Nachtleben Tübingen, wenn du schnell sehen willst,
+            wo Studentenpartys, Clubs und spontane Events laufen. Viele suchen nach Party heute Tübingen,
+            nach dem nächsten Clubhaus-Abend oder nach Wohngemeinschaftspartys, die wirklich zu ihrem
+            Abend passen. Genau dafür sammelt WasGehtTüb aktuelle Hinweise zu Studentenpartys,
+            Club-Events und spontanen Treffen in einer mobilen Übersicht. Ob Clubhaus, Kuckuck,
+            Schlachthaus oder kleinere Partys in Tübingen: Du bekommst schneller ein Gefühl dafür,
+            was heute los ist und was sich am Wochenende lohnt. Gerade für neue Studierende ist das
+            Nachtleben Tübingen oft schwer zu überblicken, weil sich Studentenpartys, Clubhaus-Abende,
+            Kuckuck-Nächte und Schlachthaus-Events auf viele Kanäle verteilen. Mit WasGehtTüb findest
+            du Party heute Tübingen, Clubs, Wohngemeinschaftspartys und andere Tipps für das
+            Nachtleben Tübingen an einem Ort.
           </p>
         </div>
 

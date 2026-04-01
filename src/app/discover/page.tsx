@@ -1,9 +1,26 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/app-shell";
 import { DiscoverPremium } from "@/components/party/discover-premium";
 import { getCommunityHangoutsForDiscover, getExternalEvents, getPublicParties } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
 import { cookies } from "next/headers";
+
+export const metadata: Metadata = {
+  title: "Party Tübingen heute: Clubs, Studentenpartys und Events",
+  description:
+    "Finde Partys in Tübingen, Clubhaus, Kuckuck, Schlachthaus und Studentenpartys heute Abend. Alle Clubs und Events in einer mobilen Übersicht.",
+  alternates: {
+    canonical: "/discover",
+  },
+  openGraph: {
+    title: "Party Tübingen heute: Clubs, Studentenpartys und Events",
+    description:
+      "Alle wichtigen Events, Clubs und Studentenpartys in Tübingen heute Abend auf einen Blick.",
+    url: "/discover",
+    type: "website",
+  },
+};
 
 async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard[]> {
   if (!parties.length) {
