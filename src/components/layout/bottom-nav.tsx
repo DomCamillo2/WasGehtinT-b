@@ -80,10 +80,11 @@ export function BottomNav() {
       {isComposerOpen ? (
         <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]" onClick={() => setIsComposerOpen(false)}>
           <div
-            className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl border border-zinc-200 bg-white p-4 shadow-[0_-20px_60px_rgba(15,23,42,0.28)]"
+            className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl border border-zinc-200 bg-white shadow-[0_-20px_60px_rgba(15,23,42,0.28)] overflow-y-auto max-h-[80vh]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
+            <div className="p-4">
+            <div className="mb-3 flex items-center justify-between sticky top-0 bg-white">
               <div>
                 <h3 className="text-base font-semibold text-zinc-900">Was willst du posten?</h3>
                 <p className="text-xs text-zinc-500">Auch ohne Account möglich. Alle Einreichungen werden zuerst vom Admin geprüft.</p>
@@ -91,7 +92,7 @@ export function BottomNav() {
               <button
                 type="button"
                 onClick={() => setIsComposerOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-500"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-500 flex-shrink-0"
                 aria-label="Overlay schliessen"
               >
                 <X size={16} />
@@ -229,6 +230,7 @@ export function BottomNav() {
                 </p>
               ) : null}
             </form>
+            </div>
           </div>
         </div>
       ) : null}

@@ -24,37 +24,50 @@ export async function requireUser() {
 
 export async function getPublicParties() {
   const supabase = await createClient();
-  const nowIso = new Date().toISOString();
+  const nowDate = new Date().toISOString().split('T')[0];
 
   const { data, error } = await supabase
     .from("v_public_parties")
     .select("*")
-    .gte("ends_at", nowIso)
-    .order("starts_at", { ascending: true });
+    .gte("date", nowDate)
+    .order("date", { ascending: true });
 
   if (error) {
+    console.error("[getPublicParties] Failed:", error.message);
     return [] as PartyCard[];
   }
 
-  const parties = (data ?? []) as PartyCard[];
-  if (!parties.length) {
-    return parties;
-  }
+  const rows = (data ?? []) as Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    date: string;
+    location: string | null;
+    review_status: string;
+    is_published: boolean;
+    created_at: string;
+  }>;
 
-  const partyIds = parties.map((party) => party.id);
-  const approvedResult = await supabase
-    .from("parties")
-    .select("id")
-    .in("id", partyIds)
-    .eq("review_status", "approved");
-
-  if (approvedResult.error) {
-    // Keep backwards compatibility until the review_status migration is applied everywhere.
-    return parties;
-  }
-
-  const approvedIds = new Set((approvedResult.data ?? []).map((row) => String(row.id)));
-  return parties.filter((party) => approvedIds.has(party.id));
+  return rows
+    .filter((row) => row.review_status === "approved" || row.is_published)
+    .map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      starts_at: row.date,
+      ends_at: row.date,
+      max_guests: 50,
+      contribution_cents: 0,
+      public_lat: null,
+      public_lng: null,
+      is_external: false,
+      external_link: null,
+      vibe_label: "Party",
+      spots_left: 50,
+      location_name: row.location ?? "Somewhere",
+      source_badge: "Party",
+      is_community: false,
+    } as PartyCard));
 }
 
 export async function getUserRole(userId: string): Promise<UserRole> {
