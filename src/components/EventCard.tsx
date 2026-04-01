@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Clock3, Flame, Heart } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock3, Flame, Heart } from "lucide-react";
 import { PartyCard } from "@/lib/types";
 
 type Props = {
@@ -404,6 +404,25 @@ export function EventCard({
                 </span>{" "}
                 {party.description}
               </p>
+            ) : null}
+            {party.is_external && party.external_link ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={party.external_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                  style={{
+                    borderColor: "var(--nav-border)",
+                    backgroundColor: "var(--surface-elevated)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  Zur Veranstaltung
+                  <ArrowUpRight size={13} />
+                </a>
+              </div>
             ) : null}
             {!party.is_external && party.host_user_id ? (
               <div className="mt-2 flex flex-wrap gap-2">
