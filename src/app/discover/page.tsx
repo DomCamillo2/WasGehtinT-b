@@ -7,16 +7,16 @@ import { PartyCard } from "@/lib/types";
 import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
-  title: "Party Tübingen heute: Clubs, Studentenpartys und Events",
+  title: "Was geht in Tuebingen heute? Partys, Clubs und Events",
   description:
-    "Finde Partys in Tübingen, Clubhaus, Kuckuck, Schlachthaus und Studentenpartys heute Abend. Alle Clubs und Events in einer mobilen Übersicht.",
+    "Finde heraus, was in Tuebingen heute geht: Studentenpartys, Clubs, Community-Treffen und ausgewaehlte Tagesevents in einer mobilen Uebersicht.",
   alternates: {
     canonical: "/discover",
   },
   openGraph: {
-    title: "Party Tübingen heute: Clubs, Studentenpartys und Events",
+    title: "Was geht in Tuebingen heute? Partys, Clubs und Events",
     description:
-      "Alle wichtigen Events, Clubs und Studentenpartys in Tübingen heute Abend auf einen Blick.",
+      "Alle wichtigen Partys, Clubs und Events in Tuebingen heute auf einen Blick.",
     url: "/discover",
     type: "website",
   },

@@ -433,10 +433,10 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
             WasGehtTüb
           </p>
           <h1 className="mt-1 text-[1.9rem] font-black leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
-            Dein Party-Radar für Tübingen: Events und Clubs heute Abend
+            Was geht in Tübingen? Partys, Clubs und Events heute
           </h1>
           <p className="mt-2 text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>
-            Finde Studentenpartys, Clubhaus, Kuckuck, Schlachthaus und spontane Events in Tübingen schneller.
+            Entdecke Studentenpartys, Clubnächte und Tagesevents in Tübingen - von Clubhaus, Kuckuck und Schlachthaus bis zu Flohmärkten und Community-Treffen.
           </p>
         </div>
 
@@ -479,7 +479,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         </div>
       </header>
 
-      <div className="hide-scrollbar flex gap-2 overflow-x-auto px-1 py-1">
+      <div className="grid grid-cols-2 gap-2 px-1 py-1 sm:flex sm:flex-wrap sm:gap-2">
         {filterItems.map((item) => {
           const active = item.key === filter;
           return (
@@ -487,7 +487,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
               key={item.key}
               type="button"
               onClick={() => setFilter(item.key)}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
+              className={`min-w-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
                 active ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md" : ""
               }`}
               style={
@@ -496,7 +496,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
                   : { color: "var(--muted-foreground)", backgroundColor: "var(--surface-soft)" }
               }
             >
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center gap-1.5">
                 {item.icon ? <item.icon size={14} strokeWidth={2} /> : null}
                 <span>{item.label}</span>
               </span>
