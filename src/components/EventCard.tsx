@@ -191,15 +191,7 @@ export function EventCard({
   }).format(startsAtDate);
 
   return (
-    <motion.article
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.985, y: -1 }}
-      animate={
-        isHotNow
-          ? { boxShadow: ["0 0 0 1px rgba(251,146,60,0.45), 0 8px 24px rgba(249,115,22,0.2)", "0 0 0 2px rgba(251,146,60,0.8), 0 12px 28px rgba(249,115,22,0.28)", "0 0 0 1px rgba(251,146,60,0.45), 0 8px 24px rgba(249,115,22,0.2)"] }
-          : { boxShadow: "0 6px 20px rgba(20,24,40,0.06)" }
-      }
-      transition={isHotNow ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" } : { type: "spring", stiffness: 320, damping: 24 }}
+    <article
       onClick={onToggle}
       className="relative rounded-2xl border p-3.5 shadow-[0_6px_20px_rgba(20,24,40,0.06)] transition-shadow hover:shadow-[0_12px_30px_rgba(20,24,40,0.12)]"
       style={{
@@ -265,13 +257,9 @@ export function EventCard({
                 aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur für WG-Partys"}
                 disabled={!canUpvote}
               >
-                <motion.span
-                  animate={isHotNow ? { scale: [1, 1.2, 1], rotate: [0, -6, 6, 0] } : undefined}
-                  transition={isHotNow ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" } : undefined}
-                  className="inline-flex"
-                >
+                <span className="inline-flex">
                   <Flame size={13} fill={upvoted || isHotNow ? "currentColor" : "none"} />
-                </motion.span>
+                </span>
                 {effectiveUpvoteCount > 0 && (
                   <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
                 )}
@@ -312,13 +300,9 @@ export function EventCard({
               }}
             >
               {isHotNow ? (
-                <motion.span
-                  animate={{ scale: [1, 1.2, 1], rotate: [0, -8, 8, 0] }}
-                  transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
-                  className="inline-flex"
-                >
+                <span className="inline-flex">
                   <Flame size={11} fill="currentColor" />
-                </motion.span>
+                </span>
               ) : (
                 <Heart size={11} />
               )}
@@ -437,6 +421,6 @@ export function EventCard({
             </motion.div>
           ) : null}
       </AnimatePresence>
-    </motion.article>
+    </article>
   );
 }

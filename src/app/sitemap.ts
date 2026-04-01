@@ -1,11 +1,12 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 
 const SITE_URL = "https://wasgehttueb.app";
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
-    const supabase = await createClient();
+    const supabase = getSupabasePublicServerClient();
     const { data, error } = await supabase
       .from("v_external_events_public")
       .select("id, starts_at")

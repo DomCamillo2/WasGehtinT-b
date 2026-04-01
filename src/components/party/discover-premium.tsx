@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -46,18 +46,13 @@ type Props = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 1, y: 0 },
   show: { opacity: 1, y: 0 },
 };
 
 const listVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-    },
-  },
+  hidden: { opacity: 1 },
+  show: { opacity: 1 },
 };
 
 function toDateKeyBerlin(iso: string) {
@@ -491,7 +486,6 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
         </div>
       </header>
 
-      <LayoutGroup>
         <div className="hide-scrollbar flex gap-2 overflow-x-auto px-1 py-1">
           {filterItems.map((item) => {
             const active = item.key === filter;
@@ -521,7 +515,6 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
             );
           })}
         </div>
-      </LayoutGroup>
 
       <AnimatePresence initial={false}>
         {showFilterSheet ? (
@@ -682,9 +675,7 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
       ) : null}
 
       {hottestParty && topScore > 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="mx-1 flex items-center justify-between rounded-2xl border px-3 py-2 text-xs"
           style={{
             borderColor: "#fed7aa",
@@ -693,19 +684,15 @@ export function DiscoverPremium({ parties, avatarFallback, isAuthenticated }: Pr
           }}
         >
           <div className="inline-flex min-w-0 items-center gap-2">
-            <motion.span
-              animate={{ scale: [1, 1.2, 1], rotate: [0, -8, 8, 0] }}
-              transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
-              className="inline-flex"
-            >
+            <span className="inline-flex text-orange-600">
               <Flame size={14} fill="currentColor" />
-            </motion.span>
+            </span>
             <span className="truncate font-semibold">Hot jetzt: {hottestParty.title}</span>
           </div>
           <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold text-orange-700">
             {topScore} Upvotes
           </span>
-        </motion.div>
+        </div>
       ) : null}
 
       <div className="fixed bottom-28 right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2">

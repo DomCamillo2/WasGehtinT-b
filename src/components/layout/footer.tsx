@@ -23,7 +23,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-neutral-900">Links</h3>
+            <p className="mb-4 text-sm font-semibold text-neutral-900">Links</p>
             <ul className="space-y-3">
               <li>
                 <Link
@@ -45,7 +45,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-neutral-900">Rechtliches</h3>
+            <p className="mb-4 text-sm font-semibold text-neutral-900">Rechtliches</p>
             <ul className="space-y-3">
               <li>
                 <Link
@@ -86,7 +86,7 @@ export function Footer() {
         <div className="my-8 border-t border-neutral-200" />
 
         <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-          <h3 className="text-sm font-semibold text-neutral-900">Tübingen am Wochenende</h3>
+          <p className="text-sm font-semibold text-neutral-900">Tübingen am Wochenende</p>
           <p className="mt-2 text-sm leading-6 text-neutral-600">
             WasGehtTüb hilft dir dabei, das Nachtleben Tübingen schneller zu checken: Studentenpartys,
             Clubevents, spontane Treffen und Tipps dazu, was man in Tübingen am Wochenende machen kann.

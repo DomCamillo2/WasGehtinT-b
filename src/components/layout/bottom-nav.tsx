@@ -4,7 +4,6 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
-import { motion } from "framer-motion";
 import { CirclePlus, Compass, Flame, Inbox, MessageCircle, Sparkles, X } from "lucide-react";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
 import { createPartyAction, type CreatePartyActionState } from "@/app/actions/parties";
@@ -32,17 +31,6 @@ export function BottomNav() {
   const partyFormRef = useRef<HTMLFormElement>(null);
   const [hangoutState, hangoutFormAction, isHangoutPending] = useActionState(createHangoutAction, initialHangoutState);
   const [partyState, partyFormAction, isPartyPending] = useActionState(createPartyAction, initialPartyState);
-
-  useEffect(() => {
-    for (const item of NAV) {
-      if (item.href === "/plus") {
-        continue;
-      }
-      if (!pathname.startsWith(item.href)) {
-        router.prefetch(item.href);
-      }
-    }
-  }, [pathname, router]);
 
   useEffect(() => {
     if (!hangoutState.success) {
@@ -262,7 +250,6 @@ export function BottomNav() {
 
             return (
               <li key={item.href}>
-                <motion.div whileTap={{ scale: 0.97 }}>
                   {isPlus ? (
                     <button
                       type="button"
@@ -275,7 +262,7 @@ export function BottomNav() {
                   ) : (
                     <Link
                       href={item.href}
-                      prefetch
+                      prefetch={false}
                       onMouseEnter={() => router.prefetch(item.href)}
                       onTouchStart={() => router.prefetch(item.href)}
                       onFocus={() => router.prefetch(item.href)}
@@ -290,7 +277,6 @@ export function BottomNav() {
                       <span className="mt-1">{item.label}</span>
                     </Link>
                   )}
-                </motion.div>
               </li>
             );
           })}
