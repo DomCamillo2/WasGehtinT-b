@@ -97,7 +97,7 @@ export async function getExternalEvents() {
 
   const { data, error } = await supabase
     .from("v_external_events_public")
-    .select("id, source, title, description, location_name, public_lat, public_lng, starts_at, ends_at, external_link, vibe_label, music_genre")
+    .select("*")
     .order("starts_at", { ascending: true });
 
   if (error) {
@@ -105,41 +105,51 @@ export async function getExternalEvents() {
     return [] as PartyCard[];
   }
 
-  // Map external events to PartyCard format
+  // Map external events to PartyCard format and support legacy/alternative view column names.
   return ((data ?? []) as Array<{
-    id: string;
+    id: string | number;
     source?: string | null;
     title: string;
     description?: string | null;
     location_name?: string | null;
+    location?: string | null;
     public_lat?: number | null;
+    lat?: number | null;
     public_lng?: number | null;
+    lng?: number | null;
     starts_at: string;
-    ends_at: string;
+    ends_at?: string | null;
     external_link?: string | null;
     vibe_label?: string | null;
     music_genre?: string | null;
-  }>).map((event) => ({
-    id: event.id,
-    title: event.title,
-    description: event.description ?? null,
-    starts_at: event.starts_at,
-    ends_at: event.ends_at,
-    max_guests: 0,
-    contribution_cents: 0,
-    public_lat: event.public_lat ?? null,
-    public_lng: event.public_lng ?? null,
-    is_external: true,
-    external_link: event.external_link ?? null,
-    vibe_label: event.vibe_label ?? "Sonstiges",
-    spots_left: 0,
-    location_name: event.location_name ?? null,
-    music_genre: event.music_genre ?? null,
-    source_badge: event.source ?? "Club",
-    is_community: false,
-    upvote_count: 0,
-    upvoted_by_me: false,
-  })) as PartyCard[];
+  }>).map((event) => {
+    const locationName = event.location_name ?? event.location ?? null;
+    const lat = event.public_lat ?? event.lat ?? null;
+    const lng = event.public_lng ?? event.lng ?? null;
+    const endsAt = event.ends_at ?? event.starts_at;
+
+    return {
+      id: String(event.id),
+      title: event.title,
+      description: event.description ?? null,
+      starts_at: event.starts_at,
+      ends_at: endsAt,
+      max_guests: 0,
+      contribution_cents: 0,
+      public_lat: lat,
+      public_lng: lng,
+      is_external: true,
+      external_link: event.external_link ?? null,
+      vibe_label: event.vibe_label ?? "Sonstiges",
+      spots_left: 0,
+      location_name: locationName,
+      music_genre: event.music_genre ?? null,
+      source_badge: event.source ?? "Club",
+      is_community: false,
+      upvote_count: 0,
+      upvoted_by_me: false,
+    } as PartyCard;
+  });
 }
 
 export async function getCommunityHangoutsForDiscover() {
