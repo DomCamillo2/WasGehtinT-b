@@ -5,6 +5,8 @@ import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
 import { getInternalAdminUserOrNull } from "@/lib/admin-guard";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLoginPage() {
   if (!hasSupabaseEnv()) {
     const missing = getMissingSupabaseEnv();

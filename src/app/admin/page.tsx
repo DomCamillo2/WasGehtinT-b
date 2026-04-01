@@ -6,6 +6,8 @@ import { formatDateTime, formatEuroFromCents } from "@/lib/format";
 import { requireInternalAdmin } from "@/lib/admin-guard";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 function isMissingColumnError(code: string | undefined) {
   return code === "42703" || code === "PGRST204";
 }
