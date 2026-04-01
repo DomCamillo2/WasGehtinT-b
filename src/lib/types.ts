@@ -27,6 +27,7 @@ export type PartyCard = {
   music_genre?: string | null;
   upvote_count?: number;
   upvoted_by_me?: boolean;
+  source_badge?: string | null;
 };
 
 export type BringProgress = {

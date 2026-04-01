@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { DiscoverPremium } from "@/components/party/discover-premium";
-import { getExternalEvents, getPublicParties } from "@/lib/data";
+import { getCommunityHangoutsForDiscover, getExternalEvents, getPublicParties } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
 import { cookies } from "next/headers";
@@ -103,13 +103,14 @@ export default async function DiscoverPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [dbParties, externalParties] = await Promise.all([
+  const [dbParties, externalParties, communityHangouts] = await Promise.all([
     getPublicParties(),
     getExternalEvents(),
+    getCommunityHangoutsForDiscover(),
   ]);
 
   const enrichedDbParties = await enrichPartiesForDiscover(dbParties);
-  const parties = [...enrichedDbParties, ...externalParties];
+  const parties = [...enrichedDbParties, ...communityHangouts, ...externalParties];
 
   const eventIds = parties.map((party) => party.id);
   const upvoteCountMap = new Map<string, number>();

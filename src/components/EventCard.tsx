@@ -232,6 +232,11 @@ export function EventCard({
           </div>
 
           <div className="inline-flex items-center gap-1.5">
+            {party.source_badge ? (
+              <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-emerald-800">
+                {party.source_badge}
+              </span>
+            ) : null}
             <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-500">
               {typeTag.label}
             </span>

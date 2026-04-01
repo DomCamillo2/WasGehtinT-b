@@ -88,7 +88,7 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
   const nextReviewStatus = decision === "approve" ? "approved" : "rejected";
   const nextStatus = decision === "approve" ? "published" : "rejected";
 
-  const { error: updateError } = await supabase
+  let updateResult = await supabase
     .from("hangouts")
     .update({
       review_status: nextReviewStatus,
@@ -96,6 +96,37 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
       is_published: decision === "approve",
     })
     .eq("id", hangoutId);
+
+  if (isMissingColumnError(updateResult.error?.code)) {
+    updateResult = await supabase
+      .from("hangouts")
+      .update({
+        review_status: nextReviewStatus,
+        is_published: decision === "approve",
+      })
+      .eq("id", hangoutId);
+  }
+
+  if (isMissingColumnError(updateResult.error?.code)) {
+    updateResult = await supabase
+      .from("hangouts")
+      .update({
+        status: nextStatus,
+        is_published: decision === "approve",
+      })
+      .eq("id", hangoutId);
+  }
+
+  if (isMissingColumnError(updateResult.error?.code)) {
+    updateResult = await supabase
+      .from("hangouts")
+      .update({
+        is_published: decision === "approve",
+      })
+      .eq("id", hangoutId);
+  }
+
+  const updateError = updateResult.error;
 
   if (updateError) {
     console.error("[reviewHangoutSubmissionAction] Failed to review hangout:", updateError);

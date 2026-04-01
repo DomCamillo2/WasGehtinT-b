@@ -93,6 +93,61 @@ export async function getExternalEvents() {
   return (data ?? []) as PartyCard[];
 }
 
+export async function getCommunityHangoutsForDiscover() {
+  const supabase = await createClient();
+  const nowIso = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("hangouts")
+    .select("id, title, description, meetup_at, created_at, location_text, review_status, status, is_published")
+    .or("review_status.eq.approved,status.eq.published,is_published.eq.true")
+    .gte("meetup_at", nowIso)
+    .order("meetup_at", { ascending: true });
+
+  if (error) {
+    console.error("[getCommunityHangoutsForDiscover] Failed to fetch hangouts:", error.message);
+    return [] as PartyCard[];
+  }
+
+  const rows =
+    (data ?? []) as Array<{
+      id: string;
+      title: string | null;
+      description: string | null;
+      meetup_at: string | null;
+      created_at: string | null;
+      location_text: string | null;
+    }>;
+
+  return rows
+    .filter((row) => typeof row.meetup_at === "string" && row.meetup_at.length > 0)
+    .map((row) => {
+      const startsAt = row.meetup_at as string;
+      const safeTitle = (row.title ?? "Community Event").trim() || "Community Event";
+      const safeLocation = (row.location_text ?? "Community").trim() || "Community";
+
+      const mapped: PartyCard = {
+        id: `community-${row.id}`,
+        title: safeTitle,
+        description: row.description ?? null,
+        starts_at: startsAt,
+        ends_at: startsAt,
+        max_guests: 99,
+        contribution_cents: 0,
+        public_lat: null,
+        public_lng: null,
+        is_external: false,
+        external_link: null,
+        vibe_label: "Community",
+        spots_left: 99,
+        location_name: safeLocation,
+        source_badge: "Community",
+      };
+
+      return mapped;
+    });
+}
+
 export async function getBringProgressMap(partyIds: string[]) {
   if (!partyIds.length) {
     return {} as Record<string, BringProgress[]>;
