@@ -26,11 +26,21 @@ export async function getPublicParties() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const { data, error } = await supabase
+  let queryResult = await supabase
     .from("v_public_parties")
     .select("*")
     .gte("starts_at", nowIso)
     .order("starts_at", { ascending: true });
+
+  if (queryResult.error?.code === "42703" || queryResult.error?.code === "PGRST204") {
+    queryResult = await supabase
+      .from("v_public_parties")
+      .select("*")
+      .gte("date", nowIso)
+      .order("date", { ascending: true });
+  }
+
+  const { data, error } = queryResult;
 
   if (error) {
     console.error("[getPublicParties] Failed:", error.message);
@@ -41,43 +51,57 @@ export async function getPublicParties() {
     id: string;
     title: string;
     description: string | null;
-    starts_at: string;
-    ends_at: string | null;
+    starts_at?: string | null;
+    ends_at?: string | null;
     max_guests: number | null;
     contribution_cents: number | null;
     public_lat: number | null;
     public_lng: number | null;
     is_external?: boolean | null;
     external_link?: string | null;
-    status: string;
+    status?: string | null;
     vibe_label: string | null;
     spots_left: number | null;
     location_name?: string | null;
+    date?: string | null;
+    location?: string | null;
+    review_status?: string | null;
+    is_published?: boolean | null;
     created_at: string;
   }>;
 
   return rows
-    .filter((row) => row.status === "published")
-    .map((row) => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      starts_at: row.starts_at,
-      ends_at: row.ends_at ?? row.starts_at,
-      max_guests: Number(row.max_guests ?? 0),
-      contribution_cents: Number(row.contribution_cents ?? 0),
-      public_lat: row.public_lat ?? null,
-      public_lng: row.public_lng ?? null,
-      is_external: row.is_external === true,
-      external_link: row.external_link ?? null,
-      vibe_label: row.vibe_label ?? "Party",
-      spots_left: Number(row.spots_left ?? 0),
-      location_name: row.location_name ?? "Tuebingen",
-      source_badge: "Party",
-      is_community: false,
-      upvote_count: 0,
-      upvoted_by_me: false,
-    } as PartyCard));
+    .filter((row) => {
+      const publishedByStatus = row.status === "published";
+      const approvedByReview = row.review_status === "approved";
+      const publishedByLegacyFlag = row.is_published === true;
+      return publishedByStatus || approvedByReview || publishedByLegacyFlag;
+    })
+    .map((row) => {
+      const startsAt = row.starts_at ?? row.date ?? row.created_at;
+      const endsAt = row.ends_at ?? row.starts_at ?? row.date ?? row.created_at;
+
+      return {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        max_guests: Number(row.max_guests ?? 50),
+        contribution_cents: Number(row.contribution_cents ?? 0),
+        public_lat: row.public_lat ?? null,
+        public_lng: row.public_lng ?? null,
+        is_external: row.is_external === true,
+        external_link: row.external_link ?? null,
+        vibe_label: row.vibe_label ?? "Party",
+        spots_left: Number(row.spots_left ?? row.max_guests ?? 50),
+        location_name: row.location_name ?? row.location ?? "Tuebingen",
+        source_badge: "Party",
+        is_community: false,
+        upvote_count: 0,
+        upvoted_by_me: false,
+      } as PartyCard;
+    });
 }
 
 export async function getUserRole(userId: string): Promise<UserRole> {
