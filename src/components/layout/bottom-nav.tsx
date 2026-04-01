@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -27,8 +27,10 @@ export function BottomNav() {
   const router = useRouter();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [submitNotice, setSubmitNotice] = useState<string | null>(null);
-  const [hangoutState, hangoutAction, hangoutPending] = useActionState(createHangoutAction, initialHangoutState);
-  const [partyState, partyAction, partyPending] = useActionState(createPartyAction, INITIAL_CREATE_PARTY_STATE);
+  const [hangoutState, setHangoutState] = useState<HangoutActionState>(initialHangoutState);
+  const [partyState, setPartyState] = useState(INITIAL_CREATE_PARTY_STATE);
+  const [isHangoutPending, startHangoutTransition] = useTransition();
+  const [isPartyPending, startPartyTransition] = useTransition();
 
   useEffect(() => {
     for (const item of NAV) {
@@ -70,6 +72,46 @@ export function BottomNav() {
     return () => window.clearTimeout(timeoutId);
   }, [partyState.ok, router]);
 
+  function handleHangoutSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    setHangoutState(initialHangoutState);
+
+    startHangoutTransition(async () => {
+      try {
+        const result = await createHangoutAction(initialHangoutState, formData);
+        setHangoutState(result);
+
+        if (result.success) {
+          event.currentTarget.reset();
+        }
+      } catch {
+        setHangoutState({ error: "Einreichen fehlgeschlagen. Bitte versuche es erneut." });
+      }
+    });
+  }
+
+  function handlePartySubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    setPartyState(INITIAL_CREATE_PARTY_STATE);
+
+    startPartyTransition(async () => {
+      try {
+        const result = await createPartyAction(INITIAL_CREATE_PARTY_STATE, formData);
+        setPartyState(result);
+
+        if (result.ok) {
+          event.currentTarget.reset();
+        }
+      } catch {
+        setPartyState({ ok: false, message: "Einreichen fehlgeschlagen. Bitte versuche es erneut." });
+      }
+    });
+  }
+
   return (
     <>
       {isComposerOpen ? (
@@ -93,7 +135,7 @@ export function BottomNav() {
               </button>
             </div>
 
-            <form action={hangoutAction} className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+            <form onSubmit={handleHangoutSubmit} className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800">
                 <Sparkles size={16} />
                 Spontane Aktivitaet sofort posten
@@ -147,10 +189,10 @@ export function BottomNav() {
                   </select>
                   <button
                     type="submit"
-                    disabled={hangoutPending}
+                    disabled={isHangoutPending}
                     className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-70"
                   >
-                    {hangoutPending ? "Sendet..." : "Zur Freigabe einreichen"}
+                    {isHangoutPending ? "Sendet..." : "Zur Freigabe einreichen"}
                   </button>
                 </div>
               </div>
@@ -159,7 +201,7 @@ export function BottomNav() {
               ) : null}
             </form>
 
-            <form action={partyAction} className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
+            <form onSubmit={handlePartySubmit} className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-800">
                 <Flame size={16} />
                 Club Event einreichen
@@ -212,10 +254,10 @@ export function BottomNav() {
                 <input type="hidden" name="publishMode" value="published" />
                 <button
                   type="submit"
-                  disabled={partyPending}
+                  disabled={isPartyPending}
                   className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white disabled:opacity-70"
                 >
-                  {partyPending ? "Sendet..." : "Zur Freigabe einreichen"}
+                  {isPartyPending ? "Sendet..." : "Zur Freigabe einreichen"}
                 </button>
               </div>
               {partyState.message ? (
