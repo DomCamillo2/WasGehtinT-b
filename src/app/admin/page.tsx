@@ -1,5 +1,10 @@
-import { reviewHangoutSubmissionAction, reviewPartySubmissionAction } from "@/app/actions/admin-events";
-import { CheckCircle2, CircleX } from "lucide-react";
+import {
+  deleteHangoutSubmissionAction,
+  deletePartySubmissionAction,
+  reviewHangoutSubmissionAction,
+  reviewPartySubmissionAction,
+} from "@/app/actions/admin-events";
+import { CheckCircle2, CircleX, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
@@ -373,6 +378,17 @@ export default async function AdminPage({
               </p>
               <p className="text-xs text-zinc-500">{formatDateTime(party.starts_at)}</p>
               <p className="text-xs font-medium text-emerald-700">Freigegeben</p>
+              <form action={deletePartySubmissionAction} className="pt-2">
+                <input type="hidden" name="partyId" value={party.id} />
+                <button
+                  type="submit"
+                  disabled={!adminConfig.valid}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
+                >
+                  <Trash2 size={14} />
+                  <span>Loeschen</span>
+                </button>
+              </form>
             </Card>
           ))
         ) : (
@@ -396,6 +412,17 @@ export default async function AdminPage({
               </p>
               <p className="text-xs text-zinc-500">{formatDateTime(hangout.meetup_at ?? hangout.created_at)}</p>
               <p className="text-xs font-medium text-emerald-700">Freigegeben</p>
+              <form action={deleteHangoutSubmissionAction} className="pt-2">
+                <input type="hidden" name="hangoutId" value={hangout.id} />
+                <button
+                  type="submit"
+                  disabled={!adminConfig.valid}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
+                >
+                  <Trash2 size={14} />
+                  <span>Loeschen</span>
+                </button>
+              </form>
             </Card>
           ))
         ) : (

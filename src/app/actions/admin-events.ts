@@ -296,3 +296,130 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
     });
   }
 }
+
+export async function deletePartySubmissionAction(formData: FormData): Promise<void> {
+  await requireInternalAdmin();
+
+  const partyId = String(formData.get("partyId") ?? "").trim();
+  if (!partyId) {
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const deleteResult = await supabase.from("parties").delete().eq("id", partyId).select("id").limit(1);
+
+    const deleteError = deleteResult.error;
+    const deletedRows = Array.isArray(deleteResult.data) ? deleteResult.data.length : 0;
+
+    if (deleteError) {
+      console.error("[deletePartySubmissionAction] Failed to delete party:", deleteError);
+      adminRedirectWithStatus({
+        type: "error",
+        scope: "party",
+        decision: "reject",
+        message: "Party konnte nicht geloescht werden.",
+      });
+    }
+
+    if (deletedRows === 0) {
+      console.error("[deletePartySubmissionAction] No row deleted for party:", partyId);
+      adminRedirectWithStatus({
+        type: "error",
+        scope: "party",
+        decision: "reject",
+        message: "Keine Party wurde geloescht.",
+      });
+    }
+
+    try {
+      revalidatePath("/admin");
+      revalidatePath("/discover");
+      revalidatePath("/host");
+    } catch (err) {
+      console.warn("[deletePartySubmissionAction] revalidate warning:", err);
+    }
+
+    adminRedirectWithStatus({
+      type: "success",
+      scope: "party",
+      decision: "reject",
+      message: "Party wurde geloescht.",
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    console.error("[deletePartySubmissionAction] Unexpected failure:", error);
+    adminRedirectWithStatus({
+      type: "error",
+      scope: "party",
+      decision: "reject",
+      message: "Loeschen ist derzeit nicht verfuegbar.",
+    });
+  }
+}
+
+export async function deleteHangoutSubmissionAction(formData: FormData): Promise<void> {
+  await requireInternalAdmin();
+
+  const hangoutId = String(formData.get("hangoutId") ?? "").trim();
+  if (!hangoutId) {
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const deleteResult = await supabase.from("hangouts").delete().eq("id", hangoutId).select("id").limit(1);
+
+    const deleteError = deleteResult.error;
+    const deletedRows = Array.isArray(deleteResult.data) ? deleteResult.data.length : 0;
+
+    if (deleteError) {
+      console.error("[deleteHangoutSubmissionAction] Failed to delete hangout:", deleteError);
+      adminRedirectWithStatus({
+        type: "error",
+        scope: "hangout",
+        decision: "reject",
+        message: "Community-Event konnte nicht geloescht werden.",
+      });
+    }
+
+    if (deletedRows === 0) {
+      console.error("[deleteHangoutSubmissionAction] No row deleted for hangout:", hangoutId);
+      adminRedirectWithStatus({
+        type: "error",
+        scope: "hangout",
+        decision: "reject",
+        message: "Kein Community-Event wurde geloescht.",
+      });
+    }
+
+    try {
+      revalidatePath("/admin");
+      revalidatePath("/discover");
+    } catch (err) {
+      console.warn("[deleteHangoutSubmissionAction] revalidate warning:", err);
+    }
+
+    adminRedirectWithStatus({
+      type: "success",
+      scope: "hangout",
+      decision: "reject",
+      message: "Community-Event wurde geloescht.",
+    });
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    console.error("[deleteHangoutSubmissionAction] Unexpected failure:", error);
+    adminRedirectWithStatus({
+      type: "error",
+      scope: "hangout",
+      decision: "reject",
+      message: "Loeschen ist derzeit nicht verfuegbar.",
+    });
+  }
+}
