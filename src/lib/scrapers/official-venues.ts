@@ -11,6 +11,7 @@ const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
 
 const DIGINIGHTS_URL = "https://diginights.com/city/tuebingen";
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
+const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
 
 /**
  * Parse date strings in various formats
@@ -77,6 +78,45 @@ function generateEventId(venue: string, date: Date, title: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `${venue.toLowerCase()}-${dateKey}-${titleSlug}`;
+}
+
+function slugify(input: string): string {
+  return String(input ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function decodeIcsText(value: string): string {
+  return String(value ?? "")
+    .replace(/\\n/gi, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";")
+    .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function unfoldIcsLines(ics: string): string[] {
+  return String(ics ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n[ \t]/g, "")
+    .split("\n");
+}
+
+function parseIcsDate(value: string): string | null {
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day, hour, minute, second] = match;
+  const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}+02:00`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
 }
 
 /**
@@ -202,6 +242,10 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
  * Fetch and parse Diginights events for Tübingen
  */
 export async function fetchDignightsEvents(): Promise<PartyCard[]> {
+  console.warn("Diginights scraper disabled: source currently returns 404.");
+  return [];
+
+  /*
   try {
     const response = await fetch(DIGINIGHTS_URL, {
       cache: "no-store",
@@ -302,6 +346,93 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
     return events;
   } catch (error) {
     console.error("Error fetching Diginights events:", error);
+    return [];
+  }
+  */
+}
+
+export async function fetchEpplehausEvents(): Promise<PartyCard[]> {
+  try {
+    const response = await fetch(EPPLEHAUS_ICAL_URL, {
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      console.warn("Epplehaus fetch failed with status:", response.status);
+      return [];
+    }
+
+    const ics = await response.text();
+    const lines = unfoldIcsLines(ics);
+    const rawEvents: Array<Record<string, string>> = [];
+    let currentEvent: Record<string, string> | null = null;
+
+    for (const line of lines) {
+      if (line === "BEGIN:VEVENT") {
+        currentEvent = {};
+        continue;
+      }
+
+      if (line === "END:VEVENT") {
+        if (currentEvent) {
+          rawEvents.push(currentEvent);
+        }
+        currentEvent = null;
+        continue;
+      }
+
+      if (!currentEvent) {
+        continue;
+      }
+
+      const separatorIndex = line.indexOf(":");
+      if (separatorIndex === -1) {
+        continue;
+      }
+
+      const key = line.slice(0, separatorIndex).split(";")[0];
+      currentEvent[key] = line.slice(separatorIndex + 1);
+    }
+
+    return rawEvents
+      .map((event) => {
+        const title = decodeIcsText(event.SUMMARY ?? "");
+        const description = decodeIcsText(event.DESCRIPTION ?? "");
+        const startsAt = parseIcsDate(event.DTSTART ?? "");
+        const endsAt =
+          parseIcsDate(event.DTEND ?? "") ??
+          (startsAt ? new Date(new Date(startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString() : null);
+        const externalLink = String(event.URL ?? "").trim() || EPPLEHAUS_ICAL_URL;
+        const uid = String(event.UID ?? "").trim();
+
+        if (!title || !startsAt || !endsAt || !uid) {
+          return null;
+        }
+
+        return {
+          id: `epplehaus-${slugify(uid.replace(/@.*/, ""))}`,
+          title,
+          description: description || "Event im Epplehaus, Tübingen",
+          starts_at: startsAt,
+          ends_at: endsAt,
+          max_guests: 0,
+          contribution_cents: 0,
+          public_lat: null,
+          public_lng: null,
+          is_external: true,
+          external_link: externalLink,
+          vibe_label: "Epplehaus",
+          spots_left: 0,
+          location_name: "Epplehaus",
+        } as PartyCard;
+      })
+      .filter((event): event is PartyCard => Boolean(event));
+  } catch (error) {
+    console.error("Error fetching Epplehaus events:", error);
     return [];
   }
 }

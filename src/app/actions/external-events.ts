@@ -3,7 +3,7 @@
 import * as cheerio from "cheerio";
 import { unstable_cache } from "next/cache";
 import { PartyCard } from "@/lib/types";
-import { fetchSchlachthausEvents, fetchDignightsEvents } from "@/lib/scrapers/official-venues";
+import { fetchSchlachthausEvents, fetchDignightsEvents, fetchEpplehausEvents } from "@/lib/scrapers/official-venues";
 
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
 const KUCKUCK_LAT = 48.5413588;
@@ -347,14 +347,15 @@ async function fetchFsrvvClubhausEventsAction(): Promise<PartyCard[]> {
 const getCachedExternalEvents = unstable_cache(
   async (): Promise<PartyCard[]> => {
     const nowMs = Date.now();
-    const [kuckuckEvents, clubhausEvents, schlachthausEvents, dignightsEvents] = await Promise.all([
+    const [kuckuckEvents, clubhausEvents, schlachthausEvents, dignightsEvents, epplehausEvents] = await Promise.all([
       fetchKuckuckEventsAction(),
       fetchFsrvvClubhausEventsAction(),
       fetchSchlachthausEvents(),
       fetchDignightsEvents(),
+      fetchEpplehausEvents(),
     ]);
 
-    const allEvents = [...kuckuckEvents, ...clubhausEvents, ...schlachthausEvents, ...dignightsEvents]
+    const allEvents = [...kuckuckEvents, ...clubhausEvents, ...schlachthausEvents, ...dignightsEvents, ...epplehausEvents]
       .filter((event) => !isCancelledOrOutageEvent(event))
       .filter((event) => {
         const endMs = new Date(event.ends_at).getTime();
