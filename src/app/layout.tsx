@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
+import { CookieConsentBannerMount } from "@/components/layout/cookie-consent-banner-mount";
 import { Footer } from "@/components/layout/footer";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
-
-const CookieConsentBanner = dynamic(
-  () => import("@/components/layout/cookie-consent-banner").then((module) => module.CookieConsentBanner),
-  { ssr: false },
-);
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.wasgehttueb.app"),
@@ -45,7 +40,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <Footer />
-        <CookieConsentBanner />
+        <CookieConsentBannerMount />
       </body>
     </html>
   );
