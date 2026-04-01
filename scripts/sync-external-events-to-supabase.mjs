@@ -10,6 +10,7 @@ const DEFAULT_DIGINIGHTS_URLS = [
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
 const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
+const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
 
 const KUCKUCK_COORDS = { lat: 48.5413588, lng: 9.0599431 };
 const CLUBHAUS_COORDS = { lat: 48.5243852, lng: 9.0605991 };
@@ -71,6 +72,35 @@ function normalizeChunk(input) {
     .replace(/\s+/g, " ")
     .replace(/([a-zäöüß])([A-ZÄÖÜ])/g, "$1 $2")
     .trim();
+}
+
+function decodeIcsText(value) {
+  return String(value ?? "")
+    .replace(/\\n/gi, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";")
+    .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function unfoldIcsLines(ics) {
+  return String(ics ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n[ \t]/g, "")
+    .split("\n");
+}
+
+function parseIcsDate(value) {
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day, hour, minute, second] = match;
+  const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}+02:00`;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function toIsoDate(day, month) {
@@ -304,6 +334,78 @@ async function fetchFsrvvClubhausEvents() {
       .filter(Boolean);
   } catch (error) {
     console.error("[worker] Clubhaus scrape failed:", error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}
+
+async function fetchEpplehausEvents() {
+  try {
+    const ics = await fetchWithTimeout(EPPLEHAUS_ICAL_URL);
+    const lines = unfoldIcsLines(ics);
+    const parsedEvents = [];
+    let currentEvent = null;
+
+    for (const line of lines) {
+      if (line === "BEGIN:VEVENT") {
+        currentEvent = {};
+        continue;
+      }
+
+      if (line === "END:VEVENT") {
+        if (currentEvent) {
+          parsedEvents.push(currentEvent);
+        }
+        currentEvent = null;
+        continue;
+      }
+
+      if (!currentEvent) {
+        continue;
+      }
+
+      const separatorIndex = line.indexOf(":");
+      if (separatorIndex === -1) {
+        continue;
+      }
+
+      const rawKey = line.slice(0, separatorIndex);
+      const rawValue = line.slice(separatorIndex + 1);
+      const key = rawKey.split(";")[0];
+      currentEvent[key] = rawValue;
+    }
+
+    return parsedEvents
+      .map((event) => {
+        const title = decodeIcsText(event.SUMMARY);
+        const description = decodeIcsText(event.DESCRIPTION);
+        const startsAt = parseIcsDate(event.DTSTART);
+        const endsAt = parseIcsDate(event.DTEND) ?? (startsAt
+          ? new Date(new Date(startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString()
+          : null);
+        const externalLink = event.URL?.trim() || EPPLEHAUS_ICAL_URL;
+        const uid = String(event.UID ?? "").trim();
+
+        if (!title || !startsAt || !endsAt || !uid) {
+          return null;
+        }
+
+        return {
+          id: `epplehaus-${slugify(uid.replace(/@.*/, ""))}`,
+          title,
+          description: description || "Event im Epplehaus, Karlstraße 13, 72072 Tübingen",
+          starts_at: startsAt,
+          ends_at: endsAt,
+          public_lat: null,
+          public_lng: null,
+          external_link: externalLink,
+          vibe_label: "Epplehaus",
+          location_name: "Epplehaus",
+          music_genre: inferMusicGenre(`${title} ${description}`),
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.error("[worker] Epplehaus scrape failed:", error instanceof Error ? error.message : String(error));
     return [];
   }
 }
@@ -680,14 +782,15 @@ async function main() {
   const startedAt = Date.now();
   console.log("[worker] Starting external events sync...");
 
-  const [kuckuck, clubhaus, schlachthaus, diginights] = await Promise.all([
+  const [kuckuck, clubhaus, schlachthaus, diginights, epplehaus] = await Promise.all([
     fetchKuckuckEvents(),
     fetchFsrvvClubhausEvents(),
     fetchSchlachthausEvents(),
     fetchDiginightsEvents(),
+    fetchEpplehausEvents(),
   ]);
 
-  const merged = dedupeAndSort([...kuckuck, ...clubhaus, ...schlachthaus, ...diginights]);
+  const merged = dedupeAndSort([...kuckuck, ...clubhaus, ...schlachthaus, ...diginights, ...epplehaus]);
   const result = await syncToSupabase(merged);
 
   console.log(
