@@ -172,6 +172,8 @@ export function EventCard({
         ? partnerLogoSrc
         : null;
   const locationLine = party.location_name || party.vibe_label;
+  const normalizedSourceBadge = (party.source_badge ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+  const shouldShowSourceBadge = Boolean(party.source_badge) && normalizedSourceBadge !== "official scraper";
   const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
   const effectiveUpvoteCount = Math.max(0, upvoteCount ?? party.upvote_count ?? 0);
   const canUpvote = true;
@@ -232,7 +234,7 @@ export function EventCard({
           </div>
 
           <div className="inline-flex items-center gap-1.5">
-            {party.source_badge ? (
+            {shouldShowSourceBadge ? (
               <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-emerald-800">
                 {party.source_badge}
               </span>

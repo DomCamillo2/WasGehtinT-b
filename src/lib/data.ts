@@ -106,6 +106,11 @@ export async function getExternalEvents() {
   }
 
   // Map external events to PartyCard format and support legacy/alternative view column names.
+  const isOfficialScraperLabel = (value?: string | null) => {
+    const normalized = (value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+    return normalized === "official scraper";
+  };
+
   return ((data ?? []) as Array<{
     id: string | number;
     source?: string | null;
@@ -144,10 +149,7 @@ export async function getExternalEvents() {
       spots_left: 0,
       location_name: locationName,
       music_genre: event.music_genre ?? null,
-      source_badge:
-        event.source && event.source.trim().toLowerCase() !== "official scraper"
-          ? event.source
-          : null,
+      source_badge: event.source && !isOfficialScraperLabel(event.source) ? event.source : null,
       is_community: false,
       upvote_count: 0,
       upvoted_by_me: false,
