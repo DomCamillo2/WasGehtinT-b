@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useFormStatus } from "react-dom";
-import { createPartyAction, INITIAL_CREATE_PARTY_STATE } from "@/app/actions/parties";
+import { createPartyAction, type CreatePartyActionState } from "@/app/actions/parties";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Card } from "@/components/ui/card";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
@@ -12,6 +12,11 @@ import { ensurePerformanceMarkApi } from "@/lib/performance-compat";
 
 type Props = {
   vibes: Array<{ id: number; label: string }>;
+};
+
+const INITIAL_CREATE_PARTY_STATE: CreatePartyActionState = {
+  ok: false,
+  message: "",
 };
 
 const DEFAULT_CENTER = { lat: 48.5216, lng: 9.0522 };

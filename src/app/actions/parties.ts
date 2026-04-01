@@ -9,11 +9,6 @@ export type CreatePartyActionState = {
   message: string;
 };
 
-export const INITIAL_CREATE_PARTY_STATE: CreatePartyActionState = {
-  ok: false,
-  message: "",
-};
-
 function isMissingColumnError(code: string | undefined) {
   return code === "42703" || code === "PGRST204";
 }

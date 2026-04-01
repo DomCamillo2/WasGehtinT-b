@@ -7,10 +7,7 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import { CirclePlus, Compass, Flame, Inbox, MessageCircle, Sparkles, X } from "lucide-react";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
-import {
-  createPartyAction,
-  INITIAL_CREATE_PARTY_STATE,
-} from "@/app/actions/parties";
+import { createPartyAction, type CreatePartyActionState } from "@/app/actions/parties";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const NAV = [
@@ -21,6 +18,10 @@ const NAV = [
 ];
 
 const initialHangoutState: HangoutActionState = {};
+const initialPartyState: CreatePartyActionState = {
+  ok: false,
+  message: "",
+};
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -30,7 +31,7 @@ export function BottomNav() {
   const hangoutFormRef = useRef<HTMLFormElement>(null);
   const partyFormRef = useRef<HTMLFormElement>(null);
   const [hangoutState, hangoutFormAction, isHangoutPending] = useActionState(createHangoutAction, initialHangoutState);
-  const [partyState, partyFormAction, isPartyPending] = useActionState(createPartyAction, INITIAL_CREATE_PARTY_STATE);
+  const [partyState, partyFormAction, isPartyPending] = useActionState(createPartyAction, initialPartyState);
 
   useEffect(() => {
     for (const item of NAV) {
