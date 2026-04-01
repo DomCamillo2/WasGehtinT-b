@@ -67,6 +67,8 @@ export async function getPublicParties() {
       location_name: row.location ?? "Somewhere",
       source_badge: "Party",
       is_community: false,
+      upvote_count: 0,
+      upvoted_by_me: false,
     } as PartyCard));
 }
 
@@ -123,17 +125,20 @@ export async function getExternalEvents() {
     description: event.description ?? null,
     starts_at: event.starts_at,
     ends_at: event.ends_at,
-    max_guests: 0, // Not applicable for external events
-    contribution_cents: 0, // Not applicable for external events
+    max_guests: 0,
+    contribution_cents: 0,
     public_lat: event.public_lat ?? null,
     public_lng: event.public_lng ?? null,
     is_external: true,
     external_link: event.external_link ?? null,
     vibe_label: event.vibe_label ?? "Sonstiges",
-    spots_left: 0, // Not applicable for external events
+    spots_left: 0,
     location_name: event.location_name ?? null,
     music_genre: event.music_genre ?? null,
-    source_badge: event.source ?? "External", // Use source as badge
+    source_badge: event.source ?? "Club",
+    is_community: false,
+    upvote_count: 0,
+    upvoted_by_me: false,
   })) as PartyCard[];
 }
 
@@ -182,7 +187,7 @@ export async function getCommunityHangoutsForDiscover() {
       const safeLocation = (row.location_text ?? "Community").trim() || "Community";
 
       const mapped: PartyCard = {
-        id: `community-${row.id}`,
+        id: row.id,
         title: safeTitle,
         description: row.description ?? null,
         starts_at: startsAt,
@@ -198,6 +203,8 @@ export async function getCommunityHangoutsForDiscover() {
         location_name: safeLocation,
         source_badge: "Community",
         is_community: true,
+        upvote_count: 0,
+        upvoted_by_me: false,
       };
 
       return mapped;
