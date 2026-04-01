@@ -95,7 +95,7 @@ export async function getExternalEvents() {
 
   const { data, error } = await supabase
     .from("v_external_events_public")
-    .select("*")
+    .select("id, source, title, description, location_name, public_lat, public_lng, starts_at, ends_at, external_link, vibe_label, music_genre")
     .order("starts_at", { ascending: true });
 
   if (error) {
@@ -103,7 +103,38 @@ export async function getExternalEvents() {
     return [] as PartyCard[];
   }
 
-  return (data ?? []) as PartyCard[];
+  // Map external events to PartyCard format
+  return ((data ?? []) as Array<{
+    id: string;
+    source?: string | null;
+    title: string;
+    description?: string | null;
+    location_name?: string | null;
+    public_lat?: number | null;
+    public_lng?: number | null;
+    starts_at: string;
+    ends_at: string;
+    external_link?: string | null;
+    vibe_label?: string | null;
+    music_genre?: string | null;
+  }>).map((event) => ({
+    id: event.id,
+    title: event.title,
+    description: event.description ?? null,
+    starts_at: event.starts_at,
+    ends_at: event.ends_at,
+    max_guests: 0, // Not applicable for external events
+    contribution_cents: 0, // Not applicable for external events
+    public_lat: event.public_lat ?? null,
+    public_lng: event.public_lng ?? null,
+    is_external: true,
+    external_link: event.external_link ?? null,
+    vibe_label: event.vibe_label ?? "Sonstiges",
+    spots_left: 0, // Not applicable for external events
+    location_name: event.location_name ?? null,
+    music_genre: event.music_genre ?? null,
+    source_badge: event.source ?? "External", // Use source as badge
+  })) as PartyCard[];
 }
 
 export async function getCommunityHangoutsForDiscover() {
