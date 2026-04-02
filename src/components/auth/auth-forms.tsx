@@ -112,7 +112,7 @@ export function AuthForms() {
             className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-500"
           />
           <PrimaryButton type="button" disabled className="h-12 w-full text-base">
-            Kontoerstellung bald verfuegbar
+            Kontoerstellung bald verfügbar
           </PrimaryButton>
         </fieldset>
         <p className="text-xs text-zinc-500">Neuregistrierung ist aktuell deaktiviert. Stay tuned.</p>

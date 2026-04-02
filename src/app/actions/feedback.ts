@@ -41,13 +41,13 @@ export async function submitFeedbackAction(
   }
 
   if (contactEmailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmailRaw)) {
-    return { error: "Bitte gib eine gueltige E-Mail-Adresse an oder lasse das Feld leer." };
+    return { error: "Bitte gib eine gültige E-Mail-Adresse an oder lasse das Feld leer." };
   }
 
   const titleModeration = moderateContent(titleRaw);
   const messageModeration = moderateContent(messageRaw);
   if (titleModeration.isBlocked || messageModeration.isBlocked) {
-    return { error: "Dein Text enthaelt unzulaessige Inhalte. Bitte formuliere ihn neutral." };
+    return { error: "Dein Text enthält unzulässige Inhalte. Bitte formuliere ihn neutral." };
   }
 
   const feedbackClient = supabase as unknown as {
@@ -74,14 +74,14 @@ export async function submitFeedbackAction(
   revalidatePath("/admin");
 
   if (titleModeration.wasSanitized || messageModeration.wasSanitized) {
-    return { success: "Danke. Dein Eintrag wurde gespeichert, einzelne Woerter wurden automatisch zensiert." };
+    return { success: "Danke. Dein Eintrag wurde gespeichert, einzelne Wörter wurden automatisch zensiert." };
   }
 
   return {
     success:
       type === "feature_request"
         ? "Danke. Dein Feature-Wunsch ist eingegangen."
-        : "Danke fuer dein Feedback. Es ist im Admin-Panel sichtbar.",
+        : "Danke für dein Feedback. Es ist im Admin-Panel sichtbar.",
   };
 }
 

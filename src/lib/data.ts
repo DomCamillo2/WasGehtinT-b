@@ -174,7 +174,7 @@ export async function getPublicParties(options: EventWindowOptions = {}) {
         external_link: row.external_link ?? null,
         vibe_label: row.vibe_label ?? "Party",
         spots_left: Number(row.spots_left ?? row.max_guests ?? 50),
-        location_name: row.location_name ?? row.location ?? "Tuebingen",
+        location_name: row.location_name ?? row.location ?? "Tübingen",
         source_badge: "Party",
         is_community: false,
         upvote_count: 0,

@@ -145,7 +145,7 @@ export async function createPartyAction(
     ) {
       return {
         ok: false,
-        message: "Bitte pruefe Titel, Zeiten, Vibe und Gaestezahl. Endzeit muss nach Startzeit liegen.",
+        message: "Bitte prüfe Titel, Zeiten, Vibe und Gästezahl. Endzeit muss nach Startzeit liegen.",
       };
     }
 
@@ -195,7 +195,7 @@ export async function createPartyAction(
         title,
         description: description || null,
         date: startDate.toISOString(),
-        location: locationName || "Tuebingen",
+        location: locationName || "Tübingen",
         is_published: false,
         submitter_name: submitterName || null,
       };
@@ -225,7 +225,7 @@ export async function createPartyAction(
       console.error("[createPartyAction] Failed to insert party:", error);
       return {
         ok: false,
-        message: `Event konnte nicht gespeichert werden (${error.code ?? "unknown"}). Bitte DB-Policies pruefen.`,
+        message: `Event konnte nicht gespeichert werden (${error.code ?? "unknown"}). Bitte DB-Policies prüfen.`,
       };
     }
 
@@ -265,7 +265,7 @@ export async function createPartyAction(
       console.warn("[createPartyAction] revalidate warning:", err);
     }
 
-    return { ok: true, message: "Event eingereicht. Es wird vor der Veroeffentlichung im Admin-Panel geprueft." };
+    return { ok: true, message: "Event eingereicht. Es wird vor der Veröffentlichung im Admin-Panel geprüft." };
   } catch (error) {
     console.error("[createPartyAction] unexpected failure", error);
     return { ok: false, message: "Einreichen fehlgeschlagen. Bitte versuche es erneut." };

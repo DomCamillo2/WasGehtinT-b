@@ -81,7 +81,7 @@ export function BottomNav() {
                 type="button"
                 onClick={() => setIsComposerOpen(false)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-500 flex-shrink-0"
-                aria-label="Overlay schliessen"
+                aria-label="Overlay schließen"
               >
                 <X size={16} />
               </button>
@@ -90,7 +90,7 @@ export function BottomNav() {
             <form ref={hangoutFormRef} action={hangoutFormAction} className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800">
                 <Sparkles size={16} />
-                Spontane Aktivitaet sofort posten
+                Spontane Aktivität sofort posten
               </div>
               <div className="space-y-2">
                 <input
@@ -103,7 +103,7 @@ export function BottomNav() {
                   name="title"
                   required
                   maxLength={120}
-                  placeholder="z. B. Vorgluehen 20:00 auf dem Sand"
+                  placeholder="z. B. Vorglühen 20:00 auf dem Sand"
                   className="h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm outline-none focus:border-emerald-400"
                 />
                 <input
@@ -134,7 +134,7 @@ export function BottomNav() {
                     className="h-11 flex-1 rounded-xl border border-emerald-200 bg-white px-3 text-sm outline-none focus:border-emerald-400"
                   >
                     <option value="meetup">Treffen</option>
-                    <option value="party">Vorgluehen</option>
+                    <option value="party">Vorglühen</option>
                     <option value="sport">Sport</option>
                     <option value="chill">Chill</option>
                     <option value="other">Sonstiges</option>

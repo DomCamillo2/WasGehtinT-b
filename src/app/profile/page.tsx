@@ -57,7 +57,7 @@ function reviewStatusClassName(value: string | null): string {
 
 function publishStatusLabel(value: string | null): string {
   const status = String(value ?? "").toLowerCase();
-  if (status === "published") return "Veroeffentlicht";
+  if (status === "published") return "Veröffentlicht";
   if (status === "draft") return "Entwurf";
   if (status === "cancelled") return "Abgelehnt/Beendet";
   if (status === "closed") return "Geschlossen";
@@ -289,7 +289,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
 
       <Card className="mt-3 p-4">
         <p className="text-xs text-zinc-600">
-          Deine Daten bleiben auf WasGehtTueb. Mehr Infos findest du in den rechtlichen Seiten.
+          Deine Daten bleiben auf WasGehtTüb. Mehr Infos findest du in den rechtlichen Seiten.
         </p>
         <div className="mt-2 flex gap-3 text-xs">
           <Link href="/datenschutz" className="text-zinc-700 underline decoration-zinc-300 underline-offset-2">
@@ -306,7 +306,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">Feedback oder Feature Request</h2>
             <p className="mt-1 text-xs text-zinc-500">
-              Teile Bugs, Ideen oder Verbesserungswuensche direkt mit dem Team.
+              Teile Bugs, Ideen oder Verbesserungswünsche direkt mit dem Team.
             </p>
           </div>
           <Link

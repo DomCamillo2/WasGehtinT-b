@@ -52,7 +52,7 @@ export function FeedbackForm() {
           minLength={10}
           maxLength={2000}
           rows={6}
-          placeholder="Was laeuft gut, was stoert dich oder welches Feature wuenschst du dir?"
+          placeholder="Was läuft gut, was stört dich oder welches Feature wünschst du dir?"
           className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
         />
       </div>
@@ -66,7 +66,7 @@ export function FeedbackForm() {
           name="contactEmail"
           type="email"
           maxLength={160}
-          placeholder="Falls wir Rueckfragen haben"
+          placeholder="Falls wir Rückfragen haben"
           className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
         />
       </div>

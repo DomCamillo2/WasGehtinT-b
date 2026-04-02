@@ -549,7 +549,7 @@ export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
           return null;
         }
 
-        const title = sanitizeMarketTitle(rawLabel) || "Markt in Tuebingen";
+        const title = sanitizeMarketTitle(rawLabel) || "Markt in Tübingen";
         const relativeHref = $(element).attr("href")?.trim() ?? "";
         const externalLink = relativeHref
           ? new URL(relativeHref, TUEBINGEN_MARKETS_URL).toString()
@@ -558,7 +558,7 @@ export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
         return {
           id: `tuebingen-market-${slugify(rawLabel)}`,
           title,
-          description: "Offizieller Markttermin der Universitaetsstadt Tuebingen",
+          description: "Offizieller Markttermin der Universitätsstadt Tübingen",
           starts_at: parsedRange.startsAt,
           ends_at: parsedRange.endsAt,
           max_guests: 0,
@@ -569,7 +569,7 @@ export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
           external_link: externalLink,
           vibe_label: "Markt",
           spots_left: 0,
-          location_name: title.toLowerCase().includes("rathaus") ? "Rathaus, Tuebingen" : "Tuebingen",
+          location_name: title.toLowerCase().includes("rathaus") ? "Rathaus, Tübingen" : "Tübingen",
           category_slug: "market",
           category_label: "Markt",
           event_scope: "daytime",
@@ -645,8 +645,8 @@ export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
 
         return {
           id: `tuebingen-flohmarkt-${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-          title: "Staedtischer Flohmarkt in der Uhlandstrasse",
-          description: "Offizieller Flohmarkttermin der Universitaetsstadt Tuebingen",
+          title: "Städtischer Flohmarkt in der Uhlandstraße",
+          description: "Offizieller Flohmarkttermin der Universitätsstadt Tübingen",
           starts_at: startsAt,
           ends_at: endsAt,
           max_guests: 0,
@@ -657,7 +657,7 @@ export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
           external_link: TUEBINGEN_FLEA_MARKETS_URL,
           vibe_label: "Flohmarkt",
           spots_left: 0,
-          location_name: "Uhlandstrasse, Tuebingen",
+          location_name: "Uhlandstraße, Tübingen",
           category_slug: "flea-market",
           category_label: "Flohmarkt",
           event_scope: "daytime",

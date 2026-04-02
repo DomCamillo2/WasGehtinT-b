@@ -11,7 +11,7 @@ type NavbarProps = {
 
 export function Navbar({
   logoSrc = "/Logo.png",
-  appName = "WasGehtTueb",
+  appName = "WasGehtTüb",
 }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -36,7 +36,7 @@ export function Navbar({
           <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-violet-200/70 bg-white">
             <img
               src={logoSrc}
-              alt="WasGehtTueb Logo"
+              alt="WasGehtTüb Logo"
               className="h-full w-full object-cover"
               loading="eager"
             />

@@ -48,7 +48,7 @@ export default async function HostPage() {
       <>
         <Card className="mb-4 border-amber-200 bg-amber-50">
           <p className="text-sm font-medium text-amber-800">
-            Club-Event einreichen: Nicht-Admins gehen zuerst in den Review und werden nach Freigabe veroeffentlicht.
+            Club-Event einreichen: Nicht-Admins gehen zuerst in den Review und werden nach Freigabe veröffentlicht.
           </p>
         </Card>
         <CreatePartyForm vibes={vibes} />

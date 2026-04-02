@@ -167,7 +167,7 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
       type: "error",
       scope: "party",
       decision: decision as "approve" | "reject",
-      message: "Moderation ist derzeit nicht verfuegbar. Pruefe SUPABASE_SERVICE_ROLE_KEY.",
+      message: "Moderation ist derzeit nicht verfügbar. Prüfe SUPABASE_SERVICE_ROLE_KEY.",
     });
   }
 }
@@ -292,7 +292,7 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
       type: "error",
       scope: "hangout",
       decision: decision as "approve" | "reject",
-      message: "Moderation ist derzeit nicht verfuegbar. Pruefe SUPABASE_SERVICE_ROLE_KEY.",
+      message: "Moderation ist derzeit nicht verfügbar. Prüfe SUPABASE_SERVICE_ROLE_KEY.",
     });
   }
 }
@@ -318,7 +318,7 @@ export async function deletePartySubmissionAction(formData: FormData): Promise<v
         type: "error",
         scope: "party",
         decision: "reject",
-        message: "Party konnte nicht geloescht werden.",
+        message: "Party konnte nicht gelöscht werden.",
       });
     }
 
@@ -328,7 +328,7 @@ export async function deletePartySubmissionAction(formData: FormData): Promise<v
         type: "error",
         scope: "party",
         decision: "reject",
-        message: "Keine Party wurde geloescht.",
+        message: "Keine Party wurde gelöscht.",
       });
     }
 
@@ -344,7 +344,7 @@ export async function deletePartySubmissionAction(formData: FormData): Promise<v
       type: "success",
       scope: "party",
       decision: "reject",
-      message: "Party wurde geloescht.",
+      message: "Party wurde gelöscht.",
     });
   } catch (error) {
     if (isRedirectError(error)) {
@@ -356,7 +356,7 @@ export async function deletePartySubmissionAction(formData: FormData): Promise<v
       type: "error",
       scope: "party",
       decision: "reject",
-      message: "Loeschen ist derzeit nicht verfuegbar.",
+      message: "Löschen ist derzeit nicht verfügbar.",
     });
   }
 }
@@ -382,7 +382,7 @@ export async function deleteHangoutSubmissionAction(formData: FormData): Promise
         type: "error",
         scope: "hangout",
         decision: "reject",
-        message: "Community-Event konnte nicht geloescht werden.",
+        message: "Community-Event konnte nicht gelöscht werden.",
       });
     }
 
@@ -392,7 +392,7 @@ export async function deleteHangoutSubmissionAction(formData: FormData): Promise
         type: "error",
         scope: "hangout",
         decision: "reject",
-        message: "Kein Community-Event wurde geloescht.",
+        message: "Kein Community-Event wurde gelöscht.",
       });
     }
 
@@ -407,7 +407,7 @@ export async function deleteHangoutSubmissionAction(formData: FormData): Promise
       type: "success",
       scope: "hangout",
       decision: "reject",
-      message: "Community-Event wurde geloescht.",
+      message: "Community-Event wurde gelöscht.",
     });
   } catch (error) {
     if (isRedirectError(error)) {
@@ -419,7 +419,7 @@ export async function deleteHangoutSubmissionAction(formData: FormData): Promise
       type: "error",
       scope: "hangout",
       decision: "reject",
-      message: "Loeschen ist derzeit nicht verfuegbar.",
+      message: "Löschen ist derzeit nicht verfügbar.",
     });
   }
 }

@@ -509,7 +509,7 @@ async function fetchTuebingenMarketEvents() {
           return null;
         }
 
-        const title = sanitizeMarketTitle(rawLabel) || "Markt in Tuebingen";
+        const title = sanitizeMarketTitle(rawLabel) || "Markt in Tübingen";
         const relativeHref = $(element).attr("href")?.trim() ?? "";
         const externalLink = relativeHref
           ? new URL(relativeHref, TUEBINGEN_MARKETS_URL).toString()
@@ -518,14 +518,14 @@ async function fetchTuebingenMarketEvents() {
         return {
           id: `tuebingen-market-${slugify(rawLabel)}`,
           title,
-          description: "Offizieller Markttermin der Universitaetsstadt Tuebingen",
+          description: "Offizieller Markttermin der Universitätsstadt Tübingen",
           starts_at: parsedRange.startsAt,
           ends_at: parsedRange.endsAt,
           public_lat: null,
           public_lng: null,
           external_link: externalLink,
           vibe_label: "Markt",
-          location_name: title.toLowerCase().includes("rathaus") ? "Rathaus, Tuebingen" : "Tuebingen",
+          location_name: title.toLowerCase().includes("rathaus") ? "Rathaus, Tübingen" : "Tübingen",
           music_genre: null,
         };
       })
@@ -583,15 +583,15 @@ async function fetchTuebingenFleaMarketEvents() {
 
         return {
           id: `tuebingen-flohmarkt-${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-          title: "Staedtischer Flohmarkt in der Uhlandstrasse",
-          description: "Offizieller Flohmarkttermin der Universitaetsstadt Tuebingen",
+          title: "Städtischer Flohmarkt in der Uhlandstraße",
+          description: "Offizieller Flohmarkttermin der Universitätsstadt Tübingen",
           starts_at: startsAt,
           ends_at: endsAt,
           public_lat: null,
           public_lng: null,
           external_link: TUEBINGEN_FLEA_MARKETS_URL,
           vibe_label: "Flohmarkt",
-          location_name: "Uhlandstrasse, Tuebingen",
+          location_name: "Uhlandstraße, Tübingen",
           music_genre: null,
         };
       })

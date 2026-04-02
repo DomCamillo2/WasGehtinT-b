@@ -280,7 +280,7 @@ export default async function AdminPage({
 
   return (
     <AppShell>
-      <ScreenHeader title="Admin" subtitle="Freigaben fuer neue Event-Einreichungen." />
+      <ScreenHeader title="Admin" subtitle="Freigaben für neue Event-Einreichungen." />
 
       {!adminConfig.valid ? (
         <Card className="border-amber-200 bg-amber-50">
@@ -311,7 +311,7 @@ export default async function AdminPage({
 
       {feedbackError ? (
         <Card>
-          <p className="text-sm text-rose-600">Feedback-Eintraege konnten nicht geladen werden.</p>
+          <p className="text-sm text-rose-600">Feedback-Einträge konnten nicht geladen werden.</p>
         </Card>
       ) : null}
 
@@ -328,7 +328,7 @@ export default async function AdminPage({
                 </p>
                 <p className="text-xs text-zinc-500">{formatDateTime(party.starts_at)}</p>
                 <p className="text-xs text-zinc-500">
-                  Max {party.max_guests} Gaeste | Beitrag {formatEuroFromCents(Number(party.contribution_cents ?? 0))}
+                  Max {party.max_guests} Gäste | Beitrag {formatEuroFromCents(Number(party.contribution_cents ?? 0))}
                 </p>
                 {party.description ? <p className="text-sm text-zinc-700">{party.description}</p> : null}
               </div>
@@ -436,7 +436,7 @@ export default async function AdminPage({
                   className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
                 >
                   <Trash2 size={14} />
-                  <span>Loeschen</span>
+                  <span>Löschen</span>
                 </button>
               </form>
             </Card>
@@ -470,7 +470,7 @@ export default async function AdminPage({
                   className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
                 >
                   <Trash2 size={14} />
-                  <span>Loeschen</span>
+                  <span>Löschen</span>
                 </button>
               </form>
             </Card>

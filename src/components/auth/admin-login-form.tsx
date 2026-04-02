@@ -43,7 +43,7 @@ export function AdminLoginForm() {
       {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
 
       <p className="pt-1 text-xs text-zinc-500">
-        Dieser Bereich ist nur fuer freigegebene Admin-Accounts. Zur normalen App geht es ueber{" "}
+        Dieser Bereich ist nur für freigegebene Admin-Accounts. Zur normalen App geht es über{" "}
         <Link href="/discover" className="font-medium text-zinc-700 underline">
           Discover
         </Link>

@@ -4,10 +4,7 @@ import { useActionState, useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  requestPasswordResetAction,
-  signInAction,
-} from "@/app/actions/auth";
+import { requestPasswordResetAction, signInAction } from "@/app/actions/auth";
 
 type SheetMode = "login" | null;
 
@@ -40,7 +37,7 @@ export function SplashAuth() {
             <div className="absolute -inset-6 rounded-full bg-fuchsia-500/25 blur-3xl" />
             <Image
               src="/Logo.png"
-              alt="WasGehtTueb Logo"
+              alt="WasGehtTüb Logo"
               width={460}
               height={460}
               className="relative h-auto w-full"
@@ -55,13 +52,13 @@ export function SplashAuth() {
           </h1>
 
           <p className="mx-auto mt-4 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-center text-xs font-semibold text-white/90 backdrop-blur">
-            🔒 Exklusiv mit @student.uni-tuebingen.de
+            Exklusiv mit @student.uni-tuebingen.de
           </p>
 
           <div className="mt-7 space-y-2.5 text-sm text-white/92">
-            <p>🎓 Nur für echte Studis</p>
-            <p>🪩 Alle WG-Partys & Events in Tübingen auf einen Blick</p>
-            <p>💬 Spontane Match-Chats</p>
+            <p>Nur für echte Studis</p>
+            <p>Alle WG-Partys & Events in Tübingen auf einen Blick</p>
+            <p>Spontane Match-Chats</p>
           </div>
         </section>
 
@@ -72,7 +69,7 @@ export function SplashAuth() {
               disabled
               className="h-12 w-full cursor-not-allowed rounded-2xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white/65"
             >
-              Kontoerstellung kommt spaeter (Stay tuned)
+              Kontoerstellung kommt später (Stay tuned)
             </button>
             <button
               type="button"
@@ -197,7 +194,7 @@ export function SplashAuth() {
               ) : (
                 <div className="space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
                   <p className="font-semibold text-zinc-700">Kontoerstellung ist aktuell deaktiviert.</p>
-                  <p>Dieses Feature kommt spaeter. Stay tuned.</p>
+                  <p>Dieses Feature kommt später. Stay tuned.</p>
                 </div>
               )}
             </motion.section>
