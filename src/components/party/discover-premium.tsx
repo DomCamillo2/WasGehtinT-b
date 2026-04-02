@@ -57,7 +57,6 @@ type Props = {
   parties: PartyCardType[];
   avatarFallback: string;
   isAuthenticated: boolean;
-  timeWindowWeeks: number;
   canLoadMore: boolean;
   loadMoreHref: string;
 };
@@ -148,7 +147,6 @@ export function DiscoverPremium({
   parties,
   avatarFallback,
   isAuthenticated,
-  timeWindowWeeks,
   canLoadMore,
   loadMoreHref,
 }: Props) {
@@ -676,29 +674,6 @@ export function DiscoverPremium({
           </span>
         </div>
       ) : null}
-
-      <section
-        className="mx-1 rounded-3xl border p-4 shadow-[0_8px_26px_rgba(15,23,42,0.06)]"
-        style={{
-          borderColor: "var(--nav-border)",
-          background:
-            "linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 88%, white) 0%, color-mix(in srgb, var(--surface-soft) 92%, white) 100%)",
-        }}
-      >
-        <div className="space-y-1">
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--muted-foreground)" }}>
-              Zeitfenster
-            </p>
-            <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-              Sichtbar sind die nächsten {timeWindowWeeks} Wochen
-            </p>
-            <p className="text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
-              So lädt die erste Ansicht schneller und du siehst zuerst das, was wirklich bald ansteht.
-            </p>
-          </div>
-        </div>
-      </section>
 
       <div className="fixed bottom-28 right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2">
         {showViewMenu ? (

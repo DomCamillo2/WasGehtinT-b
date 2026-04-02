@@ -226,7 +226,6 @@ export default async function DiscoverPage({
         parties={partiesWithUpvotes}
         avatarFallback={avatarFallback}
         isAuthenticated={Boolean(user)}
-        timeWindowWeeks={weeks}
         canLoadMore={canLoadMore}
         loadMoreHref={loadMoreHref}
       />
