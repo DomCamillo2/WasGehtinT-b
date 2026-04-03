@@ -7,7 +7,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-18 mb-24 md:mb-0">
+    <footer id="app-footer" className="relative mt-18 mb-24 md:mb-0">
       <div className="relative mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <div
           aria-hidden="true"

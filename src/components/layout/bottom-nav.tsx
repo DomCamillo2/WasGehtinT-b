@@ -28,6 +28,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
   const [submitNotice, setSubmitNotice] = useState<string | null>(null);
   const hangoutFormRef = useRef<HTMLFormElement>(null);
   const partyFormRef = useRef<HTMLFormElement>(null);
@@ -75,6 +76,27 @@ export function BottomNav() {
 
     return () => window.clearTimeout(timeoutId);
   }, [partyState.ok, router]);
+
+  useEffect(() => {
+    const footer = document.getElementById("app-footer");
+    if (!footer) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsFooterVisible(entry.isIntersecting);
+      },
+      {
+        root: null,
+        threshold: 0.08,
+        rootMargin: "0px 0px -56px 0px",
+      },
+    );
+
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [pathname]);
 
   return (
     <>
@@ -274,7 +296,12 @@ export function BottomNav() {
         </div>
       ) : null}
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 px-3 pb-[calc(0.4rem+env(safe-area-inset-bottom))] pt-2">
+      <nav
+        className={`fixed inset-x-0 bottom-0 z-20 px-3 pb-[calc(0.4rem+env(safe-area-inset-bottom))] pt-2 transition-all duration-200 ${
+          isFooterVisible ? "pointer-events-none translate-y-6 opacity-0" : "translate-y-0 opacity-100"
+        }`}
+        aria-hidden={isFooterVisible}
+      >
         <div className="mx-auto max-w-md">
           <ul
             className="grid grid-cols-4 rounded-2xl border p-1 shadow-[0_-10px_28px_rgba(15,23,42,0.12)] backdrop-blur-md"

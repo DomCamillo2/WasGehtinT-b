@@ -1,20 +1,32 @@
 import { PropsWithChildren } from "react";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { Footer } from "@/components/layout/footer";
 
 type Props = PropsWithChildren<{
   shellClassName?: string;
   mainClassName?: string;
+  showBottomNav?: boolean;
+  showFooter?: boolean;
 }>;
 
-export function AppShell({ children, shellClassName, mainClassName }: Props) {
+export function AppShell({
+  children,
+  shellClassName,
+  mainClassName,
+  showBottomNav = true,
+  showFooter = true,
+}: Props) {
   return (
     <div
       className={`relative mx-auto flex min-h-screen w-full max-w-md flex-col overflow-hidden ${
         shellClassName ?? ""
       }`}
     >
-      <main className={`relative flex-1 px-4 pb-32 pt-4 ${mainClassName ?? ""}`}>{children}</main>
-      <BottomNav />
+      <main className={`relative flex-1 px-4 ${showBottomNav ? "pb-32" : "pb-10"} pt-4 ${mainClassName ?? ""}`}>
+        {children}
+      </main>
+      {showFooter ? <Footer /> : null}
+      {showBottomNav ? <BottomNav /> : null}
     </div>
   );
 }

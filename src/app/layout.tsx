@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { CookieConsentBannerMount } from "@/components/layout/cookie-consent-banner-mount";
-import { Footer } from "@/components/layout/footer";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
@@ -39,7 +38,6 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
-        <Footer />
         <CookieConsentBannerMount />
       </body>
     </html>
