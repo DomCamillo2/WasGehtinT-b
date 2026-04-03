@@ -9,7 +9,7 @@ type Props = PropsWithChildren<{
 export function AppShell({ children, shellClassName, mainClassName }: Props) {
   return (
     <div
-      className={`relative mx-auto flex min-h-screen w-full max-w-md flex-col overflow-hidden bg-background ${
+      className={`relative mx-auto flex min-h-screen w-full max-w-md flex-col overflow-hidden ${
         shellClassName ?? ""
       }`}
     >

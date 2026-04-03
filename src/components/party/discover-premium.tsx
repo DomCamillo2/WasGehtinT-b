@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { EventCard } from "@/components/EventCard";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { PartyCard as PartyCardType } from "@/lib/types";
 
 const DiscoverMap = dynamic(
@@ -25,7 +26,10 @@ const DiscoverMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="grid h-56 w-full place-items-center rounded-2xl border border-zinc-200 bg-zinc-100 p-4 text-center text-sm text-zinc-600">
+      <div
+        className="surface-card grid h-56 w-full place-items-center rounded-[24px] p-4 text-center text-sm"
+        style={{ color: "var(--muted-foreground)" }}
+      >
         Kartenansicht wird geladen...
       </div>
     ),
@@ -433,56 +437,85 @@ export function DiscoverPremium({
   );
 
   return (
-    <div className="relative space-y-4 pb-24">
-      <header className="flex items-start justify-between gap-3 px-1 pt-1">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--muted-foreground)" }}>
-            WasGehtTüb
-          </p>
-          <h1 className="mt-1 text-[1.9rem] font-black leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
-            Was geht in Tübingen? Partys, Clubs und Events heute
-          </h1>
-          <p className="mt-2 text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>
-            Entdecke Studentenpartys, Clubnächte und Tagesevents in Tübingen - von Clubhaus, Kuckuck und Schlachthaus bis zu Flohmärkten und Community-Treffen.
-          </p>
-        </div>
+    <div className="relative space-y-4 pb-32">
+      <header className="surface-card relative overflow-hidden rounded-[28px] px-4 py-3.5">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-95"
+          style={{
+            background:
+              "linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent) 0%, color-mix(in srgb, var(--accent) 8%, transparent) 26%, color-mix(in srgb, var(--surface-card) 16%, transparent) 54%, transparent 88%), radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 38%, transparent), transparent 62%), radial-gradient(circle at right top, color-mix(in srgb, #38bdf8 18%, transparent), transparent 40%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-8 top-16 h-24 rounded-full blur-3xl"
+          style={{
+            background:
+              "linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, #38bdf8 14%, transparent))",
+            opacity: 0.4,
+          }}
+        />
+        <div className="relative">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--accent-strong)]">
+                {"WasGehtT\u00fcb"}
+              </p>
+              <h1 className="mt-1.5 max-w-[10ch] text-[2rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)]">
+                {"Was geht in T\u00fcbingen heute?"}
+              </h1>
+              <p className="mt-2 max-w-[30ch] text-[13px] leading-5 text-[color:var(--muted-foreground)]">
+                {"Partys, Clubs und Events f\u00fcr heute. Schnell sehen, was sich wirklich lohnt."}
+              </p>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowFilterSheet(true)}
-            className="grid h-10 w-10 place-items-center rounded-full border shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
-            style={{
-              borderColor: "var(--nav-border)",
-              backgroundColor: "var(--surface-elevated)",
-              color: "var(--foreground)",
-            }}
-            aria-label="Filter öffnen"
-          >
-            <Funnel size={16} />
-          </button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle className="shadow-[0_12px_28px_-22px_var(--shadow-color)]" />
+              <button
+                type="button"
+                onClick={() => setShowFilterSheet(true)}
+                className="grid h-11 w-11 place-items-center rounded-2xl border shadow-[0_10px_25px_-18px_var(--shadow-color)]"
+                style={{
+                  borderColor: "var(--border-soft)",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--foreground)",
+                }}
+                aria-label="Filter öffnen"
+              >
+                <Funnel size={16} />
+              </button>
 
-          {isAuthenticated ? (
-            <Link
-              href="/profile"
-              className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
-              aria-label="Profil öffnen"
-            >
-              {avatarFallback}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setAuthSheetReason("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
-                setShowAuthSheet(true);
-              }}
-              className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-sm font-bold text-white shadow-[0_4px_16px_rgba(24,26,42,0.22)]"
-              aria-label="Login öffnen"
-            >
-              {avatarFallback}
-            </button>
-          )}
+              {isAuthenticated ? (
+                <Link
+                  href="/profile"
+                  className="grid h-11 w-11 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
+                  style={{
+                    background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
+                  }}
+                  aria-label="Profil öffnen"
+                >
+                  {avatarFallback}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthSheetReason("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
+                    setShowAuthSheet(true);
+                  }}
+                  className="grid h-11 w-11 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
+                  style={{
+                    background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
+                  }}
+                  aria-label="Login öffnen"
+                >
+                  {avatarFallback}
+                </button>
+              )}
+            </div>
+          </div>
+
         </div>
       </header>
 
@@ -494,13 +527,17 @@ export function DiscoverPremium({
               key={item.key}
               type="button"
               onClick={() => setFilter(item.key)}
-              className={`min-w-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                active ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md" : ""
-              }`}
+              className={`min-w-0 rounded-full px-4 py-2.5 text-sm font-semibold transition ${active ? "text-white shadow-md" : ""}`}
               style={
                 active
-                  ? undefined
-                  : { color: "var(--muted-foreground)", backgroundColor: "var(--surface-soft)" }
+                  ? {
+                      background:
+                        "linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent-strong) 58%, white 42%))",
+                    }
+                  : {
+                      color: "var(--muted-foreground)",
+                      backgroundColor: "color-mix(in srgb, var(--surface-soft) 82%, transparent)",
+                    }
               }
             >
               <span className="inline-flex items-center justify-center gap-1.5">
@@ -593,7 +630,8 @@ export function DiscoverPremium({
               <button
                 type="button"
                 onClick={() => setShowFilterSheet(false)}
-                className="h-10 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+                className="h-10 rounded-xl px-3 text-xs font-semibold text-white"
+                style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
               >
                 Anwenden
               </button>
@@ -639,7 +677,12 @@ export function DiscoverPremium({
               </Link>
               <span
                 aria-disabled="true"
-                className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-zinc-200 bg-zinc-100 text-sm font-semibold text-zinc-500"
+                className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border text-sm font-semibold"
+                style={{
+                  borderColor: "var(--border-soft)",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--muted-foreground)",
+                }}
               >
                 Kontoerstellung folgt
               </span>
@@ -654,12 +697,12 @@ export function DiscoverPremium({
         </p>
       ) : null}
 
-      {hottestParty && topScore > 0 ? (
+      {hottestParty && topScore > 0 && view !== "list" ? (
         <div
-          className="mx-1 flex items-center justify-between rounded-2xl border px-3 py-2 text-xs"
+          className="mx-1 flex items-center justify-between rounded-[24px] border px-3 py-3 text-xs shadow-[0_16px_36px_-26px_rgba(249,115,22,0.55)]"
           style={{
-            borderColor: "#fed7aa",
-            backgroundColor: "#fff7ed",
+            borderColor: "#fdba74",
+            background: "linear-gradient(135deg, rgba(255,247,237,0.96), rgba(255,237,213,0.92))",
             color: "#9a3412",
           }}
         >
@@ -667,21 +710,20 @@ export function DiscoverPremium({
             <span className="inline-flex text-orange-600">
               <Flame size={14} fill="currentColor" />
             </span>
-            <span className="truncate font-semibold">Hot jetzt: {hottestParty.title}</span>
+            <span className="truncate font-semibold">{"Hot jetzt: "}{hottestParty.title}</span>
           </div>
-          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold text-orange-700">
+          <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold text-orange-700">
             {topScore} Upvotes
           </span>
         </div>
       ) : null}
 
-      <div className="fixed bottom-28 right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2">
+      <div className="fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom))] right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2 md:bottom-36">
         {showViewMenu ? (
           <div
-            className="rounded-2xl border p-2 shadow-lg"
+            className="surface-card rounded-[22px] p-2"
             style={{
-              borderColor: "var(--nav-border)",
-              backgroundColor: "var(--surface-elevated)",
+              backgroundColor: "var(--surface-card)",
             }}
           >
             <div className="grid gap-1">
@@ -718,9 +760,9 @@ export function DiscoverPremium({
         <button
           type="button"
           onClick={() => setShowViewMenu((current) => !current)}
-          className={`grid h-12 w-12 place-items-center rounded-full shadow-lg transition ${
-            showViewMenu ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white" : "border"
-          }`}
+            className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
+              showViewMenu ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white" : "border"
+            }`}
           style={
             showViewMenu
               ? undefined
@@ -728,6 +770,7 @@ export function DiscoverPremium({
                   borderColor: "var(--nav-border)",
                   backgroundColor: "var(--surface-elevated)",
                   color: "var(--foreground)",
+                  boxShadow: "0 20px 42px -18px rgba(2, 6, 23, 0.62)",
                 }
           }
           aria-label="Ansicht auswählen"
@@ -744,7 +787,7 @@ export function DiscoverPremium({
         </div>
       ) : view === "calendar" ? (
         <div className="space-y-3">
-          <div className="rounded-3xl p-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]" style={{ backgroundColor: "var(--surface-elevated)" }}>
+          <div className="surface-card rounded-[28px] p-3">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-1">
                 <button
@@ -813,8 +856,16 @@ export function DiscoverPremium({
                     className={`relative h-10 rounded-xl text-sm font-semibold transition ${
                       isSelected
                         ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
-                        : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                        : ""
                     }`}
+                    style={
+                      isSelected
+                        ? undefined
+                        : {
+                            backgroundColor: "var(--surface-soft)",
+                            color: "var(--foreground)",
+                          }
+                    }
                   >
                     {cell.day}
                     {eventCount > 0 ? (
@@ -859,10 +910,7 @@ export function DiscoverPremium({
                 />
               ))
             ) : (
-              <div
-                className="rounded-2xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
-                style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}
-              >
+              <div className="surface-card rounded-[24px] p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
                 Keine Events für diesen Tag.
               </div>
             )}
@@ -894,19 +942,13 @@ export function DiscoverPremium({
           ))}
 
           {!filteredParties.length ? (
-            <div
-              className="rounded-3xl p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
-              style={{ backgroundColor: "var(--surface-elevated)", color: "var(--muted-foreground)" }}
-            >
+            <div className="surface-card rounded-[24px] p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
               Für den aktiven Filter sind aktuell keine Events verfügbar.
             </div>
           ) : null}
 
           {filteredParties.length && canLoadMore ? (
-            <div
-              className="rounded-3xl border p-4 text-sm shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
-              style={{ borderColor: "var(--nav-border)", backgroundColor: "var(--surface-elevated)" }}
-            >
+            <div className="surface-card rounded-[28px] p-4 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold" style={{ color: "var(--foreground)" }}>
@@ -918,7 +960,8 @@ export function DiscoverPremium({
                 </div>
                 <Link
                   href={loadMoreHref}
-                  className="inline-flex shrink-0 items-center rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white"
+                  className="inline-flex shrink-0 items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
+                  style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
                 >
                   Mehr laden
                 </Link>

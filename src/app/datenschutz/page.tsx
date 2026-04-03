@@ -1,102 +1,98 @@
 import Link from "next/link";
+import { LegalPageShell, LegalSection } from "@/components/layout/legal-page-shell";
 
 export default function DatenschutzPage() {
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Datenschutzerklärung</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        DSGVO-Informationsseite für WasGehtTüb (Art. 13 DSGVO).
-      </p>
+    <LegalPageShell
+      eyebrow="Datenschutz"
+      title={"Datenschutzerkl\u00e4rung"}
+      description={"DSGVO-Informationsseite f\u00fcr WasGehtT\u00fcb nach Art. 13 DSGVO, optimiert f\u00fcr dunkle Darstellung auf mobilen Ger\u00e4ten."}
+      footer={
+        <>
+          {"Zur\u00fcck zur"}{" "}
+          <Link href="/" className="font-medium underline decoration-[color:var(--accent)] underline-offset-4">
+            Startseite
+          </Link>
+          .
+        </>
+      }
+    >
+      <LegalSection title="1. Verantwortlicher">
+        <p>{"Domile UG (haftungsbeschr\u00e4nkt)"}</p>
+        <p>{"Graf-Wartenberg-Ring 11, 84577 T\u00fc\u00dfling"}</p>
+        <p>E-Mail: info@mentor-pro.de</p>
+        <p>Telefon: +49 (0) 1606969914</p>
+      </LegalSection>
 
-      <section className="mt-6 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">1. Verantwortlicher</h2>
-        <p className="text-sm text-zinc-700">Domile UG (haftungsbeschränkt)</p>
-        <p className="text-sm text-zinc-700">Graf-Wartenberg-Ring 11, 84577 Tüßling</p>
-        <p className="text-sm text-zinc-700">E-Mail: info@mentor-pro.de</p>
-        <p className="text-sm text-zinc-700">Telefon: +49 (0) 1606969914</p>
-      </section>
-
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">2. Verarbeitete Daten</h2>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-700">
+      <LegalSection title="2. Verarbeitete Daten">
+        <ul className="list-disc space-y-1 pl-5">
           <li>Accountdaten (Uni-E-Mail, Anzeigename, Auth-ID)</li>
-          <li>Party- und Anfrage-Daten (Titel, Beschreibung, Gruppengröße, Nachrichten)</li>
-          <li>Standortdaten (grob für Discover, ggf. manuell gesetzter Pin)</li>
+          <li>{"Party- und Anfrage-Daten (Titel, Beschreibung, Gruppengr\u00f6\u00dfe, Nachrichten)"}</li>
+          <li>{"Standortdaten (grob f\u00fcr Discover, ggf. manuell gesetzter Pin)"}</li>
           <li>Technische Server- und Sicherheitslogs</li>
         </ul>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">3. Zwecke und Rechtsgrundlagen</h2>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-700">
-          <li>Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO) für Kernfunktionen der Plattform</li>
-          <li>Rechtliche Pflichten (Art. 6 Abs. 1 lit. c DSGVO), soweit einschlägig</li>
+      <LegalSection title="3. Zwecke und Rechtsgrundlagen">
+        <ul className="list-disc space-y-1 pl-5">
+          <li>{"Vertragserf\u00fcllung (Art. 6 Abs. 1 lit. b DSGVO) f\u00fcr Kernfunktionen der Plattform"}</li>
+          <li>{"Rechtliche Pflichten (Art. 6 Abs. 1 lit. c DSGVO), soweit einschl\u00e4gig"}</li>
           <li>Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO), z. B. Systemsicherheit</li>
         </ul>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">4. Empfänger / Auftragsverarbeiter</h2>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-700">
+      <LegalSection title={"4. Empf\u00e4nger / Auftragsverarbeiter"}>
+        <ul className="list-disc space-y-1 pl-5">
           <li>
-            Supabase (Datenbank/Auth): Hosting der Datenbank- und Auth-Infrastruktur. Bei Drittlandbezug erfolgt Übermittlung auf Basis geeigneter Garantien, insbesondere Standardvertragsklauseln (SCC). Regionale Verarbeitung möglichst EU-nah (z. B. Frankfurt) konfigurieren.
+            {"Supabase (Datenbank/Auth): Hosting der Datenbank- und Auth-Infrastruktur. Bei Drittlandbezug erfolgt \u00dcbermittlung auf Basis geeigneter Garantien, insbesondere Standardvertragsklauseln (SCC). Regionale Verarbeitung m\u00f6glichst EU-nah (z. B. Frankfurt) konfigurieren."}
           </li>
           <li>Vercel (Hosting)</li>
           <li>
-            Resend (Transaktionsmails): Versand von System-E-Mails. Datenverarbeitung auf Grundlage eines Auftragsverarbeitungsvertrags (AVV) bzw. gleichwertiger vertraglicher Regelungen.
+            Resend (Transaktionsmails): Versand von System-E-Mails. Datenverarbeitung auf Grundlage eines
+            Auftragsverarbeitungsvertrags (AVV) bzw. gleichwertiger vertraglicher Regelungen.
           </li>
           <li>
-            Karten-/Geodienste (OpenStreetMap/Nominatim): Bei Nutzung der Karten- und Geocoding-Funktionen können technische Nutzungsdaten (z. B. IP-Adresse) an die jeweiligen Dienstanbieter übertragen werden.
+            {"Karten-/Geodienste (OpenStreetMap/Nominatim): Bei Nutzung der Karten- und Geocoding-Funktionen k\u00f6nnen technische Nutzungsdaten (z. B. IP-Adresse) an die jeweiligen Dienstanbieter \u00fcbertragen werden."}
           </li>
         </ul>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">5. Speicherdauer</h2>
-        <p className="text-sm text-zinc-700">
-          Daten werden nur so lange gespeichert, wie es für die genannten Zwecke erforderlich ist oder gesetzliche Aufbewahrungsfristen bestehen.
+      <LegalSection title="5. Speicherdauer">
+        <p>
+          {"Daten werden nur so lange gespeichert, wie es f\u00fcr die genannten Zwecke erforderlich ist oder gesetzliche Aufbewahrungsfristen bestehen."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">6. Betroffenenrechte</h2>
-        <p className="text-sm text-zinc-700">
-          Du hast Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie ein Beschwerderecht bei einer Aufsichtsbehörde.
+      <LegalSection title="6. Betroffenenrechte">
+        <p>
+          {"Du hast Rechte auf Auskunft, Berichtigung, L\u00f6schung, Einschr\u00e4nkung, Daten\u00fcbertragbarkeit und Widerspruch sowie ein Beschwerderecht bei einer Aufsichtsbeh\u00f6rde."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">7. Pflicht zur Bereitstellung von Daten</h2>
-        <p className="text-sm text-zinc-700">
-          Bestimmte Daten (z. B. E-Mail und Login-Daten) sind für die Nutzung der Plattform erforderlich. Ohne diese Daten kann kein Account bereitgestellt werden.
+      <LegalSection title="7. Pflicht zur Bereitstellung von Daten">
+        <p>
+          {"Bestimmte Daten (z. B. E-Mail und Login-Daten) sind f\u00fcr die Nutzung der Plattform erforderlich. Ohne diese Daten kann kein Account bereitgestellt werden."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">8. Sicherheit der Verarbeitung</h2>
-        <p className="text-sm text-zinc-700">
-          Wir setzen technische und organisatorische Maßnahmen ein, um deine Daten zu schützen (z. B. Zugriffsbeschränkungen, Transportverschlüsselung, Sicherheits-Header).
+      <LegalSection title="8. Sicherheit der Verarbeitung">
+        <p>
+          {"Wir setzen technische und organisatorische Ma\u00dfnahmen ein, um deine Daten zu sch\u00fctzen (z. B. Zugriffsbeschr\u00e4nkungen, Transportverschl\u00fcsselung, Sicherheits-Header)."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">9. Cookies und Einwilligung</h2>
-        <p className="text-sm text-zinc-700">
-          Es werden technisch notwendige Cookies für Login, Sitzungsverwaltung und Sicherheit eingesetzt. Für optionale externe Dienste (z. B. Karten/Geocoding) holen wir vor der Aktivierung eine Einwilligung über das Cookie-Consent-Banner ein.
+      <LegalSection title="9. Cookies und Einwilligung">
+        <p>
+          {"Es werden technisch notwendige Cookies f\u00fcr Login, Sitzungsverwaltung und Sicherheit eingesetzt. F\u00fcr optionale externe Dienste (z. B. Karten/Geocoding) holen wir vor der Aktivierung eine Einwilligung \u00fcber das Cookie-Consent-Banner ein."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">10. Kontakt für Datenschutzanfragen</h2>
-        <p className="text-sm text-zinc-700">Domile UG (haftungsbeschränkt)</p>
-        <p className="text-sm text-zinc-700">Graf-Wartenberg-Ring 11, 84577 Tüßling</p>
-        <p className="text-sm text-zinc-700">E-Mail: info@mentor-pro.de</p>
-        <p className="text-sm text-zinc-700">Telefon: +49 (0) 1606969914</p>
-      </section>
-
-      <p className="mt-6 text-sm text-zinc-600">
-        Zurück zur <Link href="/" className="font-medium underline">Startseite</Link>.
-      </p>
-    </main>
+      <LegalSection title={"10. Kontakt f\u00fcr Datenschutzanfragen"}>
+        <p>{"Domile UG (haftungsbeschr\u00e4nkt)"}</p>
+        <p>{"Graf-Wartenberg-Ring 11, 84577 T\u00fc\u00dfling"}</p>
+        <p>E-Mail: info@mentor-pro.de</p>
+        <p>Telefon: +49 (0) 1606969914</p>
+      </LegalSection>
+    </LegalPageShell>
   );
 }

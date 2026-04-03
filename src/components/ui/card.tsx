@@ -7,7 +7,7 @@ export function Card({ className, children }: Props) {
   return (
     <section
       className={clsx(
-        "rounded-2xl border border-white/80 bg-white/95 p-4 shadow-md backdrop-blur",
+        "surface-card rounded-[24px] p-4",
         className,
       )}
     >

@@ -1,60 +1,60 @@
 import Link from "next/link";
+import { LegalPageShell, LegalSection } from "@/components/layout/legal-page-shell";
 
 export default function NutzungsbedingungenPage() {
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">AGB & Nutzungsbedingungen</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Gültige Bedingungen für die Nutzung von WasGehtTüb.
-      </p>
-
-      <section className="mt-6 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">1. Rolle der Plattform</h2>
-        <p className="text-sm text-zinc-700">
-          WasGehtTüb stellt ausschließlich eine Vermittlungsplattform zur Verfügung. Verträge über Teilnahme an Partys kommen ausschließlich zwischen Host und Gast zustande.
+    <LegalPageShell
+      eyebrow="Bedingungen"
+      title="AGB & Nutzungsbedingungen"
+      description={"Die wichtigsten Rahmenbedingungen f\u00fcr die Nutzung von WasGehtT\u00fcb in einer klaren, mobilen Darstellung."}
+      footer={
+        <>
+          Weitere Pflichtseiten:{" "}
+          <Link href="/impressum" className="underline decoration-[color:var(--accent)] underline-offset-4">
+            Impressum
+          </Link>{" "}
+          und{" "}
+          <Link href="/datenschutz" className="underline decoration-[color:var(--accent)] underline-offset-4">
+            Datenschutz
+          </Link>
+          .
+        </>
+      }
+    >
+      <LegalSection title="1. Rolle der Plattform">
+        <p>
+          {"WasGehtT\u00fcb stellt ausschlie\u00dflich eine Vermittlungsplattform zur Verf\u00fcgung. Vertr\u00e4ge \u00fcber Teilnahme an Partys kommen ausschlie\u00dflich zwischen Host und Gast zustande."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">2. Haftung</h2>
-        <p className="text-sm text-zinc-700">
-          WasGehtTüb ist nicht Veranstalter der Parties und haftet nicht für Schäden, Verletzungen oder Sachschäden im Zusammenhang mit Veranstaltungen von Hosts, außer bei Vorsatz oder grober Fahrlässigkeit im gesetzlichen Rahmen.
+      <LegalSection title="2. Haftung">
+        <p>
+          {"WasGehtT\u00fcb ist nicht Veranstalter der Parties und haftet nicht f\u00fcr Sch\u00e4den, Verletzungen oder Sachsch\u00e4den im Zusammenhang mit Veranstaltungen von Hosts, au\u00dfer bei Vorsatz oder grober Fahrl\u00e4ssigkeit im gesetzlichen Rahmen."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">3. Zulässige Nutzung / private Hosts</h2>
-        <p className="text-sm text-zinc-700">
-          Die Plattform ist für private, nicht-gewerbliche Veranstaltungen gedacht. Gewerbliche Nutzung, systematische Gewinnerzielung oder steuer-/erlaubnispflichtige Tätigkeiten sind ohne ausdrückliche Freigabe untersagt.
+      <LegalSection title={"3. Zul\u00e4ssige Nutzung / private Hosts"}>
+        <p>
+          {"Die Plattform ist f\u00fcr private, nicht-gewerbliche Veranstaltungen gedacht. Gewerbliche Nutzung, systematische Gewinnerzielung oder steuer-/erlaubnispflichtige T\u00e4tigkeiten sind ohne ausdr\u00fcckliche Freigabe untersagt."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">4. Inhalte, Chat und Meldungen</h2>
-        <p className="text-sm text-zinc-700">
-          Illegale Inhalte (z. B. Beleidigungen, Gewaltaufrufe, Diskriminierung, strafbare Inhalte) sind verboten. Inhalte können über „Beitrag melden“ gemeldet werden und werden nach Prüfung entfernt.
+      <LegalSection title="4. Inhalte, Chat und Meldungen">
+        <p>
+          {"Illegale Inhalte (z. B. Beleidigungen, Gewaltaufrufe, Diskriminierung, strafbare Inhalte) sind verboten. Inhalte k\u00f6nnen \u00fcber \"Beitrag melden\" gemeldet werden und werden nach Pr\u00fcfung entfernt."}
         </p>
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">5. Sanktionen</h2>
-        <p className="text-sm text-zinc-700">
-          Bei Verstößen können Inhalte gelöscht, Accounts eingeschränkt oder gesperrt werden.
-        </p>
-      </section>
+      <LegalSection title="5. Sanktionen">
+        <p>{"Bei Verst\u00f6\u00dfen k\u00f6nnen Inhalte gel\u00f6scht, Accounts eingeschr\u00e4nkt oder gesperrt werden."}</p>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">6. Kontakt für Meldungen</h2>
-        <p className="text-sm text-zinc-700">Domile UG (haftungsbeschränkt)</p>
-        <p className="text-sm text-zinc-700">Graf-Wartenberg-Ring 11, 84577 Tüßling</p>
-        <p className="text-sm text-zinc-700">Telefon: +49 (0) 1606969914</p>
-        <p className="text-sm text-zinc-700">E-Mail: info@mentor-pro.de</p>
-      </section>
-
-      <p className="mt-6 text-sm text-zinc-600">
-        Weitere Pflichtseiten: <Link href="/impressum" className="underline">Impressum</Link> ·{" "}
-        <Link href="/datenschutz" className="underline">Datenschutz</Link>
-      </p>
-    </main>
+      <LegalSection title={"6. Kontakt f\u00fcr Meldungen"}>
+        <p>{"Domile UG (haftungsbeschr\u00e4nkt)"}</p>
+        <p>{"Graf-Wartenberg-Ring 11, 84577 T\u00fc\u00dfling"}</p>
+        <p>Telefon: +49 (0) 1606969914</p>
+        <p>E-Mail: info@mentor-pro.de</p>
+      </LegalSection>
+    </LegalPageShell>
   );
 }

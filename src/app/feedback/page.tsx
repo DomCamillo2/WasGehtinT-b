@@ -12,8 +12,8 @@ export default function FeedbackPage() {
       />
 
       <Card className="space-y-2">
-        <p className="text-sm font-semibold text-zinc-900">Was wir gern lesen</p>
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm font-semibold text-[color:var(--foreground)]">Was wir gern lesen</p>
+        <p className="text-sm leading-6 text-[color:var(--muted-foreground)]">
           Konkrete Beobachtungen helfen am meisten: Was fehlt dir, was ist unklar oder was sollte anders laufen?
         </p>
       </Card>

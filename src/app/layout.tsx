@@ -8,11 +8,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.wasgehttueb.app"),
   title: {
-    default: "Party Tübingen heute: Clubs, Studentenpartys & Events | WasGehtTüb",
-    template: "%s | WasGehtTüb",
+    default: "Party T\u00fcbingen heute: Clubs, Studentenpartys & Events | WasGehtT\u00fcb",
+    template: "%s | WasGehtT\u00fcb",
   },
   description:
-    "Dein Party-Radar für Tübingen: Clubhaus, Kuckuck, Schlachthaus, Studentenpartys und Events heute Abend auf einen Blick.",
+    "Dein Party-Radar f\u00fcr T\u00fcbingen: Clubhaus, Kuckuck, Schlachthaus, Studentenpartys und Events heute Abend auf einen Blick.",
   icons: {
     icon: [{ url: "/icon.png", type: "image/png" }],
     shortcut: [{ url: "/favicon.ico" }],

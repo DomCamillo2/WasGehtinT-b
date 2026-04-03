@@ -19,14 +19,14 @@ export function ReportForm({ targetType, targetId }: Props) {
       <input type="hidden" name="targetId" value={targetId} />
 
       <div className="space-y-1">
-        <label htmlFor="reason" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        <label htmlFor="reason" className="text-xs font-medium uppercase tracking-wide text-[color:var(--muted-foreground)]">
           Grund
         </label>
         <select
           id="reason"
           name="reason"
           required
-          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+          className="field-surface h-11 w-full rounded-2xl px-3 text-sm outline-none focus:border-indigo-400"
           defaultValue=""
         >
           <option value="" disabled>
@@ -41,7 +41,7 @@ export function ReportForm({ targetType, targetId }: Props) {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="details" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        <label htmlFor="details" className="text-xs font-medium uppercase tracking-wide text-[color:var(--muted-foreground)]">
           Details (optional)
         </label>
         <textarea
@@ -50,12 +50,16 @@ export function ReportForm({ targetType, targetId }: Props) {
           maxLength={2000}
           rows={4}
           placeholder="Kurze Beschreibung, warum der Inhalt gemeldet wird"
-          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
+          className="field-surface w-full rounded-2xl px-3 py-2 text-sm outline-none focus:border-indigo-400"
         />
       </div>
 
-      {state.error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p> : null}
-      {state.success ? <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{state.success}</p> : null}
+      {state.error ? <p className="rounded-2xl bg-red-500/10 px-3 py-2 text-sm text-red-300">{state.error}</p> : null}
+      {state.success ? (
+        <p className="rounded-2xl px-3 py-2 text-sm text-emerald-300" style={{ backgroundColor: "var(--success-soft)" }}>
+          {state.success}
+        </p>
+      ) : null}
 
       <button
         type="submit"

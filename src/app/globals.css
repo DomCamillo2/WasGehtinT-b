@@ -1,14 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f8fc;
+  --background: #f4f7ff;
   --foreground: #181a2a;
-  --surface: #ffffff;
+  --surface: rgba(255, 255, 255, 0.88);
   --surface-elevated: #ffffff;
-  --surface-soft: #f4f1ff;
+  --surface-card: rgba(255, 255, 255, 0.96);
+  --surface-soft: #eef2ff;
+  --surface-strong: #dbe6ff;
   --muted-foreground: #5f647a;
-  --nav-bg: rgba(255, 255, 255, 0.7);
-  --nav-border: rgba(255, 255, 255, 0.7);
+  --border-soft: rgba(135, 148, 182, 0.18);
+  --border-strong: rgba(105, 119, 158, 0.28);
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --nav-border: rgba(113, 126, 168, 0.18);
+  --accent: #7c3aed;
+  --accent-strong: #4c1d95;
+  --accent-soft: rgba(124, 58, 237, 0.12);
+  --success-soft: rgba(16, 185, 129, 0.12);
+  --warning-soft: rgba(249, 115, 22, 0.14);
+  --shadow-color: rgba(76, 29, 149, 0.12);
   --brand-700: #661cb8;
   --brand-800: #4c1d95;
   --secondary-700: #312e81;
@@ -18,27 +28,47 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light):not(.dark) {
-    --background: #090f1f;
-    --foreground: #e8ecff;
-    --surface: #131a2f;
-    --surface-elevated: #1a2340;
-    --surface-soft: #111a36;
-    --muted-foreground: #aab4d6;
-    --nav-bg: rgba(15, 24, 46, 0.82);
-    --nav-border: rgba(132, 146, 194, 0.3);
+    --background: #07101d;
+    --foreground: #eef3ff;
+    --surface: rgba(13, 23, 43, 0.78);
+    --surface-elevated: #101a31;
+    --surface-card: rgba(16, 26, 49, 0.92);
+    --surface-soft: #152344;
+    --surface-strong: #1d315f;
+    --muted-foreground: #a9b6d8;
+    --border-soft: rgba(132, 146, 194, 0.18);
+    --border-strong: rgba(132, 146, 194, 0.34);
+    --nav-bg: rgba(9, 17, 34, 0.86);
+    --nav-border: rgba(132, 146, 194, 0.24);
+    --accent: #8b5cf6;
+    --accent-strong: #c4b5fd;
+    --accent-soft: rgba(139, 92, 246, 0.16);
+    --success-soft: rgba(16, 185, 129, 0.16);
+    --warning-soft: rgba(249, 115, 22, 0.18);
+    --shadow-color: rgba(2, 6, 23, 0.42);
     color-scheme: dark;
   }
 }
 
 :root.dark {
-  --background: #090f1f;
-  --foreground: #e8ecff;
-  --surface: #131a2f;
-  --surface-elevated: #1a2340;
-  --surface-soft: #111a36;
-  --muted-foreground: #aab4d6;
-  --nav-bg: rgba(15, 24, 46, 0.82);
-  --nav-border: rgba(132, 146, 194, 0.3);
+  --background: #07101d;
+  --foreground: #eef3ff;
+  --surface: rgba(13, 23, 43, 0.78);
+  --surface-elevated: #101a31;
+  --surface-card: rgba(16, 26, 49, 0.92);
+  --surface-soft: #152344;
+  --surface-strong: #1d315f;
+  --muted-foreground: #a9b6d8;
+  --border-soft: rgba(132, 146, 194, 0.18);
+  --border-strong: rgba(132, 146, 194, 0.34);
+  --nav-bg: rgba(9, 17, 34, 0.86);
+  --nav-border: rgba(132, 146, 194, 0.24);
+  --accent: #8b5cf6;
+  --accent-strong: #c4b5fd;
+  --accent-soft: rgba(139, 92, 246, 0.16);
+  --success-soft: rgba(16, 185, 129, 0.16);
+  --warning-soft: rgba(249, 115, 22, 0.18);
+  --shadow-color: rgba(2, 6, 23, 0.42);
   color-scheme: dark;
 }
 
@@ -53,8 +83,12 @@
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+html {
+  background-color: var(--background);
+}
+
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family:
     "Avenir Next",
@@ -65,6 +99,27 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(64rem 38rem at 50% -12%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 78%),
+    radial-gradient(40rem 30rem at 90% 20%, color-mix(in srgb, #38bdf8 8%, transparent) 0%, transparent 80%),
+    radial-gradient(42rem 32rem at 8% 88%, color-mix(in srgb, var(--accent) 4%, transparent) 0%, transparent 84%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background) 93%, #0a1220 7%) 0%,
+      color-mix(in srgb, var(--background) 96%, #0f182b 4%) 38%,
+      color-mix(in srgb, var(--background) 97%, #10192c 3%) 68%,
+      color-mix(in srgb, var(--background) 94%, #0b1526 6%) 100%
+    );
 }
 
 ::selection {
@@ -96,4 +151,87 @@ body {
 .glass-surface {
   background: color-mix(in srgb, var(--surface-elevated) 82%, transparent);
   backdrop-filter: saturate(130%) blur(12px);
+}
+
+.surface-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 18px 48px -24px var(--shadow-color);
+  backdrop-filter: blur(16px);
+}
+
+.surface-panel {
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 12px 32px -24px var(--shadow-color);
+}
+
+.field-surface {
+  background: color-mix(in srgb, var(--surface-elevated) 72%, var(--surface-soft) 28%);
+  border: 1px solid var(--border-soft);
+  color: var(--foreground);
+}
+
+.field-surface::placeholder {
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
+}
+
+@keyframes hot-card-glow {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(251, 146, 60, 0.16),
+      0 0 28px -12px rgba(251, 146, 60, 0.34),
+      0 18px 36px -20px rgba(251, 146, 60, 0.34);
+    border-color: rgba(251, 146, 60, 0.82);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 237, 213, 0.3),
+      0 0 42px -8px rgba(251, 146, 60, 0.56),
+      0 24px 44px -18px rgba(249, 115, 22, 0.46);
+    border-color: rgba(254, 215, 170, 0.98);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(251, 146, 60, 0.16),
+      0 0 28px -12px rgba(251, 146, 60, 0.34),
+      0 18px 36px -20px rgba(251, 146, 60, 0.34);
+    border-color: rgba(251, 146, 60, 0.82);
+  }
+}
+
+@keyframes hot-card-ring {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.985);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: scale(1.012);
+  }
+
+  100% {
+    opacity: 0.3;
+    transform: scale(0.985);
+  }
+}
+
+.hot-card-glow {
+  animation: hot-card-glow 2.15s ease-in-out infinite;
+}
+
+.hot-card-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid rgba(254, 215, 170, 0.58);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 237, 213, 0.12),
+    0 0 18px -4px rgba(251, 146, 60, 0.35);
+  animation: hot-card-ring 2.15s ease-in-out infinite;
 }

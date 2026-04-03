@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, Clock3, Flame, Heart } from "lucide-react";
+import Image from "next/image";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  Clock3,
+  Flame,
+  Heart,
+  MapPin,
+  Sparkles,
+} from "lucide-react";
 import { PartyCard } from "@/lib/types";
 
 type Props = {
@@ -28,9 +37,10 @@ type TypeTag = {
 };
 
 const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
-  { match: /kuckuck/i, src: "/logos/venues/kuckuck.svg", alt: "Kuckuck Logo" },
-  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.svg", alt: "Schlachthaus Logo" },
-  { match: /clubhaus/i, src: "/logos/venues/clubhaus.svg", alt: "Clubhaus Logo" },
+  { match: /kuckuck/i, src: "/logos/venues/kuckuck.png", alt: "Kuckuck Logo" },
+  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
+  { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
+  { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
 ];
 
 function getTypeTag(party: PartyCard): TypeTag {
@@ -89,13 +99,13 @@ function getAddressLine(party: PartyCard) {
   const vibe = party.vibe_label.toLowerCase();
 
   if (vibe.includes("schlachthaus")) {
-    return "Schlachthausstraße 9, Tübingen";
+    return "Schlachthausstra\u00dfe 9, T\u00fcbingen";
   }
   if (vibe.includes("kuckuck")) {
-    return "Kuckuck, Tübingen";
+    return "Kuckuck, T\u00fcbingen";
   }
   if (vibe.includes("clubhaus")) {
-    return "Wilhelmstraße 30, 72074 Tübingen";
+    return "Wilhelmstra\u00dfe 30, 72074 T\u00fcbingen";
   }
   if (party.public_lat && party.public_lng) {
     return `Koordinaten: ${party.public_lat.toFixed(4)}, ${party.public_lng.toFixed(4)}`;
@@ -106,7 +116,7 @@ function getAddressLine(party: PartyCard) {
   return "Adresse wird vor dem Event bekannt gegeben";
 }
 
-function resolvePartnerLogo(party: PartyCard): { src: string; alt: string } | null {
+function resolvePartnerLogo(party: PartyCard, typeTag: TypeTag): { src: string; alt: string } | null {
   const locationName = (party.location_name ?? "").trim();
   const probeText = `${locationName} ${party.vibe_label} ${party.title}`;
 
@@ -114,6 +124,10 @@ function resolvePartnerLogo(party: PartyCard): { src: string; alt: string } | nu
     if (partner.match.test(probeText)) {
       return { src: partner.src, alt: partner.alt };
     }
+  }
+
+  if (typeTag.key === "club-bar") {
+    return { src: "/logos/venues/dance.png", alt: "Dance Icon" };
   }
 
   return null;
@@ -183,18 +197,19 @@ export function EventCard({
 }: Props) {
   const typeTag = getTypeTag(party);
   const musicGenre = resolveMusicGenre(party);
-  const partnerLogo = resolvePartnerLogo(party);
+  const partnerLogo = resolvePartnerLogo(party, typeTag);
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
   const [showFlameTooltip, setShowFlameTooltip] = useState(false);
 
   const hostAvatarSrc = party.host_avatar_url ?? null;
   const partnerLogoSrc = partnerLogo?.src ?? null;
   const avatarSrc =
-    hostAvatarSrc && failedImageSrc !== hostAvatarSrc
-      ? hostAvatarSrc
-      : partnerLogoSrc && failedImageSrc !== partnerLogoSrc
-        ? partnerLogoSrc
+    partnerLogoSrc && failedImageSrc !== partnerLogoSrc
+      ? partnerLogoSrc
+      : hostAvatarSrc && failedImageSrc !== hostAvatarSrc
+        ? hostAvatarSrc
         : null;
+  const isLocalAvatar = Boolean(avatarSrc?.startsWith("/"));
   const locationLine = party.location_name || party.vibe_label;
   const normalizedSourceBadge = (party.source_badge ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
   const shouldShowSourceBadge = Boolean(party.source_badge) && normalizedSourceBadge !== "official scraper";
@@ -205,56 +220,94 @@ export function EventCard({
   const formattedDate = BERLIN_SHORT_DATE_FORMATTER.format(startsAtDate);
   const formattedTime = BERLIN_TIME_FORMATTER.format(startsAtDate);
   const timingLabel = party.is_all_day ? "Ganztagig" : `${formattedTime} Uhr`;
+  const cardBorderColor = isHotNow
+    ? "#fb923c"
+    : party.is_external
+      ? "color-mix(in srgb, var(--border-strong) 72%, rgba(148, 163, 184, 0.18))"
+      : "color-mix(in srgb, var(--accent) 14%, var(--border-soft) 86%)";
+  const cardShadow = isHotNow ? undefined : "0 14px 34px -24px rgba(15, 23, 42, 0.48)";
 
   return (
     <article
       onClick={onToggle}
-      className="relative rounded-2xl border p-3.5 shadow-[0_6px_20px_rgba(20,24,40,0.06)] transition-shadow hover:shadow-[0_12px_30px_rgba(20,24,40,0.12)]"
+      className={`relative rounded-[26px] border p-3.5 transition-all hover:-translate-y-[1px] hover:shadow-[0_18px_36px_-24px_rgba(15,23,42,0.5)] ${
+        isHotNow ? "hot-card-glow" : ""
+      }`}
       style={{
-        borderColor: isHotNow ? "#fb923c" : party.is_external ? "#d4d4d8" : "#dbeafe",
+        borderColor: cardBorderColor,
         backgroundColor: "var(--surface-elevated)",
+        boxShadow: cardShadow,
       }}
     >
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 inline-flex items-center gap-2">
             <div
-              className="h-7 w-7 shrink-0 overflow-hidden rounded-full border"
+              className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-2xl border"
               style={{
-                borderColor: "var(--nav-border)",
-                backgroundColor: "var(--surface-soft)",
+                borderColor: isHotNow
+                  ? "color-mix(in srgb, #fdba74 42%, var(--nav-border) 58%)"
+                  : "color-mix(in srgb, var(--border-soft) 80%, transparent)",
+                background: isHotNow
+                  ? "linear-gradient(135deg, color-mix(in srgb, #fb923c 14%, var(--surface-soft)), color-mix(in srgb, #fdba74 10%, var(--surface-elevated)))"
+                  : "linear-gradient(135deg, color-mix(in srgb, var(--surface-soft) 88%, white 12%), var(--surface-elevated))",
               }}
             >
               {avatarSrc ? (
-                <img
+                <Image
                   src={avatarSrc}
-                  alt="Club oder Host"
+                  alt=""
+                  aria-hidden="true"
+                  width={36}
+                  height={36}
+                  sizes="36px"
                   className="h-full w-full object-cover"
                   loading="lazy"
-                  decoding="async"
+                  unoptimized={!isLocalAvatar}
                   onError={() => setFailedImageSrc(avatarSrc)}
                 />
               ) : (
                 <div
                   className="grid h-full w-full place-items-center text-[10px] font-bold"
-                  style={{ color: "var(--muted-foreground)" }}
+                  style={{ color: isHotNow ? "#fdba74" : "var(--muted-foreground)" }}
                 >
                   {fallbackInitial}
                 </div>
               )}
             </div>
-            <span className="truncate text-sm font-bold text-gray-600">{locationLine}</span>
+
+            <div className="min-w-0">
+              <span className="truncate text-sm font-bold text-[color:var(--muted-foreground)]">
+                {locationLine}
+              </span>
+            </div>
           </div>
 
           <div className="inline-flex items-center gap-1.5">
             {shouldShowSourceBadge ? (
-              <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-emerald-800">
+              <span
+                className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em]"
+                style={{
+                  backgroundColor: "color-mix(in srgb, #10b981 18%, var(--surface-soft))",
+                  color: "color-mix(in srgb, #6ee7b7 72%, var(--foreground))",
+                }}
+              >
                 {party.source_badge}
               </span>
             ) : null}
-            <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em] text-gray-600">
+
+            <span
+              className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.08em]"
+              style={{
+                backgroundColor: isHotNow
+                  ? "color-mix(in srgb, #fb923c 12%, var(--surface-soft))"
+                  : "color-mix(in srgb, var(--surface-soft) 86%, transparent)",
+                color: isHotNow ? "#fdba74" : "var(--muted-foreground)",
+              }}
+            >
               {typeTag.label}
             </span>
+
             <div className="relative">
               <button
                 type="button"
@@ -267,27 +320,36 @@ export function EventCard({
                 }}
                 onMouseEnter={() => setShowFlameTooltip(true)}
                 onMouseLeave={() => setShowFlameTooltip(false)}
-                className="inline-flex h-7 items-center justify-center gap-1 rounded-full border px-2 transition-colors"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full border px-3 transition-colors"
                 style={{
-                  borderColor: upvoted ? "#fb7185" : "var(--nav-border)",
-                  backgroundColor: upvoted ? "#fff1f2" : "var(--surface-soft)",
-                  color: upvoted ? "#e11d48" : "var(--muted-foreground)",
+                  borderColor: upvoted
+                    ? "color-mix(in srgb, #fb7185 56%, white 12%)"
+                    : isHotNow
+                      ? "color-mix(in srgb, #fdba74 44%, var(--nav-border) 56%)"
+                      : "color-mix(in srgb, var(--border-soft) 78%, transparent)",
+                  background: upvoted
+                    ? "linear-gradient(135deg, rgba(255,241,242,0.98), rgba(255,228,230,0.92))"
+                    : isHotNow
+                      ? "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,237,213,0.92))"
+                      : "linear-gradient(135deg, color-mix(in srgb, var(--surface-soft) 92%, white 8%), var(--surface-elevated))",
+                  color: upvoted ? "#e11d48" : isHotNow ? "#ea580c" : "var(--muted-foreground)",
                   opacity: canUpvote ? 1 : 0.55,
-                  minWidth: effectiveUpvoteCount > 0 ? "auto" : "1.75rem",
+                  minWidth: effectiveUpvoteCount > 0 ? "3rem" : "2.75rem",
+                  boxShadow: isHotNow ? "0 14px 28px -20px rgba(249, 115, 22, 0.6)" : "none",
                 }}
-                aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur für WG-Partys"}
+                aria-label={canUpvote ? (upvoted ? "Upvote entfernen" : "Upvote vergeben") : "Upvote nur f\u00fcr WG-Partys"}
                 disabled={!canUpvote}
               >
                 <span className="inline-flex">
-                  <Flame size={13} fill={upvoted || isHotNow ? "currentColor" : "none"} />
+                  <Flame size={15} fill={upvoted || isHotNow ? "currentColor" : "none"} />
                 </span>
-                {effectiveUpvoteCount > 0 && (
-                  <span className="text-[10px] font-bold leading-none">{effectiveUpvoteCount}</span>
-                )}
+                {effectiveUpvoteCount > 0 ? (
+                  <span className="text-[11px] font-bold leading-none">{effectiveUpvoteCount}</span>
+                ) : null}
               </button>
 
               {showFlameTooltip ? (
-                <div className="absolute -top-14 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg pointer-events-none">
+                <div className="pointer-events-none absolute -top-14 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg">
                   <span>Upvotes zeigen Hype</span>
                   <div className="absolute left-1/2 top-full h-1.5 w-1.5 -translate-x-1/2 -translate-y-0.5 rotate-45 bg-gray-900" />
                 </div>
@@ -301,37 +363,67 @@ export function EventCard({
             {party.title}
           </h2>
 
-          {rankLabel || isHotNow ? (
+          {rankLabel && !isHotNow ? (
             <div
               className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
               style={{
-                borderColor: isHotNow ? "#fdba74" : "var(--nav-border)",
-                backgroundColor: isHotNow ? "#fff7ed" : "var(--surface-soft)",
-                color: isHotNow ? "#c2410c" : "var(--muted-foreground)",
+                borderColor: "var(--nav-border)",
+                backgroundColor: "var(--surface-soft)",
+                color: "var(--muted-foreground)",
               }}
             >
-              {isHotNow ? (
-                <span className="inline-flex">
-                  <Flame size={11} fill="currentColor" />
-                </span>
-              ) : (
-                <Heart size={11} />
-              )}
-              <span>{rankLabel ?? "Hot gerade"}</span>
+              <Heart size={11} />
+              <span>{rankLabel}</span>
             </div>
           ) : null}
 
-          <p className="inline-flex max-w-full items-center gap-1.5 overflow-hidden text-[11.5px] font-medium text-gray-500 sm:text-[12px]">
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <CalendarDays size={11} />
+          <div className="flex flex-wrap items-center gap-1.5 text-[11.5px] font-medium text-[color:var(--muted-foreground)] sm:text-[12px]">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--surface-soft) 70%, transparent)",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              <CalendarDays size={12} strokeWidth={2.2} />
               {formattedDate}
             </span>
-            <span className="shrink-0">•</span>
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <Clock3 size={11} />
+
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--surface-soft) 70%, transparent)",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              <Clock3 size={12} strokeWidth={2.2} />
               {timingLabel}
             </span>
-          </p>
+
+            <span
+              className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-1"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--surface-soft) 58%, transparent)",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              <MapPin size={12} strokeWidth={2.2} />
+              <span className="max-w-[22ch] truncate">{locationLine}</span>
+            </span>
+
+            {isHotNow ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold"
+                style={{
+                  backgroundColor: "rgba(251, 146, 60, 0.12)",
+                  color: "#fdba74",
+                }}
+              >
+                <Sparkles size={12} strokeWidth={2.2} />
+                Meiste Upvotes
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
 

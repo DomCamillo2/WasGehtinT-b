@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
 const STORAGE_KEY = "wgt-theme";
 
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
+
+type ThemeToggleProps = {
+  className?: string;
+};
 
 function getSystemTheme(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -27,7 +31,12 @@ function applyTheme(mode: ThemeMode): ResolvedTheme {
   return resolved;
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: ThemeToggleProps) {
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [mode, setMode] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") {
       return "system";
@@ -73,12 +82,12 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="grid h-9 w-9 place-items-center rounded-xl border bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] shadow-sm transition hover:opacity-95 active:scale-[0.98]"
+      className={`grid h-10 w-10 place-items-center rounded-2xl border bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] shadow-sm transition hover:opacity-95 active:scale-[0.98] ${className ?? ""}`.trim()}
       style={{ borderColor: "var(--nav-border)" }}
-      aria-label={isDark ? "Helles Farbschema aktivieren" : "Dunkles Farbschema aktivieren"}
-      title={isDark ? "Auf hell umschalten" : "Auf dunkel umschalten"}
+      aria-label={mounted ? (isDark ? "Helles Farbschema aktivieren" : "Dunkles Farbschema aktivieren") : "Farbschema wechseln"}
+      title={mounted ? (isDark ? "Auf hell umschalten" : "Auf dunkel umschalten") : "Farbschema wechseln"}
     >
-      {isDark ? <Sun size={17} /> : <Moon size={17} />}
+      {mounted ? (isDark ? <Sun size={17} /> : <Moon size={17} />) : <Moon size={17} />}
     </button>
   );
 }

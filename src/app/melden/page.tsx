@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LegalPageShell, LegalSection } from "@/components/layout/legal-page-shell";
 import { ReportForm } from "@/components/report/report-form";
 
 type SearchParams = {
@@ -17,38 +18,45 @@ export default async function MeldenPage({
   const reportLink = `mailto:info@mentor-pro.de?subject=${encodeURIComponent(`Meldung Inhalt (${type})`)}`;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Beitrag melden</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Danke für deinen Hinweis. Wir prüfen gemeldete Inhalte zeitnah und entfernen rechtswidrige Inhalte nach Prüfung.
-      </p>
+    <LegalPageShell
+      eyebrow="Sicherheit"
+      title="Beitrag melden"
+      description={"Danke f\u00fcr deinen Hinweis. Gemeldete Inhalte pr\u00fcfen wir zeitnah und entfernen rechtswidrige Inhalte nach Bewertung."}
+      footer={
+        <>
+          {"Zur\u00fcck zu"}{" "}
+          <Link href="/discover" className="underline decoration-[color:var(--accent)] underline-offset-4">
+            Entdecken
+          </Link>{" "}
+          oder{" "}
+          <Link href="/chat" className="underline decoration-[color:var(--accent)] underline-offset-4">
+            Chat
+          </Link>
+          .
+        </>
+      }
+    >
+      <LegalSection title="Meldedetails">
+        <p>Typ: {type}</p>
+        <p>ID: {id}</p>
+      </LegalSection>
 
-      <section className="mt-6 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">Meldedetails</h2>
-        <p className="text-sm text-zinc-700">Typ: {type}</p>
-        <p className="text-sm text-zinc-700">ID: {id}</p>
-      </section>
-
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">Meldung absenden (in App)</h2>
-        <p className="text-sm text-zinc-700">
-          Deine Meldung wird serverseitig gespeichert und intern geprüft.
-        </p>
+      <LegalSection title="Meldung absenden (in App)">
+        <p>{"Deine Meldung wird serverseitig gespeichert und intern gepr\u00fcft."}</p>
         <ReportForm targetType={type} targetId={id} />
-      </section>
+      </LegalSection>
 
-      <section className="mt-4 space-y-2 rounded-2xl border border-zinc-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-zinc-900">Fallback</h2>
-        <p className="text-sm text-zinc-700">Falls das Formular nicht funktioniert, kannst du uns alternativ per E-Mail schreiben.</p>
-        <p className="text-sm text-zinc-700">Kontakt: info@mentor-pro.de · +49 (0) 1606969914</p>
-        <a href={reportLink} className="inline-flex h-10 items-center rounded-xl border border-zinc-300 px-4 text-sm font-semibold text-zinc-700">
+      <LegalSection title="Fallback">
+        <p>Falls das Formular nicht funktioniert, kannst du uns alternativ per E-Mail schreiben.</p>
+        <p>{"Kontakt: info@mentor-pro.de \u00b7 +49 (0) 1606969914"}</p>
+        <a
+          href={reportLink}
+          className="inline-flex h-10 items-center rounded-2xl border px-4 text-sm font-semibold"
+          style={{ borderColor: "var(--border-strong)", color: "var(--foreground)" }}
+        >
           Meldung per E-Mail
         </a>
-      </section>
-
-      <p className="mt-6 text-sm text-zinc-600">
-        Zurück zu <Link href="/discover" className="underline">Entdecken</Link> oder <Link href="/chat" className="underline">Chat</Link>.
-      </p>
-    </main>
+      </LegalSection>
+    </LegalPageShell>
   );
 }
