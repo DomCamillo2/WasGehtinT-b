@@ -8,7 +8,7 @@ export function Footer() {
 
   return (
     <footer id="app-footer" className="relative mt-18 mb-24 md:mb-0">
-      <div className="relative mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 xl:px-10">
         <div
           aria-hidden="true"
           className="mb-8 h-px w-full"
@@ -17,8 +17,8 @@ export function Footer() {
               "linear-gradient(90deg, transparent, color-mix(in srgb, var(--border-soft) 80%, transparent), transparent)",
           }}
         />
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.4fr_0.8fr_0.8fr] lg:gap-12">
+          <div>
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-sky-400 shadow-[0_14px_30px_-18px_var(--shadow-color)]">
                 <span className="text-sm font-bold text-white">WG</span>

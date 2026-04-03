@@ -230,7 +230,7 @@ export function EventCard({
   return (
     <article
       onClick={onToggle}
-      className={`relative rounded-[26px] border p-3.5 transition-all hover:-translate-y-[1px] hover:shadow-[0_18px_36px_-24px_rgba(15,23,42,0.5)] ${
+      className={`relative h-full rounded-[26px] border p-3.5 transition-all hover:-translate-y-[1px] hover:shadow-[0_18px_36px_-24px_rgba(15,23,42,0.5)] ${
         isHotNow ? "hot-card-glow" : ""
       }`}
       style={{

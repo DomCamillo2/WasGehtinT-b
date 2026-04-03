@@ -436,9 +436,15 @@ export function DiscoverPremium({
     [eventsByDate, selectedCalendarDate],
   );
 
+  const desktopViewItems = [
+    { key: "list" as const, label: "Liste", icon: List },
+    { key: "map" as const, label: "Karte", icon: MapIcon },
+    { key: "calendar" as const, label: "Kalender", icon: CalendarDays },
+  ];
+
   return (
-    <div className="relative space-y-4 pb-32">
-      <header className="surface-card relative overflow-hidden rounded-[28px] px-4 py-3.5">
+    <div className="relative space-y-4 pb-32 lg:space-y-6 lg:pb-20">
+      <header className="surface-card relative overflow-hidden rounded-[28px] px-4 py-3.5 lg:px-7 lg:py-6">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-95"
@@ -457,20 +463,20 @@ export function DiscoverPremium({
           }}
         />
         <div className="relative">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+          <div className="flex items-start justify-between gap-3 lg:gap-8">
+            <div className="min-w-0 lg:max-w-[34rem]">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--accent-strong)]">
                 {"WasGehtT\u00fcb"}
               </p>
-              <h1 className="mt-1.5 max-w-[10ch] text-[2rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)]">
+              <h1 className="mt-1.5 max-w-[10ch] text-[2rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)] lg:max-w-[12ch] lg:text-[3.2rem]">
                 {"Was geht in T\u00fcbingen heute?"}
               </h1>
-              <p className="mt-2 max-w-[30ch] text-[13px] leading-5 text-[color:var(--muted-foreground)]">
+              <p className="mt-2 max-w-[30ch] text-[13px] leading-5 text-[color:var(--muted-foreground)] lg:max-w-[42ch] lg:text-[15px] lg:leading-7">
                 {"Partys, Clubs und Events f\u00fcr heute. Schnell sehen, was sich wirklich lohnt."}
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 lg:self-start">
               <ThemeToggle className="shadow-[0_12px_28px_-22px_var(--shadow-color)]" />
               <button
                 type="button"
@@ -519,34 +525,71 @@ export function DiscoverPremium({
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-2 px-1 py-1 sm:flex sm:flex-wrap sm:gap-2">
-        {filterItems.map((item) => {
-          const active = item.key === filter;
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setFilter(item.key)}
-              className={`min-w-0 rounded-full px-4 py-2.5 text-sm font-semibold transition ${active ? "text-white shadow-md" : ""}`}
-              style={
-                active
-                  ? {
-                      background:
-                        "linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent-strong) 58%, white 42%))",
-                    }
-                  : {
-                      color: "var(--muted-foreground)",
-                      backgroundColor: "color-mix(in srgb, var(--surface-soft) 82%, transparent)",
-                    }
-              }
-            >
-              <span className="inline-flex items-center justify-center gap-1.5">
-                {item.icon ? <item.icon size={14} strokeWidth={2} /> : null}
+      <div className="space-y-3 lg:flex lg:items-center lg:justify-between lg:gap-4 lg:space-y-0">
+        <div className="grid grid-cols-2 gap-2 px-1 py-1 sm:flex sm:flex-wrap sm:gap-2 lg:px-0 lg:py-0">
+          {filterItems.map((item) => {
+            const active = item.key === filter;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setFilter(item.key)}
+                className={`min-w-0 rounded-full px-4 py-2.5 text-sm font-semibold transition ${active ? "text-white shadow-md" : ""}`}
+                style={
+                  active
+                    ? {
+                        background:
+                          "linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent-strong) 58%, white 42%))",
+                      }
+                    : {
+                        color: "var(--muted-foreground)",
+                        backgroundColor: "color-mix(in srgb, var(--surface-soft) 82%, transparent)",
+                      }
+                }
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  {item.icon ? <item.icon size={14} strokeWidth={2} /> : null}
+                  <span>{item.label}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          className="hidden lg:inline-flex lg:items-center lg:gap-1 lg:rounded-[20px] lg:border lg:p-1"
+          style={{
+            borderColor: "var(--border-soft)",
+            backgroundColor: "color-mix(in srgb, var(--surface-card) 74%, transparent)",
+          }}
+        >
+          {desktopViewItems.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.key;
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setView(item.key)}
+                className={`inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold transition ${
+                  active ? "text-white shadow-md" : ""
+                }`}
+                style={
+                  active
+                    ? {
+                        background:
+                          "linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent-strong) 58%, white 42%))",
+                      }
+                    : { color: "var(--muted-foreground)" }
+                }
+              >
+                <Icon size={15} />
                 <span>{item.label}</span>
-              </span>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {showFilterSheet ? (
@@ -718,7 +761,7 @@ export function DiscoverPremium({
         </div>
       ) : null}
 
-      <div className="fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom))] right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2 md:bottom-36">
+      <div className="fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom))] right-[max(0.9rem,calc(50%-11.7rem))] z-20 flex flex-col items-end gap-2 lg:hidden">
         {showViewMenu ? (
           <div
             className="surface-card rounded-[22px] p-2"
@@ -918,28 +961,30 @@ export function DiscoverPremium({
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredParties.map((party) => (
-            <EventCard
-              key={party.id}
-              party={party}
-              expanded={expandedCardId === party.id}
-              isAuthenticated={isAuthenticated}
-              upvoted={upvotedPartyIds.includes(party.id)}
-              upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
-              isHotNow={hotPartyIds.has(party.id)}
-              rankLabel={
-                rankByPartyId.has(party.id)
-                  ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
-                  : null
-              }
-              onToggleUpvote={() => toggleUpvote(party.id)}
-              onRequestAction={handleRequestAction}
-              onChatAction={handleChatAction}
-              onToggle={() =>
-                setExpandedCardId((current) => (current === party.id ? null : party.id))
-              }
-            />
-          ))}
+          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {filteredParties.map((party) => (
+              <EventCard
+                key={party.id}
+                party={party}
+                expanded={expandedCardId === party.id}
+                isAuthenticated={isAuthenticated}
+                upvoted={upvotedPartyIds.includes(party.id)}
+                upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                isHotNow={hotPartyIds.has(party.id)}
+                rankLabel={
+                  rankByPartyId.has(party.id)
+                    ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
+                    : null
+                }
+                onToggleUpvote={() => toggleUpvote(party.id)}
+                onRequestAction={handleRequestAction}
+                onChatAction={handleChatAction}
+                onToggle={() =>
+                  setExpandedCardId((current) => (current === party.id ? null : party.id))
+                }
+              />
+            ))}
+          </div>
 
           {!filteredParties.length ? (
             <div className="surface-card rounded-[24px] p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
