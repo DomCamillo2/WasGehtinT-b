@@ -920,6 +920,12 @@ async function syncToSupabase(events) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL/SUPABASE_URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY");
   }
 
+  if (adminKey.startsWith("eyJ")) {
+    throw new Error(
+      "Detected legacy Supabase JWT admin key. Legacy API keys are disabled. Set SUPABASE_SECRET_KEY (sb_secret_...) in GitHub Secrets and environment variables."
+    );
+  }
+
   const supabase = createClient(supabaseUrl, adminKey, {
     auth: {
       persistSession: false,
