@@ -40,6 +40,7 @@ type FilterKey = "all" | "community" | "clubs" | "daytime" | "liked";
 type ViewKey = "list" | "map" | "calendar";
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
+const LOAD_MORE_STEP = 20;
 
 const BERLIN_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Berlin",
@@ -177,6 +178,7 @@ export function DiscoverPremium({
   );
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(initialUpvoteCounts);
   const [upvotedPartyIds, setUpvotedPartyIds] = useState<string[]>(initialUpvotedIds);
+  const [visibleCount, setVisibleCount] = useState(LOAD_MORE_STEP);
 
   useEffect(() => {
     try {
@@ -218,6 +220,18 @@ export function DiscoverPremium({
       // Ignore storage write issues.
     }
   }, [upvotedPartyIds]);
+
+  useEffect(() => {
+    setVisibleCount(LOAD_MORE_STEP);
+  }, [filter, fromDateInput, toDateInput, parties]);
+
+  useEffect(() => {
+    if (!canLoadMore) {
+      return;
+    }
+
+    router.prefetch(loadMoreHref);
+  }, [canLoadMore, loadMoreHref, router]);
 
   const fromDate = useMemo(() => parseGermanDateToIso(fromDateInput), [fromDateInput]);
   const toDate = useMemo(() => parseGermanDateToIso(toDateInput), [toDateInput]);
@@ -317,6 +331,12 @@ export function DiscoverPremium({
       return true;
     });
   }, [filter, fromDate, sortedParties, toDate, upvotedPartyIds]);
+
+  const visibleParties = useMemo(() => {
+    return filteredParties.slice(0, visibleCount);
+  }, [filteredParties, visibleCount]);
+
+  const hasMoreVisibleParties = filteredParties.length > visibleCount;
 
   const filterItems: Array<{ key: FilterKey; label: string; icon?: typeof Flame }> = [
     { key: "all", label: "Alle", icon: Compass },
@@ -962,7 +982,7 @@ export function DiscoverPremium({
       ) : (
         <div className="space-y-3">
           <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredParties.map((party) => (
+            {visibleParties.map((party) => (
               <EventCard
                 key={party.id}
                 party={party}
@@ -986,30 +1006,43 @@ export function DiscoverPremium({
             ))}
           </div>
 
-          {!filteredParties.length ? (
+          {!visibleParties.length ? (
             <div className="surface-card rounded-[24px] p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
               Für den aktiven Filter sind aktuell keine Events verfügbar.
             </div>
           ) : null}
 
-          {filteredParties.length && canLoadMore ? (
+          {filteredParties.length && (hasMoreVisibleParties || canLoadMore) ? (
             <div className="surface-card rounded-[28px] p-4 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold" style={{ color: "var(--foreground)" }}>
-                    Weitere Wochen ansehen
+                    {hasMoreVisibleParties ? "Mehr Events anzeigen" : "Weitere Wochen ansehen"}
                   </p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
-                    Wenn du weiter vorausplanen willst, laden wir die nächsten Wochen erst auf Wunsch nach.
+                    {hasMoreVisibleParties
+                      ? "Zeigt sofort die nächsten 20 Ergebnisse an."
+                      : "Wenn du weiter vorausplanen willst, laden wir die nächsten Wochen erst auf Wunsch nach."}
                   </p>
                 </div>
-                <Link
-                  href={loadMoreHref}
-                  className="inline-flex shrink-0 items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
-                  style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
-                >
-                  Mehr laden
-                </Link>
+                {hasMoreVisibleParties ? (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((current) => current + LOAD_MORE_STEP)}
+                    className="inline-flex shrink-0 items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
+                    style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
+                  >
+                    Mehr laden
+                  </button>
+                ) : (
+                  <Link
+                    href={loadMoreHref}
+                    className="inline-flex shrink-0 items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
+                    style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
+                  >
+                    Mehr laden
+                  </Link>
+                )}
               </div>
             </div>
           ) : null}
