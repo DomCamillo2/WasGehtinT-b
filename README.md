@@ -25,11 +25,11 @@ cp .env.example .env.local
 3) Variablen in `.env.local` setzen
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (oder fallback `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
 - `NEXT_PUBLIC_APP_URL` (z.B. `http://localhost:3000`)
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SECRET_KEY` (oder fallback `SUPABASE_SERVICE_ROLE_KEY`)
 - `INTERNAL_ADMIN_EMAILS` (kommagetrennt, z.B. `a@student.uni-tuebingen.de,b@student.uni-tuebingen.de`)
 - `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, für automatisches Partner-Event-Refresh per Cron)
 - `CRON_SECRET` (für sichere Vercel-Cron-Aufrufe auf interne API-Routen)
@@ -83,13 +83,13 @@ Externe Events sind jetzt sauber vom Frontend getrennt:
 Benötigte GitHub Repository Secrets:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SECRET_KEY` (oder fallback `SUPABASE_SERVICE_ROLE_KEY`)
 - `DIGINIGHTS_URLS` (optional, kommaseparierte Fallback-URLs)
 
 Lokal testen:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run external-events:sync
+NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SECRET_KEY=... npm run external-events:sync
 ```
 
 Optionaler Diginights-Override (z. B. bei URL-Aenderungen):

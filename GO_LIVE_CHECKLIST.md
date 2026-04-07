@@ -21,9 +21,9 @@ Ziel: WasGehtTüb heute live schalten und erste Nutzer sauber onboarden.
 In Vercel unter **Project Settings → Environment Variables** eintragen:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (oder `NEXT_PUBLIC_SUPABASE_ANON_KEY` als Fallback)
 - `NEXT_PUBLIC_APP_URL` (vorerst Vercel Preview/Production URL)
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SECRET_KEY` (oder `SUPABASE_SERVICE_ROLE_KEY` als Fallback)
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `INTERNAL_ADMIN_EMAILS` (kommagetrennt)
@@ -92,7 +92,7 @@ Minimaler Launch-Plan:
 Für saubere Frontend/Backend-Trennung laufen externe Scraper-Jobs ausserhalb von Vercel:
 
 1. Workflow aktivieren: `.github/workflows/external-events-refresh.yml`.
-2. GitHub Secrets setzen: `NEXT_PUBLIC_SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`.
+2. GitHub Secrets setzen: `NEXT_PUBLIC_SUPABASE_URL` und `SUPABASE_SECRET_KEY` (oder `SUPABASE_SERVICE_ROLE_KEY`).
 3. Optional fuer schnelle Source-Fixes: `DIGINIGHTS_URLS` als kommaseparierte URL-Liste.
 4. Sicherstellen, dass `./supabase/08_external_events_cache.sql` ausgefuehrt wurde.
 

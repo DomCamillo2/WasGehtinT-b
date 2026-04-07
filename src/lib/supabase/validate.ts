@@ -1,6 +1,8 @@
 /**
  * Validation of Supabase admin client configuration.
  */
+import { getSupabaseAdminKey } from "@/lib/env";
+
 export function validateSupabaseAdminConfig(): {
   valid: boolean;
   errors: string[];
@@ -11,8 +13,8 @@ export function validateSupabaseAdminConfig(): {
     errors.push("NEXT_PUBLIC_SUPABASE_URL fehlt.");
   }
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
-    errors.push("SUPABASE_SERVICE_ROLE_KEY fehlt.");
+  if (!getSupabaseAdminKey()?.trim()) {
+    errors.push("SUPABASE_SECRET_KEY oder SUPABASE_SERVICE_ROLE_KEY fehlt.");
   }
 
   return {

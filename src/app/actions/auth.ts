@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { hasSupabaseEnv } from "@/lib/env";
+import { getSupabaseAdminKey, hasSupabaseEnv } from "@/lib/env";
 import {
   sendEmailConfirmationMail,
   sendPasswordResetMail,
@@ -175,7 +175,7 @@ export async function signUpAction(
   };
 
   // Preferred path: create signup link and deliver with Resend templates.
-  if (process.env.RESEND_API_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.RESEND_API_KEY && getSupabaseAdminKey()) {
     try {
       const supabaseAdmin = getSupabaseAdmin();
       const generated = await supabaseAdmin.auth.admin.generateLink({
@@ -315,7 +315,7 @@ export async function requestPasswordResetAction(
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
 
-  if (process.env.RESEND_API_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.RESEND_API_KEY && getSupabaseAdminKey()) {
     try {
       const supabaseAdmin = getSupabaseAdmin();
       const generated = await supabaseAdmin.auth.admin.generateLink({

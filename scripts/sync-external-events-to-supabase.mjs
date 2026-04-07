@@ -914,13 +914,13 @@ function dedupeAndSort(events) {
 
 async function syncToSupabase(events) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const adminKey = process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
-  if (!supabaseUrl || !serviceRole) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL/SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !adminKey) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL/SUPABASE_URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY");
   }
 
-  const supabase = createClient(supabaseUrl, serviceRole, {
+  const supabase = createClient(supabaseUrl, adminKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

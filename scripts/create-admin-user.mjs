@@ -21,11 +21,11 @@ function loadEnvLocal() {
 async function main() {
   loadEnvLocal();
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
+  const adminKey = process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
-  if (!url || !serviceRole) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !adminKey) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL/SUPABASE_URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY");
   }
 
   const email = process.argv[2];
@@ -35,7 +35,7 @@ async function main() {
     throw new Error("Usage: node scripts/create-admin-user.mjs <email> <password>");
   }
 
-  const admin = createClient(url, serviceRole, {
+  const admin = createClient(url, adminKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 

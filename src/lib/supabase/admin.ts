@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseAdminKey } from "@/lib/env";
 import { assertSupabaseAdminConfig } from "./validate";
 
 let adminSingleton: SupabaseClient<any, "public", any> | null = null;
@@ -7,14 +8,14 @@ export function getSupabaseAdmin() {
   assertSupabaseAdminConfig();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const adminKey = getSupabaseAdminKey();
 
-  if (!url || !serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY oder NEXT_PUBLIC_SUPABASE_URL fehlt.");
+  if (!url || !adminKey) {
+    throw new Error("SUPABASE_SECRET_KEY oder SUPABASE_SERVICE_ROLE_KEY fehlt, oder NEXT_PUBLIC_SUPABASE_URL fehlt.");
   }
 
   if (!adminSingleton) {
-    adminSingleton = createClient<any>(url, serviceRoleKey, {
+    adminSingleton = createClient<any>(url, adminKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,

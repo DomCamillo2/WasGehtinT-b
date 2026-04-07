@@ -167,7 +167,7 @@ export async function reviewPartySubmissionAction(formData: FormData): Promise<v
       type: "error",
       scope: "party",
       decision: decision as "approve" | "reject",
-      message: "Moderation ist derzeit nicht verfügbar. Prüfe SUPABASE_SERVICE_ROLE_KEY.",
+      message: "Moderation ist derzeit nicht verfügbar. Prüfe SUPABASE_SECRET_KEY oder SUPABASE_SERVICE_ROLE_KEY.",
     });
   }
 }
@@ -292,7 +292,7 @@ export async function reviewHangoutSubmissionAction(formData: FormData): Promise
       type: "error",
       scope: "hangout",
       decision: decision as "approve" | "reject",
-      message: "Moderation ist derzeit nicht verfügbar. Prüfe SUPABASE_SERVICE_ROLE_KEY.",
+      message: "Moderation ist derzeit nicht verfügbar. Prüfe SUPABASE_SECRET_KEY oder SUPABASE_SERVICE_ROLE_KEY.",
     });
   }
 }
