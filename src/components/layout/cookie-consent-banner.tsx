@@ -27,7 +27,7 @@ export function CookieConsentBanner() {
         }}
       >
         <p className="text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>
-          {"Wir verwenden technisch notwendige Cookies f\u00fcr Login/Sicherheit. Externe Dienste (z. B. Karten) werden nur mit deiner Einwilligung geladen."}
+          {"Wir verwenden technisch notwendige Cookies fuer Login/Sicherheit. Optionale externe Dienste und Analytics (z. B. Karten, Google Analytics) laden wir nur mit deiner Einwilligung."}
         </p>
         <div className="mt-3 flex gap-2">
           <button

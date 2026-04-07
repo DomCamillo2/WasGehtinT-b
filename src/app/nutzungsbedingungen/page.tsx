@@ -49,7 +49,14 @@ export default function NutzungsbedingungenPage() {
         <p>{"Bei Verst\u00f6\u00dfen k\u00f6nnen Inhalte gel\u00f6scht, Accounts eingeschr\u00e4nkt oder gesperrt werden."}</p>
       </LegalSection>
 
-      <LegalSection title={"6. Kontakt f\u00fcr Meldungen"}>
+      <LegalSection title="6. Datenschutz und optionale Analyse">
+        <p>
+          Hinweise zur Datenverarbeitung, zu optionalen Analyse-Diensten (z. B. Google Analytics) sowie zur
+          Einwilligung und zum Widerruf findest du in der Datenschutzerklaerung.
+        </p>
+      </LegalSection>
+
+      <LegalSection title={"7. Kontakt fuer Meldungen"}>
         <p>{"Domile UG (haftungsbeschr\u00e4nkt)"}</p>
         <p>{"Graf-Wartenberg-Ring 11, 84577 T\u00fc\u00dfling"}</p>
         <p>Telefon: +49 (0) 1606969914</p>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PrivacyConsentControls } from "@/components/legal/privacy-consent-controls";
 import { LegalPageShell, LegalSection } from "@/components/layout/legal-page-shell";
 
 export default function DatenschutzPage() {
@@ -54,6 +55,9 @@ export default function DatenschutzPage() {
           <li>
             {"Karten-/Geodienste (OpenStreetMap/Nominatim): Bei Nutzung der Karten- und Geocoding-Funktionen k\u00f6nnen technische Nutzungsdaten (z. B. IP-Adresse) an die jeweiligen Dienstanbieter \u00fcbertragen werden."}
           </li>
+          <li>
+            Google Ireland Limited / Google LLC (Google Analytics): Analyse der Nutzung unserer Website nach erteilter Einwilligung.
+          </li>
         </ul>
       </LegalSection>
 
@@ -83,11 +87,35 @@ export default function DatenschutzPage() {
 
       <LegalSection title="9. Cookies und Einwilligung">
         <p>
-          {"Es werden technisch notwendige Cookies f\u00fcr Login, Sitzungsverwaltung und Sicherheit eingesetzt. F\u00fcr optionale externe Dienste (z. B. Karten/Geocoding) holen wir vor der Aktivierung eine Einwilligung \u00fcber das Cookie-Consent-Banner ein."}
+          {"Es werden technisch notwendige Cookies fuer Login, Sitzungsverwaltung und Sicherheit eingesetzt. Fuer optionale externe Dienste und Webanalyse (Google Analytics) holen wir vor der Aktivierung eine Einwilligung ueber das Cookie-Consent-Banner ein (Art. 6 Abs. 1 lit. a DSGVO, Section 25 Abs. 1 TDDDG)."}
         </p>
+        <PrivacyConsentControls />
       </LegalSection>
 
-      <LegalSection title={"10. Kontakt f\u00fcr Datenschutzanfragen"}>
+      <LegalSection title="10. Google Analytics (GA4)">
+        <p>
+          Wir nutzen Google Analytics 4 (Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland)
+          nur nach deiner Einwilligung.
+        </p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO und Section 25 Abs. 1 TDDDG.</li>
+          <li>Zweck: Reichweitenmessung, Nutzungsanalyse und technische Optimierung.</li>
+          <li>
+            IP-Anonymisierung ist aktiv (anonymize_ip). Eine direkte Personenidentifikation durch uns ist nicht
+            beabsichtigt.
+          </li>
+          <li>
+            Es kann zu Datenuebermittlungen in die USA kommen. Google stützt Uebermittlungen auf das EU-US Data
+            Privacy Framework sowie Standardvertragsklauseln (SCC), soweit erforderlich.
+          </li>
+          <li>
+            Du kannst deine Einwilligung jederzeit mit Wirkung fuer die Zukunft widerrufen (siehe Cookie-Einstellungen
+            oben).
+          </li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title={"11. Kontakt fuer Datenschutzanfragen"}>
         <p>{"Domile UG (haftungsbeschr\u00e4nkt)"}</p>
         <p>{"Graf-Wartenberg-Ring 11, 84577 T\u00fc\u00dfling"}</p>
         <p>E-Mail: info@mentor-pro.de</p>
