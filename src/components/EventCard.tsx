@@ -41,9 +41,13 @@ const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
   { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
   { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
   { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
-  { match: /frau\s*holle|frauholle/i, src: "/logos/venues/frau-holle.svg", alt: "Frau Holle Icon" },
   {
-    match: /schwarzes\s*schaf|schwarzer\s*schaf/i,
+    match: /frau\s*holle|frauholle|frau_holle_tuebingen/i,
+    src: "/logos/venues/frau-holle.svg",
+    alt: "Frau Holle Icon",
+  },
+  {
+    match: /schwarzes\s*schaf|schwarzes[-_.\s]*schaf|schwarzesschaf\.tuebingen/i,
     src: "/logos/venues/schwarzes-schaf.svg",
     alt: "Schwarzes Schaf Icon",
   },
@@ -124,7 +128,7 @@ function getAddressLine(party: PartyCard) {
 
 function resolvePartnerLogo(party: PartyCard, typeTag: TypeTag): { src: string; alt: string } | null {
   const locationName = (party.location_name ?? "").trim();
-  const probeText = `${locationName} ${party.vibe_label} ${party.title}`;
+  const probeText = `${locationName} ${party.vibe_label} ${party.title} ${party.external_link ?? ""}`;
 
   for (const partner of PARTNER_LOGOS) {
     if (partner.match.test(probeText)) {

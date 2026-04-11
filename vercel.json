@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/scrape",
+      "schedule": "40 2 * * *"
+    },
+    {
       "path": "/api/external-events/refresh",
       "schedule": "0 3 * * *"
     }

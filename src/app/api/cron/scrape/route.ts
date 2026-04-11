@@ -196,51 +196,83 @@ async function handleCronScrape(request: Request) {
 
   let totalFound = 0;
   let newInserted = 0;
+  let postErrors = 0;
+  let parseFailures = 0;
+  const venueErrors: string[] = [];
 
   for (const venue of VENUES) {
-    const posts = await fetchLatestInstagramPosts(venue, MAX_POSTS_PER_VENUE);
-    totalFound += posts.length;
+    try {
+      const posts = await fetchLatestInstagramPosts(venue, MAX_POSTS_PER_VENUE);
+      totalFound += posts.length;
 
-    let skippedCachedPosts = 0;
-    let insertedForVenue = 0;
-    for (const post of posts) {
-      const alreadyProcessed = await isPostAlreadyProcessed(post);
-      if (alreadyProcessed) {
-        skippedCachedPosts += 1;
-        continue;
-      }
+      let skippedCachedPosts = 0;
+      let insertedForVenue = 0;
+      for (const post of posts) {
+        let alreadyProcessed = false;
+        try {
+          alreadyProcessed = await isPostAlreadyProcessed(post);
+        } catch (error) {
+          postErrors += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(`[cron/scrape] ${venue}: dedupe check failed for ${post.externalId}: ${message}`);
+          continue;
+        }
 
-      const parsedEvents = await parseEventsFromCaptions([post.caption]);
-      for (const event of parsedEvents) {
-        const normalizedTitle = event.title.trim();
-        const normalizedLocation = event.location.trim();
+        if (alreadyProcessed) {
+          skippedCachedPosts += 1;
+          continue;
+        }
 
-        const inserted = await insertEventRow({
-          venue,
-          post,
-          title: normalizedTitle,
-          description: event.description,
-          date: event.date,
-          time: event.time,
-          location: normalizedLocation,
-        });
+        let parsedEvents: Awaited<ReturnType<typeof parseEventsFromCaptions>> = [];
+        try {
+          parsedEvents = await parseEventsFromCaptions([post.caption]);
+        } catch (error) {
+          parseFailures += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(`[cron/scrape] ${venue}: caption parse failed for ${post.externalId}: ${message}`);
+          continue;
+        }
 
-        if (inserted) {
-          insertedForVenue += 1;
-          newInserted += 1;
+        for (const event of parsedEvents) {
+          const normalizedTitle = event.title.trim();
+          const normalizedLocation = event.location.trim();
+
+          const inserted = await insertEventRow({
+            venue,
+            post,
+            title: normalizedTitle,
+            description: event.description,
+            date: event.date,
+            time: event.time,
+            location: normalizedLocation,
+          });
+
+          if (inserted) {
+            insertedForVenue += 1;
+            newInserted += 1;
+          }
         }
       }
-    }
 
-    console.log(
-      `[cron/scrape] ${venue}: posts=${posts.length}, skipped_cached=${skippedCachedPosts}, inserted=${insertedForVenue}`,
-    );
+      console.log(
+        `[cron/scrape] ${venue}: posts=${posts.length}, skipped_cached=${skippedCachedPosts}, inserted=${insertedForVenue}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      venueErrors.push(`${venue}: ${message}`);
+      console.error(`[cron/scrape] ${venue}: failed: ${message}`);
+    }
   }
 
+  const success = venueErrors.length === 0;
+
   return NextResponse.json({
-    success: true,
+    success,
     totalFound,
     newInserted,
+    postErrors,
+    parseFailures,
+    venueErrors,
   });
 }
 

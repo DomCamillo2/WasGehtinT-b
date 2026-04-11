@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Was geht in Tübingen heute? Partys, Clubs und Events",
   description:
