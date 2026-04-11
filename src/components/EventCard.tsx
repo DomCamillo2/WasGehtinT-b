@@ -42,16 +42,33 @@ const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
   { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
   { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
   {
-    match: /frau\s*holle|frauholle|frau_holle_tuebingen/i,
+    match: /frau\s*holle|frauholle|frau_holle_tuebingen|holle\s*t(?:ue|u)bingen|haaggasse\s*15\/?2/i,
     src: "/logos/venues/frau-holle.svg",
     alt: "Frau Holle Icon",
   },
   {
-    match: /schwarzes\s*schaf|schwarzes[-_.\s]*schaf|schwarzesschaf\.tuebingen/i,
+    match: /schwarzes\s*schaf|schwarzes[-_.\s]*schaf|schwarzesschaf\.tuebingen|schwarzes_schaf_tuebingen|schwarzesschaf_tuebingen/i,
     src: "/logos/venues/schwarzes-schaf.svg",
     alt: "Schwarzes Schaf Icon",
   },
 ];
+
+function resolveVenueLabel(party: PartyCard): string {
+  const locationName = (party.location_name ?? "").trim();
+  if (locationName.length > 0) {
+    const shortLocation = locationName.split(",")[0]?.trim();
+    if (shortLocation) {
+      return shortLocation;
+    }
+  }
+
+  const vibeLabel = (party.vibe_label ?? "").trim();
+  if (vibeLabel.length > 0 && vibeLabel.toLowerCase() !== "instagram") {
+    return vibeLabel;
+  }
+
+  return "Tuebingen";
+}
 
 function getTypeTag(party: PartyCard): TypeTag {
   const title = party.title.toLowerCase();
@@ -144,6 +161,7 @@ function resolvePartnerLogo(party: PartyCard, typeTag: TypeTag): { src: string; 
 }
 
 const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
+  { regex: /hard\s*trance|trance|bounce/i, label: "Trance/Bounce" },
   { regex: /techno|acid\s*techno/i, label: "Techno" },
   { regex: /house|deep\s*house|afro\s*house/i, label: "House" },
   { regex: /drum\s*&?\s*bass|dnb/i, label: "Drum & Bass" },
@@ -220,7 +238,7 @@ export function EventCard({
         ? hostAvatarSrc
         : null;
   const isLocalAvatar = Boolean(avatarSrc?.startsWith("/"));
-  const locationLine = party.location_name || party.vibe_label;
+  const locationLine = resolveVenueLabel(party);
   const normalizedSourceBadge = (party.source_badge ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
   const shouldShowSourceBadge = Boolean(party.source_badge) && normalizedSourceBadge !== "official scraper";
   const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
