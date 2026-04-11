@@ -9,7 +9,9 @@
     "lint": "eslint",
     "external-events:sync": "node scripts/sync-external-events-to-supabase.mjs",
     "cronjob:setup": "node scripts/setup-cronjob-org.mjs",
-    "supabase:test": "node scripts/test-supabase-api-connection.mjs"
+    "supabase:test": "node --env-file=.env.local scripts/test-supabase-api-connection.mjs",
+    "env:pull": "vercel env pull .env.local --environment=development",
+    "env:push": "node scripts/sync-vercel-env.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.49.0",
