@@ -318,10 +318,32 @@ export function DiscoverPremium({
   }, [sortedParties, upvoteCounts]);
 
   const filteredParties = useMemo(() => {
+    const isClubEvent = (party: PartyCardType) => {
+      if (!party.is_external) {
+        return false;
+      }
+
+      if (party.event_scope === "daytime") {
+        return false;
+      }
+
+      const categorySlug = (party.category_slug ?? "").toLowerCase();
+      if (categorySlug === "market" || categorySlug === "flea-market") {
+        return false;
+      }
+
+      const text = `${party.title} ${party.description ?? ""} ${party.vibe_label}`.toLowerCase();
+      if (/markt|flohmarkt|messe|basar|rathaus|regionalmarkt|georgimarkt/.test(text)) {
+        return false;
+      }
+
+      return true;
+    };
+
     return sortedParties.filter((party) => {
       const dateKey = toDateKeyBerlin(party.starts_at);
 
-      if (filter === "clubs" && !party.is_external) return false;
+      if (filter === "clubs" && !isClubEvent(party)) return false;
       if (filter === "daytime" && party.event_scope !== "daytime") return false;
       if (filter === "community" && !party.is_community && party.source_badge !== "Community") return false;
       if (filter === "liked" && !upvotedPartyIds.includes(party.id)) return false;

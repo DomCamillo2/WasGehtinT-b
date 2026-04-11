@@ -101,6 +101,96 @@ function isLikelyEventCaption(caption: string): boolean {
   return EVENT_HINT_REGEX.test(caption);
 }
 
+function resolveFallbackLocation(venue: string): string {
+  const normalized = venue.toLowerCase();
+  if (normalized.includes("schaf")) {
+    return "Schwarzes Schaf, Tuebingen";
+  }
+  if (normalized.includes("holle")) {
+    return "Holle Tuebingen";
+  }
+  return "Tuebingen";
+}
+
+function parseCaptionDate(caption: string): string | null {
+  const match = caption.match(/(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?/);
+  if (!match) {
+    return null;
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isInteger(day) || !Number.isInteger(month) || day < 1 || day > 31 || month < 1 || month > 12) {
+    return null;
+  }
+
+  const now = new Date();
+  let year = now.getUTCFullYear();
+  if (match[3]) {
+    const parsedYear = Number(match[3]);
+    year = match[3].length === 2 ? 2000 + parsedYear : parsedYear;
+  }
+
+  let candidate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  if (
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  if (!match[3] && candidate.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
+    candidate = new Date(Date.UTC(year + 1, month - 1, day, 12, 0, 0));
+  }
+
+  return candidate.toISOString().slice(0, 10);
+}
+
+function parseCaptionTime(caption: string): string {
+  const hhmm = caption.match(/(\d{1,2})[:.](\d{2})/);
+  if (hhmm) {
+    const hour = Math.min(Math.max(Number(hhmm[1]), 0), 23);
+    const minute = Math.min(Math.max(Number(hhmm[2]), 0), 59);
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  }
+
+  const uhr = caption.match(/\b(\d{1,2})\s*uhr\b/i);
+  if (uhr) {
+    const hour = Math.min(Math.max(Number(uhr[1]), 0), 23);
+    return `${String(hour).padStart(2, "0")}:00`;
+  }
+
+  return "20:00";
+}
+
+function parseEventsFromCaptionFallback(caption: string, venue: string): Array<{ title: string; date: string; time: string; location: string; description: string }> {
+  const normalizedCaption = caption.replace(/\s+/g, " ").trim();
+  if (!normalizedCaption) {
+    return [];
+  }
+
+  const date = parseCaptionDate(normalizedCaption);
+  if (!date) {
+    return [];
+  }
+
+  const time = parseCaptionTime(normalizedCaption);
+  const firstLine = caption
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0) ?? "";
+  const title = firstLine.replace(/[#*_]+/g, "").slice(0, 90).trim() || `${venue} Event`;
+
+  return [{
+    title,
+    date,
+    time,
+    location: resolveFallbackLocation(venue),
+    description: normalizedCaption.slice(0, 260),
+  }];
+}
+
 async function isPostAlreadyProcessed(post: InstagramPostCandidate): Promise<boolean> {
   const supabase = getSupabaseAdmin();
 
@@ -310,6 +400,13 @@ async function handleCronScrape(request: Request) {
           parseFailures += 1;
           const message = error instanceof Error ? error.message : String(error);
           console.warn(`[cron/scrape] ${venue}: caption parse failed for ${post.externalId}: ${message}`);
+        }
+
+        if (parsedEvents.length === 0) {
+          parsedEvents = parseEventsFromCaptionFallback(post.caption, venue);
+        }
+
+        if (parsedEvents.length === 0) {
           continue;
         }
 
