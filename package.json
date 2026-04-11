@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "external-events:sync": "node scripts/sync-external-events-to-supabase.mjs"
+    "external-events:sync": "node scripts/sync-external-events-to-supabase.mjs",
+    "cronjob:setup": "node scripts/setup-cronjob-org.mjs",
+    "supabase:test": "node scripts/test-supabase-api-connection.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.49.0",
