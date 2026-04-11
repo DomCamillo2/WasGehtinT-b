@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
 
@@ -7,21 +8,29 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer id="app-footer" className="relative mt-18 mb-24 md:mb-0">
-      <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 xl:px-10">
+    <footer id="app-footer" className="relative mt-10 mb-18 md:mb-0 lg:mt-14">
+      <div className="relative mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10 xl:px-10">
         <div
           aria-hidden="true"
-          className="mb-8 h-px w-full"
+          className="mb-5 h-px w-full sm:mb-6"
           style={{
             background:
               "linear-gradient(90deg, transparent, color-mix(in srgb, var(--border-soft) 80%, transparent), transparent)",
           }}
         />
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.4fr_0.8fr_0.8fr] lg:gap-12">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.4fr_0.8fr_0.8fr] lg:gap-10">
           <div>
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-sky-400 shadow-[0_14px_30px_-18px_var(--shadow-color)]">
-                <span className="text-sm font-bold text-white">WG</span>
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border bg-white/70 shadow-[0_10px_24px_-20px_var(--shadow-color)]">
+                <Image
+                  src="/Logo.png"
+                  alt="WasGehtTueb Logo"
+                  width={36}
+                  height={36}
+                  sizes="36px"
+                  className="h-8 w-8 object-contain"
+                  priority={false}
+                />
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
@@ -30,7 +39,7 @@ export function Footer() {
                 <span className="font-semibold text-[color:var(--foreground)]">{"WasGehtT\u00fcb"}</span>
               </div>
             </div>
-            <p className="max-w-sm text-sm leading-6 text-[color:var(--muted-foreground)]">
+            <p className="max-w-sm text-sm leading-6 text-[color:var(--muted-foreground)] sm:leading-6">
               {"Deine Plattform f\u00fcr spontane Aktivit\u00e4ten, Studentenpartys und Clubevents in T\u00fcbingen."}
             </p>
           </div>
@@ -83,10 +92,10 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="my-8 h-px" style={{ background: 'color-mix(in srgb, var(--border-soft) 65%, transparent)' }} />
+        <div className="my-5 h-px sm:my-6" style={{ background: 'color-mix(in srgb, var(--border-soft) 65%, transparent)' }} />
 
         <div
-          className="rounded-[28px] border p-5 shadow-[0_18px_48px_-32px_var(--shadow-color)]"
+          className="rounded-[22px] border p-4 shadow-[0_18px_48px_-32px_var(--shadow-color)] sm:rounded-[24px] sm:p-5"
           style={{
             borderColor: "color-mix(in srgb, var(--border-soft) 82%, transparent)",
             background:
@@ -95,15 +104,15 @@ export function Footer() {
           }}
         >
           <p className="text-sm font-semibold text-[color:var(--foreground)]">{"\u00dcber WasGehtT\u00fcb"}</p>
-          <p className="mt-2 text-sm leading-6 text-[color:var(--muted-foreground)]">
+          <p className="mt-1.5 text-sm leading-6 text-[color:var(--muted-foreground)]">
             {"WasGehtT\u00fcb zeigt dir schnell, was heute in T\u00fcbingen los ist: Studentenpartys, Clubs, spontane Treffen und ausgew\u00e4hlte Events in einer mobilen \u00dcbersicht."}
           </p>
-          <p className="mt-2 text-sm leading-6 text-[color:var(--muted-foreground)]">
+          <p className="mt-1.5 text-sm leading-6 text-[color:var(--muted-foreground)]">
             {"Besonders auf dem Handy soll alles direkt verst\u00e4ndlich sein: klare Filter, gute Lesbarkeit im Dark Mode und weniger unn\u00f6tige Ablenkung vor der Event-Liste."}
           </p>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-4 pb-4 md:flex-row">
+        <div className="mt-5 flex flex-col items-center justify-between gap-3 pb-2 sm:mt-6 md:flex-row">
           <p className="text-xs text-[color:var(--muted-foreground)]">
             {"\u00a9"} {currentYear} {"Domile UG (haftungsbeschr\u00e4nkt). Alle Rechte vorbehalten."}
           </p>
