@@ -158,8 +158,7 @@ export default async function DiscoverPage({
     getCommunityHangoutsForDiscover({ fromIso: windowEndIso, untilIso: nextWindowEndIso, limit: 1 }),
   ]);
 
-  const enrichedDbParties = await enrichPartiesForDiscover(dbParties);
-  const parties = [...enrichedDbParties, ...communityHangouts, ...externalParties];
+  const parties = [...dbParties, ...communityHangouts, ...externalParties];
   const canLoadMore = [...nextDbParties, ...nextExternalParties, ...nextHangouts].length > 0 && weeks < MAX_WEEKS;
   const nextWeeks = Math.min(MAX_WEEKS, weeks + WEEK_STEP);
   const loadMoreHref = `/discover?weeks=${nextWeeks}`;
@@ -168,52 +167,42 @@ export default async function DiscoverPage({
   const upvoteCountMap = new Map<string, number>();
   const upvotedByMe = new Set<string>();
 
-  if (eventIds.length) {
-    const genericCountResult = await supabase
-      .from("event_upvotes")
-      .select("event_id")
-      .in("event_id", eventIds);
+  const cookieStore = await cookies();
+  const anonSessionId = cookieStore.get("anon_session_id")?.value;
 
-    if (!genericCountResult.error) {
-      for (const row of (genericCountResult.data ?? []) as Array<{ event_id: string }>) {
-        const current = upvoteCountMap.get(row.event_id) ?? 0;
-        upvoteCountMap.set(row.event_id, current + 1);
-      }
-    }
-
-    if (user) {
-      const myUpvotesResult = await supabase
-        .from("event_upvotes")
-        .select("event_id")
-        .eq("user_id", user.id)
-        .in("event_id", eventIds);
-
-      if (!myUpvotesResult.error) {
-        for (const row of (myUpvotesResult.data ?? []) as Array<{ event_id: string }>) {
-          upvotedByMe.add(row.event_id);
-        }
-      }
-    } else {
-      const cookieStore = await cookies();
-      const anonSessionId = cookieStore.get("anon_session_id")?.value;
-
-      if (anonSessionId) {
-        const anonUpvotesResult = await supabase
+  const [enrichedDbParties, upvotesResult] = await Promise.all([
+    enrichPartiesForDiscover(dbParties),
+    eventIds.length
+      ? supabase
           .from("event_upvotes")
-          .select("event_id")
-          .eq("anonymous_session_id", anonSessionId)
-          .in("event_id", eventIds);
+          .select("event_id, user_id, anonymous_session_id")
+          .in("event_id", eventIds)
+      : Promise.resolve({
+          data: [] as Array<{ event_id: string; user_id: string | null; anonymous_session_id: string | null }>,
+          error: null as null,
+        }),
+  ]);
 
-        if (!anonUpvotesResult.error) {
-          for (const row of (anonUpvotesResult.data ?? []) as Array<{ event_id: string }>) {
-            upvotedByMe.add(row.event_id);
-          }
-        }
+  if (!upvotesResult.error) {
+    for (const row of (upvotesResult.data ?? []) as Array<{
+      event_id: string;
+      user_id: string | null;
+      anonymous_session_id: string | null;
+    }>) {
+      const current = upvoteCountMap.get(row.event_id) ?? 0;
+      upvoteCountMap.set(row.event_id, current + 1);
+
+      if (user && row.user_id === user.id) {
+        upvotedByMe.add(row.event_id);
+      } else if (!user && anonSessionId && row.anonymous_session_id === anonSessionId) {
+        upvotedByMe.add(row.event_id);
       }
     }
   }
 
-  const partiesWithUpvotes = parties.map((party) => {
+  const partiesWithHostData = [...enrichedDbParties, ...communityHangouts, ...externalParties];
+
+  const partiesWithUpvotes = partiesWithHostData.map((party) => {
     return {
       ...party,
       upvote_count: upvoteCountMap.get(party.id) ?? 0,
