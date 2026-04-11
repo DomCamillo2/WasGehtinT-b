@@ -41,6 +41,7 @@ const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
   { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
   { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
   { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
+  { match: /frau\s*holle|frauholle/i, src: "/logos/venues/frau-holle.svg", alt: "Frau Holle Icon" },
 ];
 
 function getTypeTag(party: PartyCard): TypeTag {
