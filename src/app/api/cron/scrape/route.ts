@@ -11,9 +11,8 @@ export const runtime = "nodejs";
 
 const DEFAULT_VENUES = [
   "frau_holle_tuebingen",
-  "schwarzesschaf.tuebingen",
   "schwarzes_schaf_tuebingen",
-  "schwarzes.schaf.tuebingen",
+  "schwarzesschaf_tuebingen",
 ];
 
 const VENUES = (
@@ -23,7 +22,13 @@ const VENUES = (
     .filter((value) => value.length > 0) ?? DEFAULT_VENUES
 );
 const INSTAGRAM_SOURCE = "instagram";
-const MAX_POSTS_PER_VENUE = 3;
+const MAX_POSTS_PER_VENUE = (() => {
+  const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "1");
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 1;
+  }
+  return Math.min(Math.floor(parsed), 3);
+})();
 
 function slugify(value: string): string {
   return value
