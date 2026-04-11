@@ -21,17 +21,15 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.4fr_0.8fr_0.8fr] lg:gap-10">
           <div>
             <div className="mb-3 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border bg-white/70 shadow-[0_10px_24px_-20px_var(--shadow-color)]">
-                <Image
-                  src="/Logo.png"
-                  alt="WasGehtTueb Logo"
-                  width={36}
-                  height={36}
-                  sizes="36px"
-                  className="h-8 w-8 object-contain"
-                  priority={false}
-                />
-              </div>
+              <Image
+                src="/Logo.png"
+                alt="WasGehtTueb Logo"
+                width={46}
+                height={46}
+                sizes="46px"
+                className="h-11 w-11 object-contain"
+                priority={false}
+              />
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
                   Mobile Nightlife Guide
