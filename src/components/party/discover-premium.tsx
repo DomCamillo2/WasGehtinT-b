@@ -40,7 +40,7 @@ type FilterKey = "all" | "community" | "clubs" | "daytime" | "liked";
 type ViewKey = "list" | "map" | "calendar";
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
-const LOAD_MORE_STEP = 20;
+const LOAD_MORE_STEP = 12;
 
 const BERLIN_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Berlin",
@@ -225,14 +225,6 @@ export function DiscoverPremium({
     setVisibleCount(LOAD_MORE_STEP);
   }, [filter, fromDateInput, toDateInput, parties]);
 
-  useEffect(() => {
-    if (!canLoadMore) {
-      return;
-    }
-
-    router.prefetch(loadMoreHref);
-  }, [canLoadMore, loadMoreHref, router]);
-
   const fromDate = useMemo(() => parseGermanDateToIso(fromDateInput), [fromDateInput]);
   const toDate = useMemo(() => parseGermanDateToIso(toDateInput), [toDateInput]);
   const fromDateGerman = useMemo(() => formatIsoToGerman(fromDate), [fromDate]);
@@ -243,6 +235,7 @@ export function DiscoverPremium({
     [],
   );
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(todayKey);
+  const upvotedPartyIdSet = useMemo(() => new Set(upvotedPartyIds), [upvotedPartyIds]);
 
   const sortedParties = useMemo(() => {
     return [...parties].sort((left, right) => {
@@ -346,13 +339,13 @@ export function DiscoverPremium({
       if (filter === "clubs" && !isClubEvent(party)) return false;
       if (filter === "daytime" && party.event_scope !== "daytime") return false;
       if (filter === "community" && !party.is_community && party.source_badge !== "Community") return false;
-      if (filter === "liked" && !upvotedPartyIds.includes(party.id)) return false;
+      if (filter === "liked" && !upvotedPartyIdSet.has(party.id)) return false;
       if (fromDate && dateKey < fromDate) return false;
       if (toDate && dateKey > toDate) return false;
 
       return true;
     });
-  }, [filter, fromDate, sortedParties, toDate, upvotedPartyIds]);
+  }, [filter, fromDate, sortedParties, toDate, upvotedPartyIdSet]);
 
   const visibleParties = useMemo(() => {
     return filteredParties.slice(0, visibleCount);
@@ -435,6 +428,10 @@ export function DiscoverPremium({
   }
 
   const eventsByDate = useMemo(() => {
+    if (view !== "calendar") {
+      return new Map<string, PartyCardType[]>();
+    }
+
     const map = new Map<string, PartyCardType[]>();
     for (const party of filteredParties) {
       const key = toDateKeyBerlin(party.starts_at);
@@ -443,9 +440,13 @@ export function DiscoverPremium({
       map.set(key, list);
     }
     return map;
-  }, [filteredParties]);
+  }, [filteredParties, view]);
 
   const calendarMeta = useMemo(() => {
+    if (view !== "calendar") {
+      return null;
+    }
+
     const [yearRaw, monthRaw] = selectedCalendarDate.split("-");
     const year = Number(yearRaw);
     const month = Number(monthRaw);
@@ -471,11 +472,11 @@ export function DiscoverPremium({
     const monthLabel = BERLIN_MONTH_LABEL_FORMATTER.format(monthStart);
 
     return { monthLabel, cells };
-  }, [selectedCalendarDate]);
+  }, [selectedCalendarDate, view]);
 
   const selectedCalendarEvents = useMemo(
-    () => eventsByDate.get(selectedCalendarDate) ?? [],
-    [eventsByDate, selectedCalendarDate],
+    () => (view === "calendar" ? eventsByDate.get(selectedCalendarDate) ?? [] : []),
+    [eventsByDate, selectedCalendarDate, view],
   );
 
   const desktopViewItems = [
@@ -888,7 +889,7 @@ export function DiscoverPremium({
                   <ChevronLeft size={16} />
                 </button>
                 <p className="min-w-[140px] text-center text-sm font-semibold capitalize" style={{ color: "var(--foreground)" }}>
-                  {calendarMeta.monthLabel}
+                  {calendarMeta?.monthLabel}
                 </p>
                 <button
                   type="button"
@@ -924,7 +925,7 @@ export function DiscoverPremium({
             </div>
 
             <div className="grid grid-cols-7 gap-1">
-              {calendarMeta.cells.map((cell, index) => {
+              {(calendarMeta?.cells ?? []).map((cell, index) => {
                 if (!cell.isoDate || !cell.day) {
                   return <div key={`empty-${index}`} className="h-10" />;
                 }
