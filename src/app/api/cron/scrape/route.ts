@@ -22,6 +22,20 @@ const VENUES = (
     .filter((value) => value.length > 0) ?? DEFAULT_VENUES
 );
 const INSTAGRAM_SOURCE = "instagram";
+const SCRAPE_COOLDOWN_MINUTES = (() => {
+  const parsed = Number(process.env.INSTAGRAM_SCRAPE_COOLDOWN_MINUTES ?? "360");
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 360;
+  }
+  return Math.floor(parsed);
+})();
+const MAX_VENUES_PER_RUN = (() => {
+  const parsed = Number(process.env.INSTAGRAM_MAX_VENUES_PER_RUN ?? "2");
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 2;
+  }
+  return Math.min(Math.floor(parsed), Math.max(VENUES.length, 1));
+})();
 const MAX_POSTS_PER_VENUE = (() => {
   const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "1");
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -29,6 +43,7 @@ const MAX_POSTS_PER_VENUE = (() => {
   }
   return Math.min(Math.floor(parsed), 3);
 })();
+const EVENT_HINT_REGEX = /(\d{1,2}\.\d{1,2}\.|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}:\d{2}\b|\buhr\b|\beinlass\b|\bstart\b|\bline\s*up\b|\btickets?\b|\bheute\b|\bmorgen\b|\bfreitag\b|\bsamstag\b|\bsonntag\b|\bmo\b|\bdi\b|\bmi\b|\bdo\b|\bfr\b|\bsa\b|\bso\b)/i;
 
 function slugify(value: string): string {
   return value
@@ -66,6 +81,24 @@ function isMissingColumnError(message: string, ...columnNames: string[]): boolea
 
 function sanitizeFilterValue(value: string): string {
   return value.replace(/[,()]/g, "");
+}
+
+function pickVenuesForRun(venues: string[], maxVenues: number): string[] {
+  if (venues.length <= maxVenues) {
+    return venues;
+  }
+
+  const now = new Date();
+  const startOfYear = Date.UTC(now.getUTCFullYear(), 0, 1);
+  const nowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const dayOfYear = Math.floor((nowUtc - startOfYear) / (24 * 60 * 60 * 1000));
+  const offset = dayOfYear % venues.length;
+
+  return Array.from({ length: maxVenues }, (_, index) => venues[(offset + index) % venues.length]);
+}
+
+function isLikelyEventCaption(caption: string): boolean {
+  return EVENT_HINT_REGEX.test(caption);
 }
 
 async function isPostAlreadyProcessed(post: InstagramPostCandidate): Promise<boolean> {
@@ -211,13 +244,38 @@ async function handleCronScrape(request: Request) {
     return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
   }
 
+  const supabase = getSupabaseAdmin();
+  const latestInstagramScrape = await supabase
+    .from("external_events_cache")
+    .select("scraped_at")
+    .eq("source", INSTAGRAM_SOURCE)
+    .order("scraped_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!latestInstagramScrape.error && latestInstagramScrape.data?.scraped_at && SCRAPE_COOLDOWN_MINUTES > 0) {
+    const lastScrapedMs = new Date(latestInstagramScrape.data.scraped_at).getTime();
+    const cooldownMs = SCRAPE_COOLDOWN_MINUTES * 60 * 1000;
+    if (Number.isFinite(lastScrapedMs) && Date.now() - lastScrapedMs < cooldownMs) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: "cooldown-active",
+        cooldownMinutes: SCRAPE_COOLDOWN_MINUTES,
+        lastScrapedAt: latestInstagramScrape.data.scraped_at,
+      });
+    }
+  }
+
   let totalFound = 0;
   let newInserted = 0;
   let postErrors = 0;
   let parseFailures = 0;
+  let skippedByCaptionHeuristic = 0;
   const venueErrors: string[] = [];
+  const runVenues = pickVenuesForRun(VENUES, MAX_VENUES_PER_RUN);
 
-  for (const venue of VENUES) {
+  for (const venue of runVenues) {
     try {
       const posts = await fetchLatestInstagramPosts(venue, MAX_POSTS_PER_VENUE);
       totalFound += posts.length;
@@ -237,6 +295,11 @@ async function handleCronScrape(request: Request) {
 
         if (alreadyProcessed) {
           skippedCachedPosts += 1;
+          continue;
+        }
+
+        if (!isLikelyEventCaption(post.caption)) {
+          skippedByCaptionHeuristic += 1;
           continue;
         }
 
@@ -285,10 +348,15 @@ async function handleCronScrape(request: Request) {
 
   return NextResponse.json({
     success,
+    skipped: false,
+    venuesChecked: runVenues,
+    maxVenuesPerRun: MAX_VENUES_PER_RUN,
+    maxPostsPerVenue: MAX_POSTS_PER_VENUE,
     totalFound,
     newInserted,
     postErrors,
     parseFailures,
+    skippedByCaptionHeuristic,
     venueErrors,
   });
 }
