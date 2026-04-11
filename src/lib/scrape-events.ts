@@ -222,9 +222,11 @@ function parseGeminiJsonArray(raw: string): ScrapedEvent[] {
     const location = normalizeCaption(obj.location);
     const description = normalizeCaption(obj.description);
 
-    const hasAllFields = Boolean(title && date && time && location && description);
-    const hasValidDate = Boolean(date && /^\d{4}-\d{2}-\d{2}$/.test(date));
-    if (!hasAllFields || !hasValidDate) {
+    if (!title || !date || !time || !location || !description) {
+      continue;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       continue;
     }
 
