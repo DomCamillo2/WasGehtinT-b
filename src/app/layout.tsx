@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   description:
     "Dein Party-Radar f\u00fcr T\u00fcbingen: Clubhaus, Kuckuck, Schlachthaus, Studentenpartys und Events heute Abend auf einen Blick.",
   icons: {
-    icon: [{ url: "/icon.png", type: "image/png" }],
-    shortcut: [{ url: "/favicon.ico" }],
+    icon: [{ url: "/favicon-tight.png", type: "image/png" }],
+    shortcut: [{ url: "/favicon-tight.png" }],
     apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
