@@ -9,7 +9,19 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-const VENUES = ["frau_holle_tuebingen", "schwarzesschaf.tuebingen"];
+const DEFAULT_VENUES = [
+  "frau_holle_tuebingen",
+  "schwarzesschaf.tuebingen",
+  "schwarzes_schaf_tuebingen",
+  "schwarzes.schaf.tuebingen",
+];
+
+const VENUES = (
+  process.env.INSTAGRAM_SCRAPE_VENUES
+    ?.split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0) ?? DEFAULT_VENUES
+);
 const INSTAGRAM_SOURCE = "instagram";
 const MAX_POSTS_PER_VENUE = 3;
 
