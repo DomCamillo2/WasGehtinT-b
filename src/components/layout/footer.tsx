@@ -22,12 +22,12 @@ export function Footer() {
           <div>
             <div className="mb-3 flex items-center gap-3">
               <Image
-                src="/Logo.png"
+                src="/favicon-tight.png"
                 alt="WasGehtTueb Logo"
-                width={58}
-                height={58}
-                sizes="58px"
-                className="h-14 w-14 object-contain"
+                width={72}
+                height={72}
+                sizes="72px"
+                className="h-16 w-16 object-contain"
                 priority={false}
               />
               <div>
