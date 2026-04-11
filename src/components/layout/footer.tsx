@@ -24,10 +24,10 @@ export function Footer() {
               <Image
                 src="/Logo.png"
                 alt="WasGehtTueb Logo"
-                width={46}
-                height={46}
-                sizes="46px"
-                className="h-11 w-11 object-contain"
+                width={58}
+                height={58}
+                sizes="58px"
+                className="h-14 w-14 object-contain"
                 priority={false}
               />
               <div>
