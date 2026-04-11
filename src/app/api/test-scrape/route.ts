@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { scrapeInstagramEvents } from "@/lib/scrape-events";
 
+export const runtime = "nodejs";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const venue = searchParams.get("venue")?.trim() || "frau_holle_tuebingen";

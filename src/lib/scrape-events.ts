@@ -14,12 +14,13 @@ export type ScrapedEvent = {
   description: string;
 };
 
-function getRequiredEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+function getRequiredValue(value: string | undefined, missingName: string): string {
+  const normalized = value?.trim();
+  if (!normalized) {
+    throw new Error(`Missing required environment variable: ${missingName}`);
   }
-  return value;
+
+  return normalized;
 }
 
 function toObjectRecord(value: unknown): Record<string, unknown> | null {
@@ -162,8 +163,18 @@ export async function scrapeInstagramEvents(username: string): Promise<ScrapedEv
     throw new Error("Instagram username is required.");
   }
 
-  const apifyApiToken = getRequiredEnv("APIFY_API_TOKEN");
-  const geminiApiKey = getRequiredEnv("GEMINI_API_KEY");
+  const apifyApiToken = getRequiredValue(
+    process.env.APIFY_API_TOKEN ??
+      process.env.APIFY_API_KEY ??
+      process.env.Apify_API_KEY ??
+      process.env.apify_api_key ??
+      process.env.APIFY_TOKEN,
+    "APIFY_API_TOKEN",
+  );
+  const geminiApiKey = getRequiredValue(
+    process.env.GEMINI_API_KEY ?? process.env.gemini_api_key ?? process.env.GOOGLE_API_KEY,
+    "GEMINI_API_KEY",
+  );
 
   const apify = new ApifyClient({ token: apifyApiToken });
   const run = await apify.actor(APIFY_ACTOR_ID).call({
