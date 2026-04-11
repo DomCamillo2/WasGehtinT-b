@@ -14,6 +14,12 @@ export type ScrapedEvent = {
   description: string;
 };
 
+export type InstagramPostCandidate = {
+  externalId: string;
+  sourceUrl: string;
+  caption: string;
+};
+
 function getRequiredValue(value: string | undefined, missingName: string): string {
   const normalized = value?.trim();
   if (!normalized) {
@@ -66,6 +72,62 @@ function extractCaptionFromPost(post: unknown): string | null {
   return null;
 }
 
+function normalizePostId(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeUrl(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function buildPostUrl(username: string, postId: string): string {
+  return `https://www.instagram.com/p/${postId}/?hl=en`;
+}
+
+function extractInstagramPostCandidate(username: string, post: unknown): InstagramPostCandidate | null {
+  const postObj = toObjectRecord(post);
+  if (!postObj) {
+    return null;
+  }
+
+  const caption = extractCaptionFromPost(postObj);
+  if (!caption) {
+    return null;
+  }
+
+  const externalId =
+    normalizePostId(postObj.id)
+    ?? normalizePostId(postObj.shortCode)
+    ?? normalizePostId(postObj.shortcode)
+    ?? normalizePostId(postObj.code);
+
+  if (!externalId) {
+    return null;
+  }
+
+  const sourceUrl =
+    normalizeUrl(postObj.url)
+    ?? normalizeUrl(postObj.displayUrl)
+    ?? normalizeUrl(postObj.permalink)
+    ?? buildPostUrl(username, externalId);
+
+  if (!sourceUrl) {
+    return null;
+  }
+
+  return { externalId, sourceUrl, caption };
+}
+
 function extractCaptionsFromItem(item: unknown): string[] {
   const itemObj = toObjectRecord(item);
   if (!itemObj) {
@@ -95,6 +157,21 @@ function extractCaptionsFromItem(item: unknown): string[] {
   }
 
   return captions;
+}
+
+function extractInstagramPostCandidatesFromItem(username: string, item: unknown): InstagramPostCandidate[] {
+  const itemObj = toObjectRecord(item);
+  if (!itemObj) {
+    return [];
+  }
+
+  const latestPosts = Array.isArray(itemObj.latestPosts) ? itemObj.latestPosts : [];
+  const timelinePosts = Array.isArray(itemObj.latestIgtvVideos) ? itemObj.latestIgtvVideos : [];
+  const allPosts = [...latestPosts, ...timelinePosts];
+
+  return allPosts
+    .map((post) => extractInstagramPostCandidate(username, post))
+    .filter((post): post is InstagramPostCandidate => post !== null);
 }
 
 function buildGeminiPrompt(captions: string[]): string {
@@ -157,12 +234,7 @@ function parseGeminiJsonArray(raw: string): ScrapedEvent[] {
   return events;
 }
 
-export async function scrapeInstagramEvents(username: string): Promise<ScrapedEvent[]> {
-  const normalizedUsername = username.trim().replace(/^@/, "");
-  if (!normalizedUsername) {
-    throw new Error("Instagram username is required.");
-  }
-
+async function fetchInstagramDatasetItems(username: string, limit: number) {
   const apifyApiToken = getRequiredValue(
     process.env.APIFY_API_TOKEN ??
       process.env.APIFY_API_KEY ??
@@ -171,16 +243,12 @@ export async function scrapeInstagramEvents(username: string): Promise<ScrapedEv
       process.env.APIFY_TOKEN,
     "APIFY_API_TOKEN",
   );
-  const geminiApiKey = getRequiredValue(
-    process.env.GEMINI_API_KEY ?? process.env.gemini_api_key ?? process.env.GOOGLE_API_KEY,
-    "GEMINI_API_KEY",
-  );
 
   const apify = new ApifyClient({ token: apifyApiToken });
   const run = await apify.actor(APIFY_ACTOR_ID).call({
-    usernames: [normalizedUsername],
-    resultsLimit: MAX_POSTS,
-    maxItems: MAX_POSTS,
+    usernames: [username],
+    resultsLimit: limit,
+    maxItems: limit,
   });
 
   if (!run.defaultDatasetId) {
@@ -188,21 +256,47 @@ export async function scrapeInstagramEvents(username: string): Promise<ScrapedEv
   }
 
   const datasetItems = await apify.dataset(run.defaultDatasetId).listItems({
-    limit: MAX_POSTS,
+    limit,
     clean: true,
   });
 
-  const captions = datasetItems.items
-    .flatMap(item => extractCaptionsFromItem(item))
-    .filter((caption, index, arr) => arr.indexOf(caption) === index)
-    .slice(0, MAX_POSTS);
+  return datasetItems.items;
+}
 
-  if (captions.length === 0) {
+export async function fetchLatestInstagramPosts(username: string, limit: number = MAX_POSTS): Promise<InstagramPostCandidate[]> {
+  const normalizedUsername = username.trim().replace(/^@/, "");
+  if (!normalizedUsername) {
+    throw new Error("Instagram username is required.");
+  }
+
+  const effectiveLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 10) : MAX_POSTS;
+  const items = await fetchInstagramDatasetItems(normalizedUsername, effectiveLimit);
+
+  const posts = items
+    .flatMap((item) => extractInstagramPostCandidatesFromItem(normalizedUsername, item))
+    .filter((post, index, arr) => arr.findIndex((entry) => entry.externalId === post.externalId) === index)
+    .slice(0, effectiveLimit);
+
+  return posts;
+}
+
+export async function parseEventsFromCaptions(captions: string[]): Promise<ScrapedEvent[]> {
+  const dedupedCaptions = captions
+    .map((caption) => caption.trim())
+    .filter((caption) => caption.length > 0)
+    .filter((caption, index, arr) => arr.indexOf(caption) === index);
+
+  if (dedupedCaptions.length === 0) {
     return [];
   }
 
+  const geminiApiKey = getRequiredValue(
+    process.env.GEMINI_API_KEY ?? process.env.gemini_api_key ?? process.env.GOOGLE_API_KEY,
+    "GEMINI_API_KEY",
+  );
+
   const gemini = new GoogleGenAI({ apiKey: geminiApiKey });
-  const prompt = buildGeminiPrompt(captions);
+  const prompt = buildGeminiPrompt(dedupedCaptions);
 
   const response = await gemini.models.generateContent({
     model: "gemini-2.5-flash",
@@ -219,4 +313,16 @@ export async function scrapeInstagramEvents(username: string): Promise<ScrapedEv
   }
 
   return parseGeminiJsonArray(rawText);
+}
+
+export async function scrapeInstagramEvents(username: string): Promise<ScrapedEvent[]> {
+  const normalizedUsername = username.trim().replace(/^@/, "");
+  if (!normalizedUsername) {
+    throw new Error("Instagram username is required.");
+  }
+
+  const posts = await fetchLatestInstagramPosts(normalizedUsername, MAX_POSTS);
+  const captions = posts.map((post) => post.caption);
+
+  return parseEventsFromCaptions(captions);
 }
