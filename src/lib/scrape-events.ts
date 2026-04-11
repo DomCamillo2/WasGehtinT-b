@@ -169,6 +169,7 @@ export async function scrapeInstagramEvents(username: string): Promise<ScrapedEv
   const run = await apify.actor(APIFY_ACTOR_ID).call({
     usernames: [normalizedUsername],
     resultsLimit: MAX_POSTS,
+    maxItems: MAX_POSTS,
   });
 
   if (!run.defaultDatasetId) {
