@@ -140,26 +140,27 @@ export default async function DiscoverPage({
   const weeks = clampWeeks(resolvedSearchParams.weeks);
   const windowStart = new Date();
   const windowEnd = addWeeks(windowStart, weeks);
-  const nextWindowEnd = addWeeks(windowStart, weeks + WEEK_STEP);
   const windowStartIso = windowStart.toISOString();
   const windowEndIso = windowEnd.toISOString();
-  const nextWindowEndIso = nextWindowEnd.toISOString();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const hasSupabaseAuthCookie = cookieStore
+    .getAll()
+    .some((cookie) => cookie.name.includes("sb-") && cookie.name.includes("auth-token"));
 
-  const [dbParties, externalParties, communityHangouts, nextDbParties, nextExternalParties, nextHangouts] = await Promise.all([
+  const userPromise = hasSupabaseAuthCookie
+    ? supabase.auth.getUser().then((result) => result.data.user)
+    : Promise.resolve(null);
+
+  const [dbParties, externalParties, communityHangouts, user] = await Promise.all([
     getPublicParties({ fromIso: windowStartIso, untilIso: windowEndIso }),
     getExternalEvents({ fromIso: windowStartIso, untilIso: windowEndIso }),
     getCommunityHangoutsForDiscover({ fromIso: windowStartIso, untilIso: windowEndIso }),
-    getPublicParties({ fromIso: windowEndIso, untilIso: nextWindowEndIso, limit: 1 }),
-    getExternalEvents({ fromIso: windowEndIso, untilIso: nextWindowEndIso, limit: 1 }),
-    getCommunityHangoutsForDiscover({ fromIso: windowEndIso, untilIso: nextWindowEndIso, limit: 1 }),
+    userPromise,
   ]);
 
   const parties = [...dbParties, ...communityHangouts, ...externalParties];
-  const canLoadMore = [...nextDbParties, ...nextExternalParties, ...nextHangouts].length > 0 && weeks < MAX_WEEKS;
+  const canLoadMore = weeks < MAX_WEEKS;
   const nextWeeks = Math.min(MAX_WEEKS, weeks + WEEK_STEP);
   const loadMoreHref = `/discover?weeks=${nextWeeks}`;
 
@@ -167,7 +168,6 @@ export default async function DiscoverPage({
   const upvoteCountMap = new Map<string, number>();
   const upvotedByMe = new Set<string>();
 
-  const cookieStore = await cookies();
   const anonSessionId = cookieStore.get("anon_session_id")?.value;
 
   const [enrichedDbParties, upvotesResult] = await Promise.all([
