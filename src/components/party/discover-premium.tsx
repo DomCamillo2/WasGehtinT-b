@@ -70,6 +70,10 @@ function toDateKeyBerlin(iso: string) {
   return BERLIN_DAY_KEY_FORMATTER.format(new Date(iso));
 }
 
+function hasMapCoordinates(party: PartyCardType) {
+  return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
+}
+
 function parseGermanDateToIso(value: string): string | null {
   const normalized = value.trim();
   if (!normalized) {
@@ -164,6 +168,7 @@ export function DiscoverPremium({
   const [authSheetReason, setAuthSheetReason] = useState("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
   const [fromDateInput, setFromDateInput] = useState("");
   const [toDateInput, setToDateInput] = useState("");
+  const [onlyMappable, setOnlyMappable] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const initialUpvoteCounts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -223,7 +228,7 @@ export function DiscoverPremium({
 
   useEffect(() => {
     setVisibleCount(LOAD_MORE_STEP);
-  }, [filter, fromDateInput, toDateInput, parties]);
+  }, [filter, fromDateInput, toDateInput, onlyMappable, parties]);
 
   const fromDate = useMemo(() => parseGermanDateToIso(fromDateInput), [fromDateInput]);
   const toDate = useMemo(() => parseGermanDateToIso(toDateInput), [toDateInput]);
@@ -342,10 +347,18 @@ export function DiscoverPremium({
       if (filter === "liked" && !upvotedPartyIdSet.has(party.id)) return false;
       if (fromDate && dateKey < fromDate) return false;
       if (toDate && dateKey > toDate) return false;
+      if (onlyMappable && !hasMapCoordinates(party)) return false;
 
       return true;
     });
-  }, [filter, fromDate, sortedParties, toDate, upvotedPartyIdSet]);
+  }, [filter, fromDate, onlyMappable, sortedParties, toDate, upvotedPartyIdSet]);
+
+  const mapParties = useMemo(
+    () => filteredParties.filter((party) => hasMapCoordinates(party)),
+    [filteredParties],
+  );
+
+  const hiddenFromMapCount = filteredParties.length - mapParties.length;
 
   const visibleParties = useMemo(() => {
     return filteredParties.slice(0, visibleCount);
@@ -697,12 +710,28 @@ export function DiscoverPremium({
               />
             </div>
 
+            <button
+              type="button"
+              onClick={() => setOnlyMappable((current) => !current)}
+              className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl border px-3 text-xs font-semibold"
+              style={{
+                borderColor: "var(--nav-border)",
+                backgroundColor: onlyMappable
+                  ? "color-mix(in srgb, var(--accent) 14%, var(--surface-soft))"
+                  : "var(--surface-elevated)",
+                color: "var(--foreground)",
+              }}
+            >
+              {onlyMappable ? "Nur Events mit Kartenpunkt: Aktiv" : "Nur Events mit Kartenpunkt"}
+            </button>
+
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setFromDateInput("");
                   setToDateInput("");
+                  setOnlyMappable(false);
                 }}
                 className="h-10 rounded-xl border px-3 text-xs font-semibold"
                 style={{
@@ -782,6 +811,11 @@ export function DiscoverPremium({
           Zeitraum: {fromDateGerman || "..."} - {toDateGerman || "..."}
         </p>
       ) : null}
+
+      <p className="px-2 text-xs" style={{ color: "var(--muted-foreground)" }}>
+        {filteredParties.length} Events nach Filter
+        {hiddenFromMapCount > 0 ? ` · ${hiddenFromMapCount} ohne Kartenpunkt` : ""}
+      </p>
 
       {hottestParty && topScore > 0 && view !== "list" ? (
         <div
@@ -869,7 +903,13 @@ export function DiscoverPremium({
 
       {view === "map" ? (
         <div className="space-y-2">
-          <DiscoverMap parties={filteredParties} />
+          {mapParties.length ? (
+            <DiscoverMap parties={mapParties} />
+          ) : (
+            <div className="surface-card rounded-[24px] p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
+              Für den aktiven Filter sind keine Events mit Kartenposition verfügbar.
+            </div>
+          )}
         </div>
       ) : view === "calendar" ? (
         <div className="space-y-3">

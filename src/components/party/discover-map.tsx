@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { PartyCard } from "@/lib/types";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
@@ -14,25 +14,106 @@ type Props = {
 const KUCKUCK_RED = "#b00000";
 const CLUBHAUS_BLUE = "#1d4ed8";
 const SCHLACHTHAUS_BROWN = "#7c2d12";
+const HOLLE_ROSE = "#be185d";
+const SCHAF_CYAN = "#0e7490";
+const DEFAULT_MARKER = "#18181b";
+
+function hasCoordinates(party: PartyCard) {
+  return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
+}
+
+function resolveMarkerTheme(party: PartyCard) {
+  const location = `${party.location_name ?? ""} ${party.vibe_label} ${party.title}`.toLowerCase();
+
+  if (location.includes("kuckuck")) {
+    return { background: KUCKUCK_RED, foreground: "#ffffff", glyph: "K", venue: "Kuckuck" };
+  }
+
+  if (location.includes("clubhaus")) {
+    return { background: CLUBHAUS_BLUE, foreground: "#ffffff", glyph: "C", venue: "Clubhaus" };
+  }
+
+  if (location.includes("schlachthaus")) {
+    return { background: SCHLACHTHAUS_BROWN, foreground: "#ffffff", glyph: "S", venue: "Schlachthaus" };
+  }
+
+  if (location.includes("frau holle") || location.includes("frau_holle") || location.includes("holle")) {
+    return { background: HOLLE_ROSE, foreground: "#ffffff", glyph: "H", venue: "Frau Holle" };
+  }
+
+  if (location.includes("schwarzes schaf") || location.includes("schwarzesschaf") || location.includes("schaf")) {
+    return { background: SCHAF_CYAN, foreground: "#ffffff", glyph: "SS", venue: "Schwarzes Schaf" };
+  }
+
+  if (party.is_external) {
+    return { background: "#0f172a", foreground: "#ffffff", glyph: "E", venue: "Extern" };
+  }
+
+  return { background: DEFAULT_MARKER, foreground: "#ffffff", glyph: "WG", venue: "Community" };
+}
+
+function formatStartForPopup(startsAt: string) {
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(startsAt));
+}
+
+function createPopupNode(party: PartyCard, venueLabel: string) {
+  const root = document.createElement("div");
+  root.className = "space-y-1";
+
+  const titleNode = document.createElement("p");
+  titleNode.className = "text-sm font-semibold";
+  titleNode.textContent = party.title;
+  root.appendChild(titleNode);
+
+  const metaNode = document.createElement("p");
+  metaNode.className = "text-xs text-zinc-600";
+  const locationLabel = party.location_name?.trim() || venueLabel;
+  metaNode.textContent = `${locationLabel} · ${formatStartForPopup(party.starts_at)} Uhr`;
+  root.appendChild(metaNode);
+
+  return root;
+}
+
+function createMarkerElement(glyph: string, background: string, foreground: string) {
+  const marker = document.createElement("div");
+  marker.className =
+    "grid h-9 w-9 place-items-center rounded-full border text-[10px] font-bold shadow-[0_10px_24px_-14px_rgba(2,6,23,0.7)]";
+  marker.style.backgroundColor = background;
+  marker.style.color = foreground;
+  marker.style.borderColor = "rgba(255,255,255,0.78)";
+  marker.textContent = glyph;
+  return marker;
+}
 
 export function DiscoverMap({ parties }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<import("maplibre-gl").Map | null>(null);
+  const maplibreRef = useRef<any>(null);
+  const markersRef = useRef<Array<import("maplibre-gl").Marker>>([]);
+  const lastMarkerSignatureRef = useRef<string>("");
   const [canLoadMap, setCanLoadMap] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return hasExternalServicesConsent();
   });
+  const partiesWithCoords = useMemo(() => parties.filter(hasCoordinates), [parties]);
 
   useEffect(() => {
-    if (!canLoadMap || !mapRef.current) {
+    if (!canLoadMap || !mapRef.current || mapInstanceRef.current) {
       return;
     }
 
     let mounted = true;
-    let mapInstance: import("maplibre-gl").Map | null = null;
 
     void (async () => {
       ensurePerformanceMarkApi();
       const maplibre = (await import("maplibre-gl")).default;
+      maplibreRef.current = maplibre;
 
       if (!mounted || !mapRef.current) {
         return;
@@ -44,73 +125,79 @@ export function DiscoverMap({ parties }: Props) {
         center: [9.0599431, 48.5413588],
         zoom: 12,
       });
-      mapInstance = map;
-
-      parties.forEach((party) => {
-        if (party.public_lng && party.public_lat) {
-          const popup = new maplibre.Popup({ offset: 16 });
-
-          if (party.is_external) {
-            const isClubhaus = party.vibe_label.toLowerCase().includes("clubhaus");
-            const isKuckuck = party.vibe_label.toLowerCase().includes("kuckuck");
-            const isSchlachthaus = party.vibe_label.toLowerCase().includes("schlachthaus");
-            const popupNode = document.createElement("div");
-            popupNode.className = "space-y-1";
-            const titleNode = document.createElement("p");
-            titleNode.className = "text-sm font-semibold";
-            titleNode.textContent = party.title;
-            if (isKuckuck) {
-              titleNode.style.color = KUCKUCK_RED;
-            } else if (isClubhaus) {
-              titleNode.style.color = CLUBHAUS_BLUE;
-            } else if (isSchlachthaus) {
-              titleNode.style.color = SCHLACHTHAUS_BROWN;
-            }
-            const infoNode = document.createElement("p");
-            infoNode.className = "text-xs text-zinc-600";
-            if (isClubhaus) {
-              infoNode.textContent = "Clubhaus · Wilhelmstraße 30, 72074 Tübingen";
-              infoNode.style.color = CLUBHAUS_BLUE;
-              popupNode.appendChild(titleNode);
-              popupNode.appendChild(infoNode);
-            } else {
-              popupNode.appendChild(titleNode);
-            }
-            popup.setDOMContent(popupNode);
-
-            const kuckuckMarker = document.createElement("div");
-            kuckuckMarker.className =
-              "grid h-8 w-8 place-items-center rounded-full border border-zinc-200 bg-zinc-900 text-xs font-bold text-white";
-            kuckuckMarker.textContent = isClubhaus ? "C" : isSchlachthaus ? "S" : "K";
-            if (isKuckuck) {
-              kuckuckMarker.style.backgroundColor = KUCKUCK_RED;
-            } else if (isClubhaus) {
-              kuckuckMarker.style.backgroundColor = CLUBHAUS_BLUE;
-            } else if (isSchlachthaus) {
-              kuckuckMarker.style.backgroundColor = SCHLACHTHAUS_BROWN;
-            }
-
-            new maplibre.Marker({ element: kuckuckMarker })
-              .setLngLat([party.public_lng, party.public_lat])
-              .setPopup(popup)
-              .addTo(map);
-
-            return;
-          }
-
-          new maplibre.Marker({ color: "#18181b" })
-            .setLngLat([party.public_lng, party.public_lat])
-            .setPopup(popup.setText(party.title))
-            .addTo(map);
-        }
-      });
+      mapInstanceRef.current = map;
     })();
 
     return () => {
       mounted = false;
-      mapInstance?.remove();
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+      mapInstanceRef.current?.remove();
+      mapInstanceRef.current = null;
+      maplibreRef.current = null;
+      lastMarkerSignatureRef.current = "";
     };
-  }, [canLoadMap, parties]);
+  }, [canLoadMap]);
+
+  useEffect(() => {
+    if (!canLoadMap || !mapInstanceRef.current || !maplibreRef.current) {
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+    const maplibre = maplibreRef.current;
+
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+
+    if (!partiesWithCoords.length) {
+      lastMarkerSignatureRef.current = "";
+      return;
+    }
+
+    const bounds = new maplibre.LngLatBounds();
+
+    for (const party of partiesWithCoords) {
+      const lng = Number(party.public_lng);
+      const lat = Number(party.public_lat);
+      const theme = resolveMarkerTheme(party);
+      const popupNode = createPopupNode(party, theme.venue);
+
+      const marker = new maplibre.Marker({
+        element: createMarkerElement(theme.glyph, theme.background, theme.foreground),
+      })
+        .setLngLat([lng, lat])
+        .setPopup(new maplibre.Popup({ offset: 16 }).setDOMContent(popupNode))
+        .addTo(map);
+
+      markersRef.current.push(marker);
+      bounds.extend([lng, lat]);
+    }
+
+    const markerSignature = partiesWithCoords
+      .map((party) => `${party.id}:${party.public_lat}:${party.public_lng}`)
+      .sort()
+      .join("|");
+
+    if (markerSignature !== lastMarkerSignatureRef.current) {
+      if (partiesWithCoords.length === 1) {
+        const singleParty = partiesWithCoords[0];
+        map.easeTo({
+          center: [Number(singleParty.public_lng), Number(singleParty.public_lat)],
+          zoom: 13.5,
+          duration: 650,
+        });
+      } else {
+        map.fitBounds(bounds, {
+          padding: 44,
+          maxZoom: 14,
+          duration: 650,
+        });
+      }
+
+      lastMarkerSignatureRef.current = markerSignature;
+    }
+  }, [canLoadMap, partiesWithCoords]);
 
   if (!canLoadMap) {
     return (
@@ -133,5 +220,5 @@ export function DiscoverMap({ parties }: Props) {
     );
   }
 
-  return <div ref={mapRef} className="h-56 w-full overflow-hidden rounded-2xl border border-zinc-200" />;
+  return <div ref={mapRef} className="h-[22rem] w-full overflow-hidden rounded-2xl border border-zinc-200" />;
 }

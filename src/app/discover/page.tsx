@@ -213,7 +213,7 @@ export default async function DiscoverPage({
   const avatarFallback = String(user?.email?.[0] ?? "G").toUpperCase();
 
   return (
-    <AppShell>
+    <AppShell shellClassName="overflow-visible">
       <DiscoverPremium
         parties={partiesWithUpvotes}
         avatarFallback={avatarFallback}

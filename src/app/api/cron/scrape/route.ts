@@ -15,11 +15,14 @@ const DEFAULT_VENUES = [
   "schwarzesschaf_tuebingen",
 ];
 
-const VENUES = (
+const CONFIGURED_VENUES =
   process.env.INSTAGRAM_SCRAPE_VENUES
     ?.split(",")
     .map((value) => value.trim())
-    .filter((value) => value.length > 0) ?? DEFAULT_VENUES
+    .filter((value) => value.length > 0) ?? [];
+
+const VENUES = Array.from(
+  new Set([...DEFAULT_VENUES, ...CONFIGURED_VENUES].map((value) => value.toLowerCase())),
 );
 const INSTAGRAM_SOURCE = "instagram";
 const SCRAPE_COOLDOWN_MINUTES = (() => {
@@ -30,16 +33,16 @@ const SCRAPE_COOLDOWN_MINUTES = (() => {
   return Math.floor(parsed);
 })();
 const MAX_VENUES_PER_RUN = (() => {
-  const parsed = Number(process.env.INSTAGRAM_MAX_VENUES_PER_RUN ?? "2");
+  const parsed = Number(process.env.INSTAGRAM_MAX_VENUES_PER_RUN ?? String(VENUES.length));
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 2;
+    return Math.max(VENUES.length, 1);
   }
   return Math.min(Math.floor(parsed), Math.max(VENUES.length, 1));
 })();
 const MAX_POSTS_PER_VENUE = (() => {
-  const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "1");
+  const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "3");
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 1;
+    return 3;
   }
   return Math.min(Math.floor(parsed), 3);
 })();
