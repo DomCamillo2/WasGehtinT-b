@@ -240,7 +240,10 @@ export function EventCard({
   const isLocalAvatar = Boolean(avatarSrc?.startsWith("/"));
   const locationLine = resolveVenueLabel(party);
   const normalizedSourceBadge = (party.source_badge ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
-  const shouldShowSourceBadge = Boolean(party.source_badge) && normalizedSourceBadge !== "official scraper";
+  const shouldShowSourceBadge =
+    Boolean(party.source_badge) &&
+    normalizedSourceBadge !== "official scraper" &&
+    !normalizedSourceBadge.includes("instagram");
   const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
   const effectiveUpvoteCount = Math.max(0, upvoteCount ?? party.upvote_count ?? 0);
   const canUpvote = true;

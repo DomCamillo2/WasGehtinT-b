@@ -912,7 +912,7 @@ export function DiscoverPremium({
           )}
         </div>
       ) : view === "calendar" ? (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-20 lg:pb-0">
           <div className="surface-card rounded-[28px] p-3">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-1">
