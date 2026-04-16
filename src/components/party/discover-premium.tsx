@@ -7,8 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   Building2,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Compass,
   Flame,
   Funnel,
@@ -46,31 +44,11 @@ const BERLIN_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Berlin",
 });
 
-const BERLIN_MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("de-DE", {
-  timeZone: "Europe/Berlin",
-  month: "long",
-  year: "numeric",
-});
-
-const BERLIN_TITLE_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", {
-  timeZone: "Europe/Berlin",
-  weekday: "short",
-  day: "2-digit",
-  month: "2-digit",
-});
-
 const BERLIN_CALENDAR_HEADING_FORMATTER = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
   weekday: "long",
   day: "2-digit",
   month: "long",
-});
-
-const BERLIN_DAY_CHIP_FORMATTER = new Intl.DateTimeFormat("de-DE", {
-  timeZone: "Europe/Berlin",
-  weekday: "short",
-  day: "2-digit",
-  month: "2-digit",
 });
 
 type Props = {
@@ -89,84 +67,6 @@ function hasMapCoordinates(party: PartyCardType) {
   return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
 }
 
-function parseGermanDateToIso(value: string): string | null {
-  const normalized = value.trim();
-  if (!normalized) {
-    return null;
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    return normalized;
-  }
-
-  const match = normalized.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-  if (!match) {
-    return null;
-  }
-
-  const [, dayRaw, monthRaw, yearRaw] = match;
-  const day = Number(dayRaw);
-  const month = Number(monthRaw);
-  const year = Number(yearRaw);
-
-  if (month < 1 || month > 12 || day < 1 || day > 31) {
-    return null;
-  }
-
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() + 1 !== month ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
-  const mm = String(month).padStart(2, "0");
-  const dd = String(day).padStart(2, "0");
-  return `${year}-${mm}-${dd}`;
-}
-
-function formatIsoToGerman(value: string | null): string {
-  if (!value) {
-    return "";
-  }
-
-  const [yearRaw, monthRaw, dayRaw] = value.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-
-  if (!year || !month || !day) {
-    return "";
-  }
-
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  return new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-}
-
-function shiftIsoMonth(isoDate: string, monthDelta: number): string {
-  const [yearRaw, monthRaw, dayRaw] = isoDate.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-
-  const nextMonth = month - 1 + monthDelta;
-  const nextYear = year + Math.floor(nextMonth / 12);
-  const normalizedMonthIndex = ((nextMonth % 12) + 12) % 12;
-  const maxDay = new Date(Date.UTC(nextYear, normalizedMonthIndex + 1, 0, 12, 0, 0)).getUTCDate();
-  const clampedDay = Math.min(day, maxDay);
-
-  const mm = String(normalizedMonthIndex + 1).padStart(2, "0");
-  const dd = String(clampedDay).padStart(2, "0");
-  return `${nextYear}-${mm}-${dd}`;
-}
-
 export function DiscoverPremium({
   parties,
   avatarFallback,
@@ -177,13 +77,9 @@ export function DiscoverPremium({
   const router = useRouter();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [view, setView] = useState<ViewKey>("calendar");
-  const [showDateSheet, setShowDateSheet] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [authSheetReason, setAuthSheetReason] = useState("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
-  const [fromDateInput, setFromDateInput] = useState("");
-  const [toDateInput, setToDateInput] = useState("");
-  const [dateSheetMonth, setDateSheetMonth] = useState("");
   const [onlyMappable, setOnlyMappable] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const initialUpvoteCounts = useMemo(() => {
@@ -244,23 +140,12 @@ export function DiscoverPremium({
 
   useEffect(() => {
     setVisibleCount(LOAD_MORE_STEP);
-  }, [filter, fromDateInput, toDateInput, onlyMappable, parties]);
-
-  const fromDate = useMemo(() => parseGermanDateToIso(fromDateInput), [fromDateInput]);
-  const toDate = useMemo(() => parseGermanDateToIso(toDateInput), [toDateInput]);
-  const fromDateGerman = useMemo(() => formatIsoToGerman(fromDate), [fromDate]);
-  const toDateGerman = useMemo(() => formatIsoToGerman(toDate), [toDate]);
+  }, [filter, onlyMappable, parties]);
 
   const todayKey = useMemo(
     () => BERLIN_DAY_KEY_FORMATTER.format(new Date()),
     [],
   );
-
-  useEffect(() => {
-    if (!dateSheetMonth) {
-      setDateSheetMonth(todayKey);
-    }
-  }, [dateSheetMonth, todayKey]);
 
   const sortedParties = useMemo(() => {
     return [...parties].sort((left, right) => {
@@ -359,18 +244,14 @@ export function DiscoverPremium({
     };
 
     return sortedParties.filter((party) => {
-      const dateKey = toDateKeyBerlin(party.starts_at);
-
       if (filter === "clubs" && !isClubEvent(party)) return false;
       if (filter === "daytime" && party.event_scope !== "daytime") return false;
       if (filter === "community" && !party.is_community && party.source_badge !== "Community") return false;
-      if (fromDate && dateKey < fromDate) return false;
-      if (toDate && dateKey > toDate) return false;
       if (onlyMappable && !hasMapCoordinates(party)) return false;
 
       return true;
     });
-  }, [filter, fromDate, onlyMappable, sortedParties, toDate]);
+  }, [filter, onlyMappable, sortedParties]);
 
   const mapParties = useMemo(
     () => filteredParties.filter((party) => hasMapCoordinates(party)),
@@ -464,11 +345,8 @@ export function DiscoverPremium({
 
   function resetToAllView() {
     setFilter("all");
-    setFromDateInput("");
-    setToDateInput("");
     setOnlyMappable(false);
     setView("calendar");
-    setDateSheetMonth(todayKey);
   }
 
   function handleFilterSelection(nextFilter: FilterKey) {
@@ -479,146 +357,6 @@ export function DiscoverPremium({
 
     setFilter(nextFilter);
   }
-
-  const tomorrowKey = useMemo(() => {
-    const date = new Date();
-    date.setUTCDate(date.getUTCDate() + 1);
-    return BERLIN_DAY_KEY_FORMATTER.format(date);
-  }, []);
-
-  const dateStripItems = useMemo(() => {
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date();
-      date.setUTCDate(date.getUTCDate() + index);
-      const key = BERLIN_DAY_KEY_FORMATTER.format(date);
-
-      if (index === 0) {
-        return { key, label: "Heute" };
-      }
-
-      if (index === 1) {
-        return { key, label: "Morgen" };
-      }
-
-      return { key, label: BERLIN_DAY_CHIP_FORMATTER.format(date) };
-    });
-  }, []);
-
-  const activeDateChipKey = useMemo(() => {
-    if (fromDate && toDate && fromDate === toDate) {
-      return fromDate;
-    }
-
-    if (!fromDate && !toDate) {
-      return todayKey;
-    }
-
-    return null;
-  }, [fromDate, toDate, todayKey]);
-
-  const nextWeekendRange = useMemo(() => {
-    const date = new Date();
-    const weekday = (date.getUTCDay() + 6) % 7;
-    const daysUntilSaturday = (5 - weekday + 7) % 7;
-
-    const saturday = new Date(date);
-    saturday.setUTCDate(saturday.getUTCDate() + daysUntilSaturday);
-
-    const sunday = new Date(saturday);
-    sunday.setUTCDate(sunday.getUTCDate() + 1);
-
-    return {
-      from: BERLIN_DAY_KEY_FORMATTER.format(saturday),
-      to: BERLIN_DAY_KEY_FORMATTER.format(sunday),
-    };
-  }, []);
-
-  const nextWeekRange = useMemo(() => {
-    const date = new Date();
-    const weekday = (date.getUTCDay() + 6) % 7;
-    const daysUntilNextMonday = weekday === 0 ? 7 : 7 - weekday;
-
-    const monday = new Date(date);
-    monday.setUTCDate(monday.getUTCDate() + daysUntilNextMonday);
-
-    const sunday = new Date(monday);
-    sunday.setUTCDate(sunday.getUTCDate() + 6);
-
-    return {
-      from: BERLIN_DAY_KEY_FORMATTER.format(monday),
-      to: BERLIN_DAY_KEY_FORMATTER.format(sunday),
-    };
-  }, []);
-
-  const titleDateLabel = useMemo(() => {
-    if (fromDate && toDate && fromDate === toDate && fromDate !== todayKey) {
-      return `am ${BERLIN_TITLE_DATE_FORMATTER.format(new Date(`${fromDate}T12:00:00Z`))}`;
-    }
-
-    if (fromDate || toDate) {
-      return "im Zeitraum";
-    }
-
-    return "heute";
-  }, [fromDate, toDate, todayKey]);
-
-  function applySingleDayFilter(isoDay: string) {
-    setFromDateInput(isoDay);
-    setToDateInput(isoDay);
-    setDateSheetMonth(isoDay);
-    setShowDateSheet(false);
-  }
-
-  function applyWeekendFilter() {
-    setFromDateInput(nextWeekendRange.from);
-    setToDateInput(nextWeekendRange.to);
-    setDateSheetMonth(nextWeekendRange.from);
-    setShowDateSheet(false);
-  }
-
-  function applyNextWeekFilter() {
-    setFromDateInput(nextWeekRange.from);
-    setToDateInput(nextWeekRange.to);
-    setDateSheetMonth(nextWeekRange.from);
-    setShowDateSheet(false);
-  }
-
-  function clearDateFilterToToday() {
-    setFromDateInput("");
-    setToDateInput("");
-    setDateSheetMonth(todayKey);
-    setShowDateSheet(false);
-  }
-
-  const dateSheetMeta = useMemo(() => {
-    const normalizedMonth = /^\d{4}-\d{2}-\d{2}$/.test(dateSheetMonth) ? dateSheetMonth : todayKey;
-    const [yearRaw, monthRaw] = normalizedMonth.split("-");
-    const year = Number(yearRaw);
-    const month = Number(monthRaw);
-    const monthStart = new Date(Date.UTC(year, month - 1, 1, 12, 0, 0));
-    const firstWeekday = (monthStart.getUTCDay() + 6) % 7;
-    const daysInMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
-
-    const cells: Array<{ isoDate: string | null; day: number | null }> = [];
-    for (let i = 0; i < firstWeekday; i++) {
-      cells.push({ isoDate: null, day: null });
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const mm = String(month).padStart(2, "0");
-      const dd = String(day).padStart(2, "0");
-      cells.push({ isoDate: `${year}-${mm}-${dd}`, day });
-    }
-
-    while (cells.length % 7 !== 0) {
-      cells.push({ isoDate: null, day: null });
-    }
-
-    return {
-      monthLabel: BERLIN_MONTH_LABEL_FORMATTER.format(monthStart),
-      cells,
-    };
-  }, [dateSheetMonth]);
 
   const calendarSections = useMemo(() => {
     const grouped = new Map<string, PartyCardType[]>();
@@ -669,11 +407,6 @@ export function DiscoverPremium({
               <h1 className="mt-1.5 max-w-[16ch] text-[2rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)] lg:max-w-[18ch] lg:text-[3.2rem]">
                 {"Was geht in T\u00fcbingen heute?"}
               </h1>
-              {titleDateLabel !== "heute" ? (
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--accent-strong)" }}>
-                  {titleDateLabel}
-                </p>
-              ) : null}
               <div
                 className="mt-3 inline-flex items-center gap-1 rounded-[18px] border p-1"
                 style={{
@@ -760,52 +493,6 @@ export function DiscoverPremium({
         </div>
       </header>
 
-      <div className="space-y-2">
-        <div className="hide-scrollbar flex snap-x items-center gap-2 overflow-x-auto px-1 py-1">
-          {dateStripItems.map((item) => {
-            const active = activeDateChipKey === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => applySingleDayFilter(item.key)}
-                className={`shrink-0 snap-start rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${
-                  active ? "text-white shadow-md" : ""
-                }`}
-                style={
-                  active
-                    ? {
-                        background:
-                          "linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent-strong) 58%, white 42%))",
-                      }
-                    : {
-                        color: "var(--muted-foreground)",
-                        backgroundColor: "color-mix(in srgb, var(--surface-soft) 82%, transparent)",
-                      }
-                }
-              >
-                {item.label}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setShowDateSheet(true)}
-            className="inline-flex shrink-0 snap-start items-center gap-1 rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm"
-            style={{
-              borderColor: "var(--nav-border)",
-              color: "var(--foreground)",
-              backgroundColor: "var(--surface-elevated)",
-            }}
-            aria-label="Kalender öffnen"
-          >
-            <CalendarDays size={14} />
-            <span>Kalender</span>
-          </button>
-        </div>
-
-      </div>
-
       <div className="space-y-3">
         <div className="hide-scrollbar flex snap-x items-center gap-2 overflow-x-auto px-1 py-1">
           {filterItems.map((item) => {
@@ -837,160 +524,6 @@ export function DiscoverPremium({
           })}
         </div>
       </div>
-
-      {showDateSheet ? (
-        <>
-          <button
-            type="button"
-            aria-label="Datumsauswahl schließen"
-            className="fixed inset-0 z-30 bg-black/40"
-            onClick={() => setShowDateSheet(false)}
-          />
-          <div
-            className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md rounded-t-3xl border p-4 shadow-2xl"
-            style={{
-              borderColor: "var(--nav-border)",
-              backgroundColor: "var(--surface-elevated)",
-            }}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-                Datum wählen
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowDateSheet(false)}
-                className="grid h-8 w-8 place-items-center rounded-full"
-                style={{
-                  backgroundColor: "var(--surface-soft)",
-                  color: "var(--muted-foreground)",
-                }}
-                aria-label="Schließen"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={clearDateFilterToToday}
-                className="h-10 rounded-xl border px-2 text-xs font-semibold"
-                style={{ borderColor: "var(--nav-border)", color: "var(--foreground)" }}
-              >
-                Heute
-              </button>
-              <button
-                type="button"
-                onClick={() => applySingleDayFilter(tomorrowKey)}
-                className="h-10 rounded-xl border px-2 text-xs font-semibold"
-                style={{ borderColor: "var(--nav-border)", color: "var(--foreground)" }}
-              >
-                Morgen
-              </button>
-              <button
-                type="button"
-                onClick={applyWeekendFilter}
-                className="h-10 rounded-xl border px-2 text-xs font-semibold"
-                style={{ borderColor: "var(--nav-border)", color: "var(--foreground)" }}
-              >
-                Wochenende
-              </button>
-              <button
-                type="button"
-                onClick={applyNextWeekFilter}
-                className="h-10 rounded-xl border px-2 text-xs font-semibold"
-                style={{ borderColor: "var(--nav-border)", color: "var(--foreground)" }}
-              >
-                Nächste Woche
-              </button>
-            </div>
-
-            <div className="mt-3 surface-card rounded-[24px] p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setDateSheetMonth((current) => shiftIsoMonth(current || todayKey, -1))}
-                  className="grid h-8 w-8 place-items-center rounded-lg"
-                  style={{
-                    backgroundColor: "var(--surface-soft)",
-                    color: "var(--foreground)",
-                  }}
-                  aria-label="Vorheriger Monat"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <p className="text-sm font-semibold capitalize" style={{ color: "var(--foreground)" }}>
-                  {dateSheetMeta.monthLabel}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setDateSheetMonth((current) => shiftIsoMonth(current || todayKey, 1))}
-                  className="grid h-8 w-8 place-items-center rounded-lg"
-                  style={{
-                    backgroundColor: "var(--surface-soft)",
-                    color: "var(--foreground)",
-                  }}
-                  aria-label="Nächster Monat"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-
-              <div className="mb-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
-                {"Mo Di Mi Do Fr Sa So".split(" ").map((weekday) => (
-                  <span key={weekday}>{weekday}</span>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {dateSheetMeta.cells.map((cell, index) => {
-                  if (!cell.isoDate || !cell.day) {
-                    return <div key={`sheet-empty-${index}`} className="h-9" />;
-                  }
-
-                  const active = activeDateChipKey === cell.isoDate;
-
-                  return (
-                    <button
-                      key={cell.isoDate}
-                      type="button"
-                      onClick={() => applySingleDayFilter(cell.isoDate!)}
-                      className={`h-9 rounded-lg text-xs font-semibold ${active ? "text-white" : ""}`}
-                      style={
-                        active
-                          ? {
-                              background:
-                                "linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent-strong) 58%, white 42%))",
-                            }
-                          : {
-                              backgroundColor: "var(--surface-soft)",
-                              color: "var(--foreground)",
-                            }
-                      }
-                    >
-                      {cell.day}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setFromDateInput("");
-                  setToDateInput("");
-                  setShowDateSheet(false);
-                }}
-                className="mt-3 h-9 w-full rounded-xl border px-3 text-xs font-semibold"
-                style={{ borderColor: "var(--nav-border)", color: "var(--foreground)" }}
-              >
-                Datum zurücksetzen
-              </button>
-            </div>
-          </div>
-        </>
-      ) : null}
 
       {showFilterSheet ? (
         <>
@@ -1024,10 +557,6 @@ export function DiscoverPremium({
                 <X size={14} />
               </button>
             </div>
-
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-              Datum steuerst du oben über die Tagesleiste und den Kalender.
-            </p>
 
             <button
               type="button"
@@ -1121,12 +650,6 @@ export function DiscoverPremium({
             </div>
           </div>
         </>
-      ) : null}
-
-      {fromDateGerman || toDateGerman ? (
-        <p className="px-2 text-xs" style={{ color: "var(--muted-foreground)" }}>
-          Zeitraum: {fromDateGerman || "..."} - {toDateGerman || "..."}
-        </p>
       ) : null}
 
       {hottestParty && topScore > 0 && view !== "list" ? (
