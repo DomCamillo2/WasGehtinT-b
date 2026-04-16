@@ -18,6 +18,14 @@ const HOLLE_ROSE = "#be185d";
 const SCHAF_CYAN = "#0e7490";
 const DEFAULT_MARKER = "#18181b";
 
+const VENUE_COORDS = {
+  kuckuck: { lat: 48.5413588, lng: 9.0599431 },
+  clubhaus: { lat: 48.5243852, lng: 9.0605991 },
+  schlachthaus: { lat: 48.5255, lng: 9.0515 },
+  frauHolle: { lat: 48.5203906, lng: 9.051808 },
+  schwarzesSchaf: { lat: 48.5212656, lng: 9.0574061 },
+} as const;
+
 const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = [
   { match: /kuckuck/i, src: "/logos/venues/kuckuck.png", alt: "Kuckuck Logo" },
   { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
@@ -37,6 +45,37 @@ const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = 
 
 function hasCoordinates(party: PartyCard) {
   return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
+}
+
+function getVenueKey(party: PartyCard): "kuckuck" | "clubhaus" | "schlachthaus" | "frau-holle" | "schwarzes-schaf" | null {
+  const location = `${party.location_name ?? ""} ${party.vibe_label} ${party.title}`.toLowerCase();
+
+  if (location.includes("kuckuck")) return "kuckuck";
+  if (location.includes("clubhaus")) return "clubhaus";
+  if (location.includes("schlachthaus")) return "schlachthaus";
+  if (location.includes("frau holle") || location.includes("frau_holle") || location.includes("holle") || location.includes("haaggasse")) {
+    return "frau-holle";
+  }
+  if (location.includes("schwarzes schaf") || location.includes("schwarzesschaf") || location.includes("schaf")) {
+    return "schwarzes-schaf";
+  }
+
+  return null;
+}
+
+function resolvePartyCoordinates(party: PartyCard): { lat: number; lng: number } | null {
+  if (Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng)) {
+    return { lat: Number(party.public_lat), lng: Number(party.public_lng) };
+  }
+
+  const venueKey = getVenueKey(party);
+  if (venueKey === "kuckuck") return VENUE_COORDS.kuckuck;
+  if (venueKey === "clubhaus") return VENUE_COORDS.clubhaus;
+  if (venueKey === "schlachthaus") return VENUE_COORDS.schlachthaus;
+  if (venueKey === "frau-holle") return VENUE_COORDS.frauHolle;
+  if (venueKey === "schwarzes-schaf") return VENUE_COORDS.schwarzesSchaf;
+
+  return null;
 }
 
 function resolveMarkerTheme(party: PartyCard) {
@@ -157,7 +196,7 @@ export function DiscoverMap({ parties }: Props) {
     if (typeof window === "undefined") return false;
     return hasExternalServicesConsent();
   });
-  const partiesWithCoords = useMemo(() => parties.filter(hasCoordinates), [parties]);
+  const partiesWithCoords = useMemo(() => parties.filter((party) => resolvePartyCoordinates(party) !== null), [parties]);
 
   useEffect(() => {
     if (!canLoadMap || !mapRef.current || mapInstanceRef.current) {
@@ -220,8 +259,13 @@ export function DiscoverMap({ parties }: Props) {
     const bounds = new maplibre.LngLatBounds();
 
     for (const party of partiesWithCoords) {
-      const lng = Number(party.public_lng);
-      const lat = Number(party.public_lat);
+      const coords = resolvePartyCoordinates(party);
+      if (!coords) {
+        continue;
+      }
+
+      const lng = coords.lng;
+      const lat = coords.lat;
       const theme = resolveMarkerTheme(party);
       const popupNode = createPopupNode(party, theme.venue);
 
@@ -237,15 +281,22 @@ export function DiscoverMap({ parties }: Props) {
     }
 
     const markerSignature = partiesWithCoords
-      .map((party) => `${party.id}:${party.public_lat}:${party.public_lng}`)
+      .map((party) => {
+        const coords = resolvePartyCoordinates(party);
+        return coords ? `${party.id}:${coords.lat}:${coords.lng}` : party.id;
+      })
       .sort()
       .join("|");
 
     if (markerSignature !== lastMarkerSignatureRef.current) {
       if (partiesWithCoords.length === 1) {
         const singleParty = partiesWithCoords[0];
+        const singleCoords = resolvePartyCoordinates(singleParty);
+        if (!singleCoords) {
+          return;
+        }
         map.easeTo({
-          center: [Number(singleParty.public_lng), Number(singleParty.public_lat)],
+          center: [singleCoords.lng, singleCoords.lat],
           zoom: 13.5,
           duration: 650,
         });
