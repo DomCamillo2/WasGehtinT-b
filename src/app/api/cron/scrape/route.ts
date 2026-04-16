@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 
 const DEFAULT_VENUES = [
   "frau_holle_tuebingen",
+  "zahnis_tuebingen",
   "schwarzes_schaf_tuebingen",
   "schwarzesschaf_tuebingen",
 ];
@@ -106,6 +107,9 @@ function isLikelyEventCaption(caption: string): boolean {
 
 function resolveFallbackLocation(venue: string): string {
   const normalized = venue.toLowerCase();
+  if (normalized.includes("zahnis")) {
+    return "Zahnis Tuebingen";
+  }
   if (normalized.includes("schaf")) {
     return "Schwarzes Schaf, Tuebingen";
   }
