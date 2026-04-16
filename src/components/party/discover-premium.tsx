@@ -106,7 +106,7 @@ export function DiscoverPremium({
 }: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [view, setView] = useState<ViewKey>("calendar");
+  const [view, setView] = useState<ViewKey>("list");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [authSheetReason, setAuthSheetReason] = useState("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
@@ -388,7 +388,7 @@ export function DiscoverPremium({
   function resetToAllView() {
     setFilter("all");
     setOnlyMappable(false);
-    setView("calendar");
+    setView("list");
     setSelectedCalendarDate(todayKey);
     setCalendarMonthDate(todayKey);
   }
