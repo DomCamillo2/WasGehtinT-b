@@ -51,6 +51,19 @@ const BERLIN_CALENDAR_HEADING_FORMATTER = new Intl.DateTimeFormat("de-DE", {
   month: "long",
 });
 
+const BERLIN_MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  month: "long",
+  year: "numeric",
+});
+
+const BERLIN_DAY_CHIP_FORMATTER = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  weekday: "short",
+  day: "2-digit",
+  month: "2-digit",
+});
+
 type Props = {
   parties: PartyCardType[];
   avatarFallback: string;
@@ -67,6 +80,23 @@ function hasMapCoordinates(party: PartyCardType) {
   return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
 }
 
+function shiftIsoMonth(isoDate: string, monthDelta: number): string {
+  const [yearRaw, monthRaw, dayRaw] = isoDate.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+
+  const nextMonth = month - 1 + monthDelta;
+  const nextYear = year + Math.floor(nextMonth / 12);
+  const normalizedMonthIndex = ((nextMonth % 12) + 12) % 12;
+  const maxDay = new Date(Date.UTC(nextYear, normalizedMonthIndex + 1, 0, 12, 0, 0)).getUTCDate();
+  const clampedDay = Math.min(day, maxDay);
+
+  const mm = String(normalizedMonthIndex + 1).padStart(2, "0");
+  const dd = String(clampedDay).padStart(2, "0");
+  return `${nextYear}-${mm}-${dd}`;
+}
+
 export function DiscoverPremium({
   parties,
   avatarFallback,
@@ -81,6 +111,8 @@ export function DiscoverPremium({
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [authSheetReason, setAuthSheetReason] = useState("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
   const [onlyMappable, setOnlyMappable] = useState(false);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>("");
+  const [calendarMonthDate, setCalendarMonthDate] = useState<string>("");
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const initialUpvoteCounts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -146,6 +178,16 @@ export function DiscoverPremium({
     () => BERLIN_DAY_KEY_FORMATTER.format(new Date()),
     [],
   );
+
+  useEffect(() => {
+    if (!selectedCalendarDate) {
+      setSelectedCalendarDate(todayKey);
+    }
+
+    if (!calendarMonthDate) {
+      setCalendarMonthDate(todayKey);
+    }
+  }, [calendarMonthDate, selectedCalendarDate, todayKey]);
 
   const sortedParties = useMemo(() => {
     return [...parties].sort((left, right) => {
@@ -347,6 +389,8 @@ export function DiscoverPremium({
     setFilter("all");
     setOnlyMappable(false);
     setView("calendar");
+    setSelectedCalendarDate(todayKey);
+    setCalendarMonthDate(todayKey);
   }
 
   function handleFilterSelection(nextFilter: FilterKey) {
@@ -358,25 +402,47 @@ export function DiscoverPremium({
     setFilter(nextFilter);
   }
 
-  const calendarSections = useMemo(() => {
-    const grouped = new Map<string, PartyCardType[]>();
+  const selectedCalendarEvents = useMemo(() => {
+    return filteredParties.filter((party) => toDateKeyBerlin(party.starts_at) === selectedCalendarDate);
+  }, [filteredParties, selectedCalendarDate]);
 
-    for (const party of filteredParties) {
-      const dateKey = toDateKeyBerlin(party.starts_at);
-      const existing = grouped.get(dateKey);
-      if (existing) {
-        existing.push(party);
-      } else {
-        grouped.set(dateKey, [party]);
-      }
+  const selectedCalendarLabel = useMemo(() => {
+    if (!selectedCalendarDate) {
+      return "";
     }
 
-    return Array.from(grouped.entries()).map(([dateKey, items]) => ({
-      dateKey,
-      label: BERLIN_CALENDAR_HEADING_FORMATTER.format(new Date(`${dateKey}T12:00:00Z`)),
-      items,
-    }));
-  }, [filteredParties]);
+    return BERLIN_CALENDAR_HEADING_FORMATTER.format(new Date(`${selectedCalendarDate}T12:00:00Z`));
+  }, [selectedCalendarDate]);
+
+  const calendarMonthMeta = useMemo(() => {
+    const normalizedMonth = /^\d{4}-\d{2}-\d{2}$/.test(calendarMonthDate) ? calendarMonthDate : todayKey;
+    const [yearRaw, monthRaw] = normalizedMonth.split("-");
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    const monthStart = new Date(Date.UTC(year, month - 1, 1, 12, 0, 0));
+    const firstWeekday = (monthStart.getUTCDay() + 6) % 7;
+    const daysInMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
+
+    const cells: Array<{ isoDate: string | null; day: number | null }> = [];
+    for (let i = 0; i < firstWeekday; i += 1) {
+      cells.push({ isoDate: null, day: null });
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const mm = String(month).padStart(2, "0");
+      const dd = String(day).padStart(2, "0");
+      cells.push({ isoDate: `${year}-${mm}-${dd}`, day });
+    }
+
+    while (cells.length % 7 !== 0) {
+      cells.push({ isoDate: null, day: null });
+    }
+
+    return {
+      monthLabel: BERLIN_MONTH_LABEL_FORMATTER.format(monthStart),
+      cells,
+    };
+  }, [calendarMonthDate, todayKey]);
 
   return (
     <div className="relative space-y-4 pb-32 lg:space-y-6 lg:pb-20">
@@ -685,50 +751,121 @@ export function DiscoverPremium({
         </div>
       ) : view === "calendar" ? (
         <div className="space-y-4">
-          {calendarSections.length ? (
-            calendarSections.map((section) => (
-              <section key={section.dateKey} className="space-y-2">
-                <div
-                  className="sticky top-[5.25rem] z-10 rounded-full px-3 py-1.5 text-xs font-semibold capitalize backdrop-blur"
-                  style={{
-                    color: "var(--foreground)",
-                    backgroundColor: "color-mix(in srgb, var(--surface-elevated) 84%, transparent)",
-                    border: "1px solid var(--border-soft)",
-                  }}
-                >
-                  {section.label}
-                </div>
-                <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-                  {section.items.map((party) => (
-                    <EventCard
-                      key={party.id}
-                      party={party}
-                      expanded={expandedCardId === party.id}
-                      isAuthenticated={isAuthenticated}
-                      upvoted={upvotedPartyIds.includes(party.id)}
-                      upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
-                      isHotNow={hotPartyIds.has(party.id)}
-                      rankLabel={
-                        rankByPartyId.has(party.id)
-                          ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
-                          : null
-                      }
-                      onToggleUpvote={() => toggleUpvote(party.id)}
-                      onRequestAction={handleRequestAction}
-                      onChatAction={handleChatAction}
-                      onToggle={() =>
-                        setExpandedCardId((current) => (current === party.id ? null : party.id))
-                      }
-                    />
-                  ))}
-                </div>
-              </section>
-            ))
-          ) : (
-            <div className="surface-card rounded-[24px] p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Für den aktiven Filter sind aktuell keine Events verfügbar.
+          <div className="surface-card rounded-[28px] p-3 sm:p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setCalendarMonthDate((current) => shiftIsoMonth(current || todayKey, -1))}
+                className="grid h-9 w-9 place-items-center rounded-lg"
+                style={{ backgroundColor: "var(--surface-soft)", color: "var(--foreground)" }}
+                aria-label="Vorheriger Monat"
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+              <p className="text-sm font-semibold capitalize" style={{ color: "var(--foreground)" }}>
+                {calendarMonthMeta.monthLabel}
+              </p>
+              <button
+                type="button"
+                onClick={() => setCalendarMonthDate((current) => shiftIsoMonth(current || todayKey, 1))}
+                className="grid h-9 w-9 place-items-center rounded-lg"
+                style={{ backgroundColor: "var(--surface-soft)", color: "var(--foreground)" }}
+                aria-label="Nächster Monat"
+              >
+                <span aria-hidden="true">›</span>
+              </button>
             </div>
-          )}
+
+            <div className="mb-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+              {"Mo Di Mi Do Fr Sa So".split(" ").map((weekday) => (
+                <span key={weekday}>{weekday}</span>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarMonthMeta.cells.map((cell, index) => {
+                if (!cell.isoDate || !cell.day) {
+                  return <div key={`calendar-empty-${index}`} className="h-9" />;
+                }
+
+                const hasEvents = filteredParties.some((party) => toDateKeyBerlin(party.starts_at) === cell.isoDate);
+                const active = selectedCalendarDate === cell.isoDate;
+
+                return (
+                  <button
+                    key={cell.isoDate}
+                    type="button"
+                    onClick={() => setSelectedCalendarDate(cell.isoDate!)}
+                    className={`relative h-9 rounded-lg text-xs font-semibold ${active ? "text-white" : ""}`}
+                    style={
+                      active
+                        ? {
+                            background:
+                              "linear-gradient(135deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent-strong) 58%, white 42%))",
+                          }
+                        : {
+                            backgroundColor: "var(--surface-soft)",
+                            color: "var(--foreground)",
+                          }
+                    }
+                    aria-label={BERLIN_DAY_CHIP_FORMATTER.format(new Date(`${cell.isoDate}T12:00:00Z`))}
+                  >
+                    {cell.day}
+                    {hasEvents ? <span className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${active ? "bg-white" : "bg-indigo-500"}`} /> : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCalendarDate(todayKey);
+                setCalendarMonthDate(todayKey);
+              }}
+              className="mt-3 h-9 w-full rounded-xl border px-3 text-xs font-semibold"
+              style={{ borderColor: "var(--nav-border)", color: "var(--foreground)" }}
+            >
+              Heute
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <p className="px-1 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+              Events am {selectedCalendarLabel}
+            </p>
+
+            {selectedCalendarEvents.length ? (
+              <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                {selectedCalendarEvents.map((party) => (
+                  <EventCard
+                    key={party.id}
+                    party={party}
+                    expanded={expandedCardId === party.id}
+                    isAuthenticated={isAuthenticated}
+                    upvoted={upvotedPartyIds.includes(party.id)}
+                    upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                    isHotNow={hotPartyIds.has(party.id)}
+                    rankLabel={
+                      rankByPartyId.has(party.id)
+                        ? `Platz #${rankByPartyId.get(party.id)} nach Upvotes`
+                        : null
+                    }
+                    onToggleUpvote={() => toggleUpvote(party.id)}
+                    onRequestAction={handleRequestAction}
+                    onChatAction={handleChatAction}
+                    onToggle={() =>
+                      setExpandedCardId((current) => (current === party.id ? null : party.id))
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="surface-card rounded-[24px] p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                Keine Events für diesen Tag.
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
