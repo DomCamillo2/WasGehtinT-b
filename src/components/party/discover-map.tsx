@@ -18,12 +18,57 @@ const HOLLE_ROSE = "#be185d";
 const SCHAF_CYAN = "#0e7490";
 const DEFAULT_MARKER = "#18181b";
 
+const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = [
+  { match: /kuckuck/i, src: "/logos/venues/kuckuck.png", alt: "Kuckuck Logo" },
+  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
+  { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
+  { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
+  {
+    match: /frau\s*holle|frauholle|frau_holle_tuebingen|holle\s*t(?:ue|u)bingen|haaggasse\s*15\/?2/i,
+    src: "/logos/venues/frau-holle.svg",
+    alt: "Frau Holle Icon",
+  },
+  {
+    match: /schwarzes\s*schaf|schwarzes[-_.\s]*schaf|schwarzesschaf\.tuebingen|schwarzes_schaf_tuebingen|schwarzesschaf_tuebingen/i,
+    src: "/logos/venues/schwarzes-schaf.svg",
+    alt: "Schwarzes Schaf Icon",
+  },
+];
+
 function hasCoordinates(party: PartyCard) {
   return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
 }
 
 function resolveMarkerTheme(party: PartyCard) {
   const location = `${party.location_name ?? ""} ${party.vibe_label} ${party.title}`.toLowerCase();
+
+  for (const matcher of VENUE_ICON_MATCHERS) {
+    if (matcher.match.test(location)) {
+      if (matcher.src.includes("kuckuck")) {
+        return { background: KUCKUCK_RED, foreground: "#ffffff", glyph: "K", venue: "Kuckuck", iconSrc: matcher.src, iconAlt: matcher.alt };
+      }
+
+      if (matcher.src.includes("schlachthaus")) {
+        return { background: SCHLACHTHAUS_BROWN, foreground: "#ffffff", glyph: "S", venue: "Schlachthaus", iconSrc: matcher.src, iconAlt: matcher.alt };
+      }
+
+      if (matcher.src.includes("clubhaus")) {
+        return { background: CLUBHAUS_BLUE, foreground: "#ffffff", glyph: "C", venue: "Clubhaus", iconSrc: matcher.src, iconAlt: matcher.alt };
+      }
+
+      if (matcher.src.includes("epplehaus")) {
+        return { background: "#15803d", foreground: "#ffffff", glyph: "E", venue: "Epplehaus", iconSrc: matcher.src, iconAlt: matcher.alt };
+      }
+
+      if (matcher.src.includes("frau-holle")) {
+        return { background: HOLLE_ROSE, foreground: "#ffffff", glyph: "H", venue: "Frau Holle", iconSrc: matcher.src, iconAlt: matcher.alt };
+      }
+
+      if (matcher.src.includes("schwarzes-schaf")) {
+        return { background: SCHAF_CYAN, foreground: "#ffffff", glyph: "SS", venue: "Schwarzes Schaf", iconSrc: matcher.src, iconAlt: matcher.alt };
+      }
+    }
+  }
 
   if (location.includes("kuckuck")) {
     return { background: KUCKUCK_RED, foreground: "#ffffff", glyph: "K", venue: "Kuckuck" };
@@ -80,14 +125,24 @@ function createPopupNode(party: PartyCard, venueLabel: string) {
   return root;
 }
 
-function createMarkerElement(glyph: string, background: string, foreground: string) {
+function createMarkerElement(theme: { glyph: string; background: string; foreground: string; iconSrc?: string; iconAlt?: string }) {
   const marker = document.createElement("div");
   marker.className =
-    "grid h-9 w-9 place-items-center rounded-full border text-[10px] font-bold shadow-[0_10px_24px_-14px_rgba(2,6,23,0.7)]";
-  marker.style.backgroundColor = background;
-  marker.style.color = foreground;
+    "grid h-10 w-10 place-items-center overflow-hidden rounded-full border text-[10px] font-bold shadow-[0_10px_24px_-14px_rgba(2,6,23,0.7)]";
+  marker.style.backgroundColor = theme.background;
+  marker.style.color = theme.foreground;
   marker.style.borderColor = "rgba(255,255,255,0.78)";
-  marker.textContent = glyph;
+
+  if (theme.iconSrc) {
+    const image = document.createElement("img");
+    image.src = theme.iconSrc;
+    image.alt = theme.iconAlt ?? theme.glyph;
+    image.className = "h-full w-full object-cover";
+    marker.appendChild(image);
+    return marker;
+  }
+
+  marker.textContent = theme.glyph;
   return marker;
 }
 
@@ -171,7 +226,7 @@ export function DiscoverMap({ parties }: Props) {
       const popupNode = createPopupNode(party, theme.venue);
 
       const marker = new maplibre.Marker({
-        element: createMarkerElement(theme.glyph, theme.background, theme.foreground),
+        element: createMarkerElement(theme),
       })
         .setLngLat([lng, lat])
         .setPopup(new maplibre.Popup({ offset: 16 }).setDOMContent(popupNode))
