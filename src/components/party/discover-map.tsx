@@ -97,6 +97,7 @@ export function DiscoverMap({ parties }: Props) {
   const maplibreRef = useRef<any>(null);
   const markersRef = useRef<Array<import("maplibre-gl").Marker>>([]);
   const lastMarkerSignatureRef = useRef<string>("");
+  const [mapReady, setMapReady] = useState(false);
   const [canLoadMap, setCanLoadMap] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return hasExternalServicesConsent();
@@ -126,6 +127,11 @@ export function DiscoverMap({ parties }: Props) {
         zoom: 12,
       });
       mapInstanceRef.current = map;
+      map.once("load", () => {
+        if (mounted) {
+          setMapReady(true);
+        }
+      });
     })();
 
     return () => {
@@ -136,11 +142,12 @@ export function DiscoverMap({ parties }: Props) {
       mapInstanceRef.current = null;
       maplibreRef.current = null;
       lastMarkerSignatureRef.current = "";
+      setMapReady(false);
     };
   }, [canLoadMap]);
 
   useEffect(() => {
-    if (!canLoadMap || !mapInstanceRef.current || !maplibreRef.current) {
+    if (!canLoadMap || !mapReady || !mapInstanceRef.current || !maplibreRef.current) {
       return;
     }
 
@@ -197,7 +204,7 @@ export function DiscoverMap({ parties }: Props) {
 
       lastMarkerSignatureRef.current = markerSignature;
     }
-  }, [canLoadMap, partiesWithCoords]);
+  }, [canLoadMap, mapReady, partiesWithCoords]);
 
   if (!canLoadMap) {
     return (
