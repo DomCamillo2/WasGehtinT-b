@@ -3,17 +3,16 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
-import { getPartyAddressForUser, requireUser } from "@/lib/data";
+import { loadPartyAddressPageData } from "@/services/parties/party-address-service";
 
 export default async function PartyAddressPage({
   params,
 }: {
   params: Promise<{ partyId: string }>;
 }) {
-  const { user } = await requireUser();
   const { partyId } = await params;
 
-  const data = await getPartyAddressForUser(partyId, user.id);
+  const data = await loadPartyAddressPageData(partyId);
   if (!data) {
     notFound();
   }
@@ -26,13 +25,13 @@ export default async function PartyAddressPage({
         {data.location ? (
           <>
             <p className="text-sm text-zinc-700">
-              {data.location.street} {data.location.house_number}
+              {data.location.street} {data.location.houseNumber}
             </p>
             <p className="text-sm text-zinc-700">
-              {data.location.postal_code} {data.location.city}
+              {data.location.postalCode} {data.location.city}
             </p>
-            {data.location.address_note ? (
-              <p className="text-sm text-zinc-500">Hinweis: {data.location.address_note}</p>
+            {data.location.addressNote ? (
+              <p className="text-sm text-zinc-500">Hinweis: {data.location.addressNote}</p>
             ) : null}
           </>
         ) : (

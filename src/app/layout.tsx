@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { GoogleAnalyticsConsent } from "@/components/analytics/google-analytics-consent";
 import { CookieConsentBannerMount } from "@/components/layout/cookie-consent-banner-mount";
+import { ToastProvider } from "@/components/ui/toast-provider";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
@@ -38,9 +39,11 @@ export default function RootLayout({
         <ThemeInitScript />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <GoogleAnalyticsConsent />
-        {children}
-        <CookieConsentBannerMount />
+        <ToastProvider>
+          <GoogleAnalyticsConsent />
+          {children}
+          <CookieConsentBannerMount />
+        </ToastProvider>
       </body>
     </html>
   );

@@ -1,20 +1,18 @@
 import { createRequestAction } from "@/app/actions/requests";
 import { PrimaryButton } from "@/components/ui/primary-button";
-
-type BringItem = {
-  id: string;
-  item_name: string;
-  quantity_needed: number;
-};
+import { RequestFormBringItem } from "@/services/parties/party-card-view-model";
 
 type Props = {
   partyId: string;
-  bringItems: BringItem[];
+  bringItems: RequestFormBringItem[];
 };
 
 export function RequestForm({ partyId, bringItems }: Props) {
   return (
-    <form action={createRequestAction} className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+    <form
+      action={createRequestAction}
+      className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3"
+    >
       <input type="hidden" name="partyId" value={partyId} />
       <div className="grid grid-cols-3 gap-2">
         <input
@@ -41,7 +39,7 @@ export function RequestForm({ partyId, bringItems }: Props) {
               <label key={item.id} className="flex items-center gap-2 text-xs text-zinc-700">
                 <input type="checkbox" name="bringItemId" value={item.id} />
                 <span>
-                  {item.item_name} (benötigt: {item.quantity_needed})
+                  {item.itemName} (benoetigt: {item.quantityNeeded})
                 </span>
               </label>
             ))}

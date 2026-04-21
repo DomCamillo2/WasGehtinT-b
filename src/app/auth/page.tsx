@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { SplashAuth } from "@/components/landing/splash-auth";
 import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserOrNull } from "@/services/auth/session-service";
 
 export default async function AuthPage() {
   if (!hasSupabaseEnv()) {
@@ -19,10 +19,7 @@ export default async function AuthPage() {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUserOrNull();
 
   if (user) {
     redirect("/discover");

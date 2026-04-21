@@ -4,9 +4,11 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast-provider";
+import { updateCurrentUserPassword } from "@/services/auth/reset-password-service";
 
 export function ResetPasswordForm() {
+  const { showToast } = useToast();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,30 +22,30 @@ export function ResetPasswordForm() {
 
     if (password.length < 8) {
       setError("Passwort muss mindestens 8 Zeichen lang sein.");
+      showToast({ variant: "error", title: "Ungültiges Passwort", message: "Mindestens 8 Zeichen erforderlich." });
       return;
     }
 
     if (password !== confirmPassword) {
       setError("Passwörter stimmen nicht überein.");
+      showToast({ variant: "error", title: "Passwörter stimmen nicht überein" });
       return;
     }
 
     setSaving(true);
 
-    const supabase = createClient();
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-    });
+    const result = await updateCurrentUserPassword(password);
 
     setSaving(false);
 
-    if (updateError) {
-      setError(updateError.message || "Passwort konnte nicht aktualisiert werden.");
+    if (!result.ok) {
+      setError(result.message);
+      showToast({ variant: "error", title: "Passwort konnte nicht gespeichert werden", message: result.message });
       return;
     }
 
     setSuccess("Passwort aktualisiert. Du kannst dich jetzt einloggen.");
+    showToast({ variant: "success", title: "Passwort aktualisiert" });
   }
 
   return (

@@ -1,11 +1,11 @@
-import { retryWebhookEventAction } from "@/app/actions/webhooks";
 import Link from "next/link";
+import { retryWebhookEventAction } from "@/app/actions/webhooks";
 import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
-import { formatDateTime } from "@/lib/format";
 import { requireInternalAdmin } from "@/lib/admin-guard";
-import { getRecentWebhookEvents } from "@/lib/webhook-events";
+import { formatDateTime } from "@/lib/format";
+import { loadHostWebhookEvents } from "@/services/host/webhook-events-page-service";
 
 type SearchParams = Promise<{ status?: string; q?: string }>;
 
@@ -59,25 +59,20 @@ export default async function HostWebhookEventsPage({
     : "all";
   const q = String(params.q ?? "").trim().toLowerCase();
 
-  const events = await getRecentWebhookEvents(150);
+  const events = await loadHostWebhookEvents(150);
   const filteredEvents = events.filter((event) => {
-    const state = statusLabel(event.processed_at, event.processing_error);
+    const state = statusLabel(event.processedAt, event.processingError);
     const matchesStatus = activeStatus === "all" || state === activeStatus;
     const matchesQuery =
-      !q ||
-      event.event_id.toLowerCase().includes(q) ||
-      event.event_type.toLowerCase().includes(q);
+      !q || event.eventId.toLowerCase().includes(q) || event.eventType.toLowerCase().includes(q);
     return matchesStatus && matchesQuery;
   });
 
-  const failedCount = events.filter((event) => event.processing_error).length;
+  const failedCount = events.filter((event) => event.processingError).length;
 
   return (
     <AppShell>
-      <ScreenHeader
-        title="Webhook Events"
-        subtitle="Interne Stripe-Verarbeitung und Fehlerstatus"
-      />
+      <ScreenHeader title="Webhook Events" subtitle="Interne Stripe-Verarbeitung und Fehlerstatus" />
 
       <Card className="mb-3 grid grid-cols-2 gap-2 text-xs text-zinc-700">
         <p>Gesamt: {events.length}</p>
@@ -97,9 +92,7 @@ export default async function HostWebhookEventsPage({
               key={status}
               href={filterHref(status, q)}
               className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                activeStatus === status
-                  ? "bg-zinc-900 text-white"
-                  : "bg-zinc-100 text-zinc-700"
+                activeStatus === status ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700"
               }`}
             >
               {status}
@@ -125,35 +118,33 @@ export default async function HostWebhookEventsPage({
       <div className="space-y-2">
         {filteredEvents.length ? (
           filteredEvents.map((event) => (
-            <Card key={event.event_id} className="space-y-2">
+            <Card key={event.eventId} className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-zinc-900">{event.event_type}</p>
+                <p className="text-xs font-semibold text-zinc-900">{event.eventType}</p>
                 <span
                   className={`rounded-full px-2 py-1 text-[10px] font-semibold ${statusBadge(
-                    event.processed_at,
-                    event.processing_error,
+                    event.processedAt,
+                    event.processingError,
                   )}`}
                 >
-                  {statusLabel(event.processed_at, event.processing_error)}
+                  {statusLabel(event.processedAt, event.processingError)}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-1 text-[11px] text-zinc-600">
                 <p>Mode: {event.livemode ? "live" : "test"}</p>
-                <p>Erstellt: {formatDateTime(event.created_at)}</p>
-                <p>ID: {event.event_id.slice(0, 18)}...</p>
-                <p>
-                  Verarbeitet: {event.processed_at ? formatDateTime(event.processed_at) : "-"}
-                </p>
+                <p>Erstellt: {formatDateTime(event.createdAt)}</p>
+                <p>ID: {event.eventId.slice(0, 18)}...</p>
+                <p>Verarbeitet: {event.processedAt ? formatDateTime(event.processedAt) : "-"}</p>
               </div>
 
-              {event.processing_error ? (
+              {event.processingError ? (
                 <div className="space-y-2">
                   <p className="rounded-lg bg-red-50 px-2 py-1 text-[11px] text-red-700">
-                    Fehler: {event.processing_error}
+                    Fehler: {event.processingError}
                   </p>
                   <form action={retryWebhookEventAction}>
-                    <input type="hidden" name="eventId" value={event.event_id} />
+                    <input type="hidden" name="eventId" value={event.eventId} />
                     <button
                       type="submit"
                       className="h-8 rounded-lg bg-zinc-900 px-3 text-[11px] font-semibold text-white"
@@ -167,9 +158,7 @@ export default async function HostWebhookEventsPage({
           ))
         ) : (
           <Card>
-            <p className="text-sm text-zinc-500">
-              Keine Webhook-Events für die aktuelle Filterung gefunden.
-            </p>
+            <p className="text-sm text-zinc-500">Keine Webhook-Events fuer die aktuelle Filterung gefunden.</p>
           </Card>
         )}
       </div>

@@ -6,7 +6,7 @@ import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
 import { formatDateTime, formatEuroFromCents } from "@/lib/format";
 import { getRequestStatusMeta } from "@/lib/status-ui";
-import { getHostDashboard, getUserRole, requireUser } from "@/lib/data";
+import { loadHostPageData } from "@/services/host/host-page-service";
 
 const CreatePartyForm = dynamic(
   () => import("@/components/host/create-party-form").then((module) => module.CreatePartyForm),
@@ -20,10 +20,7 @@ const CreatePartyForm = dynamic(
 );
 
 export default async function HostPage() {
-  const { user } = await requireUser();
-  const role = await getUserRole(user.id);
-  const { dashboard, pending, vibes } = await getHostDashboard(user.id);
-  const isAdmin = role === "admin";
+  const { dashboard, pendingRequests, vibes, isAdmin } = await loadHostPageData();
 
   return (
     <AppShell>
@@ -56,32 +53,30 @@ export default async function HostPage() {
 
       <section className="mt-5 space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Offene Anfragen</h2>
-        {pending.length ? (
-          pending.map((request) => {
+        {pendingRequests.length ? (
+          pendingRequests.map((request) => {
             const status = getRequestStatusMeta("pending");
 
             return (
-              <Card key={String(request.id)} className="space-y-2">
+              <Card key={request.id} className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold text-zinc-900">
-                    {String((request.parties as { title?: string } | null)?.title ?? "Party")}
-                  </p>
+                  <p className="text-sm font-semibold text-zinc-900">{request.partyTitle}</p>
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${status.className}`}>
                     {status.label}
                   </span>
                 </div>
-                <p className="text-xs text-zinc-600">Gruppengröße: {String(request.group_size)}</p>
-                <p className="text-xs text-zinc-600">{String(request.message ?? "")}</p>
+                <p className="text-xs text-zinc-600">Gruppengröße: {request.groupSize}</p>
+                <p className="text-xs text-zinc-600">{request.message}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <form action={decideRequestAction}>
-                    <input type="hidden" name="requestId" value={String(request.id)} />
+                    <input type="hidden" name="requestId" value={request.id} />
                     <input type="hidden" name="decision" value="accepted" />
                     <button className="h-11 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-sm font-semibold text-white transition active:scale-[0.99]">
                       Annehmen
                     </button>
                   </form>
                   <form action={decideRequestAction}>
-                    <input type="hidden" name="requestId" value={String(request.id)} />
+                    <input type="hidden" name="requestId" value={request.id} />
                     <input type="hidden" name="decision" value="rejected" />
                     <button className="h-11 w-full rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition active:scale-[0.99]">
                       Ablehnen
@@ -102,21 +97,21 @@ export default async function HostPage() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Meine Partys</h2>
         {dashboard.length ? (
           dashboard.map((row) => (
-            <Card key={String(row.party_id)} className="space-y-1">
-              <p className="font-semibold text-zinc-900">{String(row.title)}</p>
-              <p className="text-xs text-zinc-500">{formatDateTime(String(row.starts_at))}</p>
+            <Card key={row.partyId} className="space-y-1">
+              <p className="font-semibold text-zinc-900">{row.title}</p>
+              <p className="text-xs text-zinc-500">{formatDateTime(row.startsAt)}</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <p className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">
-                  Pending: {String(row.pending_requests)}
+                  Pending: {row.pendingRequests}
                 </p>
                 <p className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">
-                  Accepted: {String(row.accepted_requests)}
+                  Accepted: {row.acceptedRequests}
                 </p>
                 <p className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">
-                  Freie Plätze: {String(row.spots_left)}
+                  Freie Plätze: {row.spotsLeft}
                 </p>
                 <p className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-violet-700">
-                  Beitrag: {formatEuroFromCents(Number(row.paid_total_cents ?? 0))}
+                  Beitrag: {formatEuroFromCents(row.paidTotalCents)}
                 </p>
               </div>
             </Card>

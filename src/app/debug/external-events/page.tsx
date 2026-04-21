@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { fetchExternalEventsAction } from "@/app/actions/external-events";
 import { Card } from "@/components/ui/card";
+import { loadExternalEventsDebugItems } from "@/services/events/external-events-debug-service";
 
 type SearchParams = Promise<{ date?: string; vibe?: string }>;
 
@@ -19,32 +19,32 @@ export default async function ExternalEventsDebugPage({
   const selectedDate = String(params.date ?? "all").trim();
   const selectedVibe = String(params.vibe ?? "all").trim().toLowerCase();
 
-  const events = await fetchExternalEventsAction();
+  const events = await loadExternalEventsDebugItems();
   const sorted = [...events].sort(
-    (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
+    (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
   );
 
   const vibeSet = new Set<string>();
   for (const event of sorted) {
-    if (event.vibe_label?.trim()) {
-      vibeSet.add(event.vibe_label.trim());
+    if (event.vibeLabel.trim()) {
+      vibeSet.add(event.vibeLabel.trim());
     }
   }
 
   const filtered = sorted.filter((event) => {
-    if (selectedDate !== "all" && toBerlinDateKey(event.starts_at) !== selectedDate) {
+    if (selectedDate !== "all" && toBerlinDateKey(event.startsAt) !== selectedDate) {
       return false;
     }
 
     if (selectedVibe !== "all") {
-      return event.vibe_label.toLowerCase().includes(selectedVibe);
+      return event.vibeLabel.toLowerCase().includes(selectedVibe);
     }
 
     return true;
   });
 
   const schlachthausCount = sorted.filter((event) =>
-    event.vibe_label.toLowerCase().includes("schlachthaus"),
+    event.vibeLabel.toLowerCase().includes("schlachthaus"),
   ).length;
 
   const date27 = "2026-03-27";
@@ -53,9 +53,11 @@ export default async function ExternalEventsDebugPage({
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-4 bg-zinc-50 px-4 py-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Debug</p>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">External Events Test Page</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+          External Events Test Page
+        </h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Prüft Scraper-Daten inkl. Schlachthaus mit Berlin-Datumfilter.
+          Prueft Scraper-Daten inkl. Schlachthaus mit Berlin-Datumfilter.
         </p>
       </div>
 
@@ -91,7 +93,10 @@ export default async function ExternalEventsDebugPage({
           >
             Only Schlachthaus
           </Link>
-          <Link className="rounded-lg bg-zinc-200 px-3 py-1.5 text-zinc-900" href="/discover?view=list&type=all&date=all">
+          <Link
+            className="rounded-lg bg-zinc-200 px-3 py-1.5 text-zinc-900"
+            href="/discover?view=list&type=all&date=all"
+          >
             Open Discover
           </Link>
         </div>
@@ -102,7 +107,9 @@ export default async function ExternalEventsDebugPage({
             .map((vibe) => (
               <Link
                 key={vibe}
-                href={`/debug/external-events?date=${selectedDate}&vibe=${encodeURIComponent(vibe.toLowerCase())}`}
+                href={`/debug/external-events?date=${selectedDate}&vibe=${encodeURIComponent(
+                  vibe.toLowerCase(),
+                )}`}
                 className="rounded-full border border-zinc-300 px-3 py-1 text-zinc-700"
               >
                 {vibe}
@@ -113,20 +120,20 @@ export default async function ExternalEventsDebugPage({
 
       <div className="space-y-2">
         {filtered.map((event) => {
-          const berlinDateKey = toBerlinDateKey(event.starts_at);
+          const berlinDateKey = toBerlinDateKey(event.startsAt);
           const berlinDateTime = new Intl.DateTimeFormat("de-DE", {
             timeZone: "Europe/Berlin",
             dateStyle: "full",
             timeStyle: "short",
-          }).format(new Date(event.starts_at));
+          }).format(new Date(event.startsAt));
 
           return (
             <Card key={event.id} className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-zinc-500">{event.vibe_label}</p>
+              <p className="text-xs uppercase tracking-wide text-zinc-500">{event.vibeLabel}</p>
               <p className="text-base font-semibold text-zinc-900">{event.title}</p>
               <p className="text-sm text-zinc-700">Berlin: {berlinDateTime}</p>
               <p className="text-xs text-zinc-500">dateKey: {berlinDateKey}</p>
-              <p className="text-xs text-zinc-500">starts_at (UTC): {event.starts_at}</p>
+              <p className="text-xs text-zinc-500">startsAt (UTC): {event.startsAt}</p>
               <p className="text-xs text-zinc-500">id: {event.id}</p>
             </Card>
           );
@@ -134,7 +141,9 @@ export default async function ExternalEventsDebugPage({
 
         {filtered.length === 0 ? (
           <Card>
-            <p className="text-sm text-zinc-700">Keine Events für die aktive Kombination gefunden.</p>
+            <p className="text-sm text-zinc-700">
+              Keine Events fuer die aktive Kombination gefunden.
+            </p>
           </Card>
         ) : null}
       </div>

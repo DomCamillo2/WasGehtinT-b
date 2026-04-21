@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/env";
+import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { createClient } from "@/lib/supabase/server";
 import { BringProgress, ChatPreview, PartyCard } from "@/lib/types";
 
@@ -10,6 +11,8 @@ type EventWindowOptions = {
   untilIso?: string;
   limit?: number;
 };
+
+type PublicDataClient = ReturnType<typeof getSupabasePublicServerClient>;
 
 function inferExternalCategoryFields(input: {
   title?: string | null;
@@ -81,8 +84,11 @@ export async function requireUser() {
   return { supabase, user };
 }
 
-export async function getPublicParties(options: EventWindowOptions = {}) {
-  const supabase = await createClient();
+export async function getPublicParties(
+  options: EventWindowOptions = {},
+  client?: PublicDataClient,
+) {
+  const supabase = client ?? (await createClient());
   const nowIso = options.fromIso ?? new Date().toISOString();
 
   let query = supabase
@@ -203,8 +209,11 @@ export async function getUserRole(userId: string): Promise<UserRole> {
   return "student";
 }
 
-export async function getExternalEvents(options: EventWindowOptions = {}) {
-  const supabase = await createClient();
+export async function getExternalEvents(
+  options: EventWindowOptions = {},
+  client?: PublicDataClient,
+) {
+  const supabase = client ?? (await createClient());
   let query = supabase
     .from("v_external_events_public")
     .select("*")
@@ -371,8 +380,11 @@ export async function getExternalEventById(eventId: string) {
   } as PartyCard;
 }
 
-export async function getCommunityHangoutsForDiscover(options: EventWindowOptions = {}) {
-  const supabase = await createClient();
+export async function getCommunityHangoutsForDiscover(
+  options: EventWindowOptions = {},
+  client?: PublicDataClient,
+) {
+  const supabase = client ?? (await createClient());
   const nowIso = options.fromIso ?? new Date().toISOString();
 
   let query = supabase

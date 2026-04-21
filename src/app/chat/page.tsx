@@ -5,21 +5,13 @@ import { ScreenHeader } from "@/components/layout/screen-header";
 import { ThreadMessages } from "@/components/chat/thread-messages";
 import { Card } from "@/components/ui/card";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { getChatMessages, getChatThreads, requireUser } from "@/lib/data";
+import { loadChatPageData } from "@/services/chat/chat-page-service";
 
 type SearchParams = Promise<{ thread?: string }>;
 
 export default async function ChatPage({ searchParams }: { searchParams: SearchParams }) {
-  const { user } = await requireUser();
   const params = await searchParams;
-
-  const threads = await getChatThreads(user.id);
-  const activeThreadId =
-    params.thread && threads.some((thread) => thread.thread_id === params.thread)
-      ? params.thread
-      : threads[0]?.thread_id;
-
-  const messages = activeThreadId ? await getChatMessages(activeThreadId) : [];
+  const { currentUserId, threads, activeThreadId, messages } = await loadChatPageData(params);
 
   return (
     <AppShell>
@@ -29,15 +21,15 @@ export default async function ChatPage({ searchParams }: { searchParams: SearchP
         {threads.length ? (
           threads.map((thread) => (
             <Link
-              key={thread.thread_id}
-              href={`/chat?thread=${thread.thread_id}`}
+              key={thread.id}
+              href={`/chat?thread=${thread.id}`}
               className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold ${
-                thread.thread_id === activeThreadId
+                thread.id === activeThreadId
                   ? "bg-zinc-900 text-white"
                   : "bg-white text-zinc-700"
               }`}
             >
-              Chat {thread.thread_id.slice(0, 6)}
+              Chat {thread.id.slice(0, 6)}
             </Link>
           ))
         ) : (
@@ -52,7 +44,7 @@ export default async function ChatPage({ searchParams }: { searchParams: SearchP
           <ThreadMessages
             key={activeThreadId}
             threadId={activeThreadId}
-            currentUserId={user.id}
+            currentUserId={currentUserId}
             initialMessages={messages}
           />
           <form action={sendChatMessageAction} className="flex items-center gap-2 border-t border-zinc-200 pt-2">

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { EventSchema } from "@/components/seo/event-schema";
-import { getExternalEventById } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
+import { loadExternalEventPageData } from "@/services/events/external-event-page-service";
 
 const SITE_URL = "https://wasgehttueb.app";
 
@@ -35,7 +35,7 @@ function truncateDescription(text: string, maxLength = 150) {
     return normalized;
   }
 
-  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}...`;
 }
 
 export async function generateMetadata({
@@ -44,11 +44,11 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const event = await getExternalEventById(id);
+  const event = await loadExternalEventPageData(id);
 
   if (!event) {
     return {
-      title: "Event nicht gefunden | WasGehtTüb",
+      title: "Event nicht gefunden | WasGehtTueb",
       robots: {
         index: false,
         follow: false,
@@ -56,12 +56,12 @@ export async function generateMetadata({
     };
   }
 
-  const clubName = event.location_name?.trim() || event.vibe_label.trim() || "Tübingen";
+  const clubName = event.locationName?.trim() || event.vibeLabel.trim() || "Tuebingen";
   const description = event.description?.trim()
     ? truncateDescription(event.description)
-    : truncateDescription(`${event.title} im ${clubName} am ${formatDateTime(event.starts_at)}.`);
+    : truncateDescription(`${event.title} im ${clubName} am ${formatDateTime(event.startsAt)}.`);
   const canonicalUrl = `${SITE_URL}/event/${event.id}`;
-  const seoTitle = `${event.title} im ${clubName} | WasGehtTüb`;
+  const seoTitle = `${event.title} im ${clubName} | WasGehtTueb`;
 
   return {
     title: seoTitle,
@@ -89,32 +89,32 @@ export default async function ExternalEventPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const event = await getExternalEventById(id);
+  const event = await loadExternalEventPageData(id);
 
   if (!event) {
     notFound();
   }
 
-  const clubName = event.location_name?.trim() || event.vibe_label.trim() || "Tübingen";
+  const clubName = event.locationName?.trim() || event.vibeLabel.trim() || "Tuebingen";
   const mapsLink =
-    event.public_lat != null && event.public_lng != null
-      ? `https://www.google.com/maps/search/?api=1&query=${event.public_lat},${event.public_lng}`
+    event.publicLat != null && event.publicLng != null
+      ? `https://www.google.com/maps/search/?api=1&query=${event.publicLat},${event.publicLng}`
       : null;
   const schemaDescription =
     event.description?.trim() ||
-    `${event.title} im ${clubName} am ${formatDateTime(event.starts_at)} in Tübingen.`;
+    `${event.title} im ${clubName} am ${formatDateTime(event.startsAt)} in Tuebingen.`;
 
   return (
     <AppShell mainClassName="space-y-5">
       <EventSchema
         name={event.title}
-        startDate={event.starts_at}
-        endDate={event.ends_at}
+        startDate={event.startsAt}
+        endDate={event.endsAt}
         location={clubName}
         description={schemaDescription}
         url={`${SITE_URL}/event/${event.id}`}
         organizerName={clubName}
-        externalLink={event.external_link}
+        externalLink={event.externalLink}
       />
 
       <div className="space-y-3">
@@ -127,7 +127,7 @@ export default async function ExternalEventPage({
             color: "var(--foreground)",
           }}
         >
-          Zurück zu Discover
+          Zurueck zu Discover
         </Link>
 
         <section
@@ -148,13 +148,13 @@ export default async function ExternalEventPage({
             {event.title}
           </h1>
           <p className="mt-3 text-sm" style={{ color: "var(--muted-foreground)" }}>
-            {clubName} · {formatDateTime(event.starts_at)} Uhr
+            {clubName} · {formatDateTime(event.startsAt)} Uhr
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            {event.external_link ? (
+            {event.externalLink ? (
               <a
-                href={event.external_link}
+                href={event.externalLink}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
@@ -174,7 +174,7 @@ export default async function ExternalEventPage({
                   color: "var(--foreground)",
                 }}
               >
-                Auf Karte öffnen
+                Auf Karte oeffnen
               </a>
             ) : null}
           </div>
@@ -201,7 +201,7 @@ export default async function ExternalEventPage({
               Start
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {formatFullDateTime(event.starts_at)}
+              {formatFullDateTime(event.startsAt)}
             </p>
           </div>
 
@@ -213,7 +213,7 @@ export default async function ExternalEventPage({
               Ende
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {formatFullDateTime(event.ends_at)}
+              {formatFullDateTime(event.endsAt)}
             </p>
           </div>
 
@@ -225,7 +225,7 @@ export default async function ExternalEventPage({
               Ort
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {event.location_name ?? "Ort wird noch ergänzt"}
+              {event.locationName ?? "Ort wird noch ergaenzt"}
             </p>
           </div>
 
@@ -237,7 +237,7 @@ export default async function ExternalEventPage({
               Kategorie
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {event.music_genre ?? event.vibe_label}
+              {event.musicGenre ?? event.vibeLabel}
             </p>
           </div>
         </div>
@@ -256,7 +256,7 @@ export default async function ExternalEventPage({
           </div>
         ) : null}
 
-        {formatCoordinates(event.public_lat, event.public_lng) ? (
+        {formatCoordinates(event.publicLat, event.publicLng) ? (
           <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
             <p
               className="text-xs font-semibold uppercase tracking-[0.14em]"
@@ -265,7 +265,7 @@ export default async function ExternalEventPage({
               Koordinaten
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {formatCoordinates(event.public_lat, event.public_lng)}
+              {formatCoordinates(event.publicLat, event.publicLng)}
             </p>
           </div>
         ) : null}

@@ -5,23 +5,13 @@ import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
 import { requireInternalAdmin } from "@/lib/admin-guard";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  loadHostReports,
+  type HostReportRow as ReportRow,
+  type HostReportsFilter as Filter,
+} from "@/services/reports/host-reports-service";
 
 type SearchParams = Promise<{ status?: string }>;
-type Filter = "all" | "open" | "reviewing" | "resolved" | "rejected";
-
-type ReportRow = {
-  id: string;
-  target_type: string;
-  target_id: string;
-  reason: string;
-  details: string;
-  status: "open" | "reviewing" | "resolved" | "rejected";
-  created_at: string;
-  reporter_user_id: string;
-  review_note: string | null;
-  reviewed_at: string | null;
-};
 
 function filterHref(status: Filter) {
   return status === "all" ? "/host/reports" : `/host/reports?status=${status}`;
@@ -41,23 +31,7 @@ export default async function HostReportsPage({ searchParams }: { searchParams: 
   const active: Filter = ["all", "open", "reviewing", "resolved", "rejected"].includes(requested)
     ? requested
     : "all";
-
-  const supabaseAdmin = getSupabaseAdmin() as unknown as {
-    from: (table: string) => {
-      select: (query: string) => {
-        order: (column: string, args: { ascending: boolean }) => { limit: (count: number) => Promise<{ data: unknown[] | null }> };
-      };
-    };
-  };
-
-  const { data } = await supabaseAdmin
-    .from("content_reports")
-    .select("id, target_type, target_id, reason, details, status, created_at, reporter_user_id, review_note, reviewed_at")
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  const allReports = (data ?? []) as ReportRow[];
-  const reports = active === "all" ? allReports : allReports.filter((row) => row.status === active);
+  const reports = await loadHostReports(active);
 
   return (
     <AppShell>
@@ -83,7 +57,7 @@ export default async function HostReportsPage({ searchParams }: { searchParams: 
             <Card key={report.id} className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-zinc-900">
-                  {report.target_type} · {report.target_id.slice(0, 16)}
+                  {report.targetType} · {report.targetId.slice(0, 16)}
                 </p>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${BADGE[report.status]}`}>
                   {report.status}
@@ -91,15 +65,15 @@ export default async function HostReportsPage({ searchParams }: { searchParams: 
               </div>
 
               <div className="space-y-1 text-xs text-zinc-600">
-                <p>Erstellt: {formatDateTime(report.created_at)}</p>
-                <p>Reporter: {report.reporter_user_id.slice(0, 8)}...</p>
-                {report.reviewed_at ? <p>Geprüft: {formatDateTime(report.reviewed_at)}</p> : null}
+                <p>Erstellt: {formatDateTime(report.createdAt)}</p>
+                <p>Reporter: {report.reporterUserId.slice(0, 8)}...</p>
+                {report.reviewedAt ? <p>Geprüft: {formatDateTime(report.reviewedAt)}</p> : null}
               </div>
 
               <p className="rounded-lg bg-zinc-100 px-2 py-1 text-xs text-zinc-700">Grund: {report.reason}</p>
               {report.details ? <p className="text-xs text-zinc-700">Details: {report.details}</p> : null}
-              {report.review_note ? (
-                <p className="rounded-lg bg-zinc-100 px-2 py-1 text-xs text-zinc-700">Notiz: {report.review_note}</p>
+              {report.reviewNote ? (
+                <p className="rounded-lg bg-zinc-100 px-2 py-1 text-xs text-zinc-700">Notiz: {report.reviewNote}</p>
               ) : null}
 
               <form action={updateContentReportStatusAction} className="grid gap-2 sm:grid-cols-[1fr_auto]">
@@ -118,7 +92,7 @@ export default async function HostReportsPage({ searchParams }: { searchParams: 
                   <input
                     type="text"
                     name="reviewNote"
-                    defaultValue={report.review_note ?? ""}
+                    defaultValue={report.reviewNote ?? ""}
                     placeholder="Interne Notiz"
                     className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-xs"
                   />

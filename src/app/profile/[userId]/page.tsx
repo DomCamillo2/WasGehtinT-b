@@ -3,7 +3,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
 import { getCopy } from "@/lib/i18n";
-import { getVisibleProfileByUserId } from "@/lib/profile";
+import { loadPublicProfilePageData } from "@/services/profile/public-profile-service";
 
 type Params = Promise<{ userId: string }>;
 
@@ -11,7 +11,7 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
   const { userId } = await params;
   const t = getCopy("de").profile;
 
-  const profileResult = await getVisibleProfileByUserId(userId);
+  const profileResult = await loadPublicProfilePageData(userId);
 
   if (!profileResult.profile) {
     return (
@@ -25,7 +25,7 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
   }
 
   const profile = profileResult.profile;
-  const initial = String(profile.display_name?.[0] ?? "U").toUpperCase();
+  const initial = String(profile.displayName?.[0] ?? "U").toUpperCase();
 
   return (
     <AppShell>
@@ -33,9 +33,9 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
 
       <Card className="space-y-4 p-4">
         <div className="flex items-center gap-3">
-          {profile.avatar_url ? (
+          {profile.avatarUrl ? (
             <img
-              src={profile.avatar_url}
+              src={profile.avatarUrl}
               alt="Profilbild"
               className="h-14 w-14 rounded-full border border-zinc-200 object-cover"
             />
@@ -46,7 +46,7 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
           )}
 
           <div>
-            <p className="text-sm font-semibold text-zinc-900">{profile.display_name ?? t.noName}</p>
+            <p className="text-sm font-semibold text-zinc-900">{profile.displayName ?? t.noName}</p>
             <p className="text-xs text-zinc-500">ID: {profile.id.slice(0, 8)}...</p>
           </div>
         </div>
@@ -62,7 +62,7 @@ export default async function PublicProfilePage({ params }: { params: Params }) 
             </p>
             <p>
               <span className="font-semibold text-zinc-900">{t.studyProgram}:</span>{" "}
-              {profile.study_program || "-"}
+              {profile.studyProgram || "-"}
             </p>
           </div>
         ) : (

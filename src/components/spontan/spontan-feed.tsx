@@ -5,22 +5,12 @@ import { motion } from "framer-motion";
 import { Zap, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
-import { PrimaryButton } from "@/components/ui/primary-button";
 import { Card } from "@/components/ui/card";
-
-type HangoutFeedItem = {
-  id: string;
-  title: string;
-  description: string;
-  location_text?: string | null;
-  meetup_at?: string | null;
-  activity_type: "sport" | "chill" | "party" | "meetup" | "other";
-  created_at: string;
-  user_display_name: string;
-};
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { SpontanFeedItem } from "@/services/spontan/spontan-feed-view-model";
 
 type Props = {
-  items: HangoutFeedItem[];
+  items: SpontanFeedItem[];
 };
 
 const initialState: HangoutActionState = {};
@@ -50,7 +40,7 @@ function formatMeetupOrFallback(value: string) {
   }).format(parsed);
 }
 
-function mapActivityLabel(activityType: HangoutFeedItem["activity_type"]): string {
+function mapActivityLabel(activityType: SpontanFeedItem["activityType"]): string {
   if (activityType === "sport") return "Sport";
   if (activityType === "chill") return "Chill";
   if (activityType === "party") return "Party";
@@ -72,7 +62,9 @@ export function SpontanFeed({ items }: Props) {
     <div className="space-y-4 pb-24">
       <Card className="space-y-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
         <h1 className="text-2xl font-black tracking-tight text-zinc-900">Spontan</h1>
-        <p className="text-xs text-zinc-500">Einreichungen sind auch ohne Account möglich und werden vor Anzeige vom Admin geprüft.</p>
+        <p className="text-xs text-zinc-500">
+          Einreichungen sind auch ohne Account moeglich und werden vor Anzeige vom Admin geprueft.
+        </p>
         <form action={action} className="space-y-2">
           <input
             name="submitterName"
@@ -130,13 +122,15 @@ export function SpontanFeed({ items }: Props) {
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
         ) : null}
         {state.success ? (
-          <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{state.success}</p>
+          <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {state.success}
+          </p>
         ) : null}
       </Card>
 
       <div className="space-y-3">
         {items.map((item, index) => {
-          const initials = (item.user_display_name || "?").slice(0, 1).toUpperCase();
+          const initials = (item.userDisplayName || "?").slice(0, 1).toUpperCase();
           return (
             <motion.article
               key={item.id}
@@ -151,23 +145,25 @@ export function SpontanFeed({ items }: Props) {
                     {initials}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-zinc-900">{item.user_display_name}</p>
+                    <p className="text-sm font-semibold text-zinc-900">{item.userDisplayName}</p>
                     <p className="text-xs text-zinc-500">
-                      {formatDateTimeOrFallback(item.created_at, "gerade eben")}
+                      {formatDateTimeOrFallback(item.createdAt, "gerade eben")}
                     </p>
                   </div>
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
                   <Zap size={12} />
-                  {mapActivityLabel(item.activity_type)}
+                  {mapActivityLabel(item.activityType)}
                 </span>
               </div>
 
               <h2 className="text-base font-bold tracking-tight text-zinc-900">{item.title}</h2>
-              {item.location_text ? <p className="mt-1 text-sm text-zinc-600">Wo: {item.location_text}</p> : null}
-              {item.meetup_at ? (
+              {item.locationText ? (
+                <p className="mt-1 text-sm text-zinc-600">Wo: {item.locationText}</p>
+              ) : null}
+              {item.meetupAt ? (
                 <p className="mt-0.5 text-sm text-zinc-600">
-                  Wann: {formatMeetupOrFallback(item.meetup_at)}
+                  Wann: {formatMeetupOrFallback(item.meetupAt)}
                 </p>
               ) : null}
               <p className="mt-1 text-sm text-zinc-700">{item.description}</p>
@@ -193,7 +189,9 @@ export function SpontanFeed({ items }: Props) {
         })}
 
         {!items.length ? (
-          <Card className="text-sm text-zinc-500">Noch keine spontanen Beiträge. Sei der erste 👀</Card>
+          <Card className="text-sm text-zinc-500">
+            Noch keine spontanen Beitraege. Sei der erste.
+          </Card>
         ) : null}
       </div>
     </div>

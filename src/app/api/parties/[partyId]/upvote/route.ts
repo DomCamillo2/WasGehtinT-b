@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -10,26 +9,6 @@ type RouteContext = {
 type UpvoteRequestBody = {
   upvoted?: boolean;
 };
-
-async function getOrCreateSessionId(): Promise<string> {
-  const cookieStore = await cookies();
-  let sessionId = cookieStore.get("anon_session_id")?.value;
-
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-  }
-
-  // Keep the anonymous vote session readable on all routes (e.g. /discover and /api).
-  cookieStore.set("anon_session_id", sessionId, {
-    maxAge: 60 * 60 * 24 * 365,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
-
-  return sessionId;
-}
 
 async function getDesiredVoteState(request: Request): Promise<boolean | null> {
   try {
@@ -52,13 +31,15 @@ export async function POST(request: Request, context: RouteContext) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const identifier = user?.id ?? (await getOrCreateSessionId());
+  if (!user) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
 
   const existingVoteResult = await supabase
     .from("event_upvotes")
     .select("id")
     .eq("event_id", partyId)
-    .eq(user?.id ? "user_id" : "anonymous_session_id", identifier)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (existingVoteResult.error) {
@@ -72,7 +53,7 @@ export async function POST(request: Request, context: RouteContext) {
   if (shouldUpvote && !currentlyUpvoted) {
     const insertData = {
       event_id: partyId,
-      ...(user?.id ? { user_id: user.id } : { anonymous_session_id: identifier }),
+      user_id: user.id,
     };
 
     const insertResult = await supabase.from("event_upvotes").insert(insertData);

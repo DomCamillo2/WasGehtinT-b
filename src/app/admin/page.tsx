@@ -11,52 +11,10 @@ import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
 import { formatDateTime, formatEuroFromCents } from "@/lib/format";
 import { requireInternalAdmin } from "@/lib/admin-guard";
-import { createClient } from "@/lib/supabase/server";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
+import { type FeedbackEntry, loadAdminDashboardData } from "@/services/admin/admin-dashboard-service";
 
 export const dynamic = "force-dynamic";
-
-function isMissingColumnError(code: string | undefined) {
-  return code === "42703" || code === "PGRST204";
-}
-
-type PendingParty = {
-  id: string;
-  host_user_id: string;
-  submitter_name: string | null;
-  title: string;
-  description: string | null;
-  starts_at: string;
-  max_guests: number;
-  contribution_cents: number;
-};
-
-type PendingHangout = {
-  id: string;
-  user_id: string;
-  submitter_name: string | null;
-  title: string;
-  description: string | null;
-  location_text: string | null;
-  meetup_at: string | null;
-  created_at: string;
-  activity_type: string | null;
-};
-
-type ReviewedParty = PendingParty;
-type ReviewedHangout = PendingHangout;
-
-type FeedbackEntry = {
-  id: string;
-  type: "feedback" | "feature_request";
-  title: string;
-  message: string;
-  contact_email: string | null;
-  status: "open" | "reviewing" | "planned" | "closed";
-  admin_note: string | null;
-  created_at: string;
-  reviewed_at: string | null;
-};
 
 const FEEDBACK_STATUS_BADGE: Record<FeedbackEntry["status"], string> = {
   open: "bg-amber-50 text-amber-700",
@@ -80,7 +38,6 @@ export default async function AdminPage({
   }>;
 }) {
   await requireInternalAdmin();
-  const supabase = await createClient();
   const resolvedSearchParams = (await searchParams) ?? {};
   const adminConfig = validateSupabaseAdminConfig();
   const actionNotice =
@@ -90,197 +47,21 @@ export default async function AdminPage({
           message: resolvedSearchParams.message.trim(),
         }
       : null;
-
-  const pendingQuery = await supabase
-    .from("parties")
-    .select("*")
-    .eq("review_status", "pending")
-    .order("created_at", { ascending: true });
-
-  const fallbackPendingQuery = await (isMissingColumnError(pendingQuery.error?.code)
-    ? supabase
-        .from("parties")
-      .select("*")
-        .eq("status", "draft")
-        .order("created_at", { ascending: true })
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const useFallback = isMissingColumnError(pendingQuery.error?.code);
-  const fallbackErrorCode = useFallback ? fallbackPendingQuery.error?.code : pendingQuery.error?.code;
-
-  const legacyPendingQuery = await (isMissingColumnError(fallbackErrorCode)
-    ? supabase
-        .from("parties")
-      .select("*")
-        .eq("is_published", false)
-        .order("created_at", { ascending: true })
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const useLegacy = isMissingColumnError(fallbackErrorCode);
-
-  const rawPending = useLegacy
-    ? ((legacyPendingQuery.data ?? []) as Array<Record<string, unknown>>)
-    : useFallback
-      ? ((fallbackPendingQuery.data ?? []) as Array<Record<string, unknown>>)
-      : ((pendingQuery.data ?? []) as Array<Record<string, unknown>>);
-
-  const error = useLegacy ? legacyPendingQuery.error : useFallback ? fallbackPendingQuery.error : pendingQuery.error;
-
-  const pending: PendingParty[] = rawPending.map((row) => ({
-    id: String(row.id ?? ""),
-    host_user_id: String(row.host_user_id ?? row.host_id ?? ""),
-    submitter_name: typeof row.submitter_name === "string" && row.submitter_name.trim() ? row.submitter_name.trim() : null,
-    title: String(row.title ?? "Unbenannt"),
-    description: typeof row.description === "string" ? row.description : null,
-    starts_at: String(row.starts_at ?? row.date ?? row.created_at ?? ""),
-    max_guests: Number(row.max_guests ?? 0),
-    contribution_cents: Number(row.contribution_cents ?? 0),
-  }));
-
-  const pendingHangoutsQuery = await supabase
-    .from("hangouts")
-    .select("*")
-    .eq("review_status", "pending")
-    .order("created_at", { ascending: true });
-
-  const rawHangouts = (pendingHangoutsQuery.data ?? []) as Array<Record<string, unknown>>;
-  const hangoutError = pendingHangoutsQuery.error;
-
-  const pendingHangouts: PendingHangout[] = rawHangouts.map((row) => ({
-    id: String(row.id ?? ""),
-    user_id: String(row.user_id ?? ""),
-    submitter_name: typeof row.submitter_name === "string" && row.submitter_name.trim() ? row.submitter_name.trim() : null,
-    title: String(row.title ?? "Unbenannt"),
-    description: typeof row.description === "string" ? row.description : null,
-    location_text: typeof row.location_text === "string" ? row.location_text : null,
-    meetup_at: typeof row.meetup_at === "string" ? row.meetup_at : null,
-    created_at: String(row.created_at ?? ""),
-    activity_type:
-      typeof row.activity_type === "string"
-        ? row.activity_type
-        : typeof row.kind === "string"
-          ? row.kind
-          : null,
-  }));
-
-  const approvedQuery = await supabase
-    .from("parties")
-    .select("*")
-    .eq("review_status", "approved")
-    .order("created_at", { ascending: false })
-    .limit(40);
-
-  const fallbackApprovedQuery = await (isMissingColumnError(approvedQuery.error?.code)
-    ? supabase
-        .from("parties")
-        .select("*")
-        .eq("status", "published")
-        .order("created_at", { ascending: false })
-        .limit(40)
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const useApprovedFallback = isMissingColumnError(approvedQuery.error?.code);
-  const approvedFallbackErrorCode = useApprovedFallback
-    ? fallbackApprovedQuery.error?.code
-    : approvedQuery.error?.code;
-
-  const legacyApprovedQuery = await (isMissingColumnError(approvedFallbackErrorCode)
-    ? supabase
-        .from("parties")
-        .select("*")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false })
-        .limit(40)
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const useApprovedLegacy = isMissingColumnError(approvedFallbackErrorCode);
-
-  const rawApproved = useApprovedLegacy
-    ? ((legacyApprovedQuery.data ?? []) as Array<Record<string, unknown>>)
-    : useApprovedFallback
-      ? ((fallbackApprovedQuery.data ?? []) as Array<Record<string, unknown>>)
-      : ((approvedQuery.data ?? []) as Array<Record<string, unknown>>);
-
-  const approvedParties: ReviewedParty[] = rawApproved.map((row) => ({
-    id: String(row.id ?? ""),
-    host_user_id: String(row.host_user_id ?? row.host_id ?? ""),
-    submitter_name: typeof row.submitter_name === "string" && row.submitter_name.trim() ? row.submitter_name.trim() : null,
-    title: String(row.title ?? "Unbenannt"),
-    description: typeof row.description === "string" ? row.description : null,
-    starts_at: String(row.starts_at ?? row.date ?? row.created_at ?? ""),
-    max_guests: Number(row.max_guests ?? 0),
-    contribution_cents: Number(row.contribution_cents ?? 0),
-  }));
-
-  const approvedHangoutsQuery = await supabase
-    .from("hangouts")
-    .select("*")
-    .or("review_status.eq.approved,status.eq.published,is_published.eq.true")
-    .order("created_at", { ascending: false })
-    .limit(40);
-
-  const approvedHangouts: ReviewedHangout[] = ((approvedHangoutsQuery.data ?? []) as Array<Record<string, unknown>>).map(
-    (row) => ({
-      id: String(row.id ?? ""),
-      user_id: String(row.user_id ?? ""),
-      submitter_name:
-        typeof row.submitter_name === "string" && row.submitter_name.trim() ? row.submitter_name.trim() : null,
-      title: String(row.title ?? "Unbenannt"),
-      description: typeof row.description === "string" ? row.description : null,
-      location_text: typeof row.location_text === "string" ? row.location_text : null,
-      meetup_at: typeof row.meetup_at === "string" ? row.meetup_at : null,
-      created_at: String(row.created_at ?? ""),
-      activity_type:
-        typeof row.activity_type === "string"
-          ? row.activity_type
-          : typeof row.kind === "string"
-            ? row.kind
-            : null,
-    }),
-  );
-
-  const feedbackQuery = await supabase
-    .from("feedback_entries")
-    .select("id, type, title, message, contact_email, status, admin_note, created_at, reviewed_at")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  const feedbackError = feedbackQuery.error;
-  const feedbackEntries: FeedbackEntry[] = ((feedbackQuery.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
-    id: String(row.id ?? ""),
-    type: row.type === "feature_request" ? "feature_request" : "feedback",
-    title: String(row.title ?? "Ohne Titel"),
-    message: String(row.message ?? ""),
-    contact_email: typeof row.contact_email === "string" ? row.contact_email : null,
-    status:
-      row.status === "reviewing" || row.status === "planned" || row.status === "closed" ? row.status : "open",
-    admin_note: typeof row.admin_note === "string" ? row.admin_note : null,
-    created_at: String(row.created_at ?? ""),
-    reviewed_at: typeof row.reviewed_at === "string" ? row.reviewed_at : null,
-  }));
-
-  const hostIds = Array.from(
-    new Set(
-      pending
-        .map((row) => row.host_user_id)
-        .filter((value) => typeof value === "string" && value.length > 0),
-    ),
-  );
-
-  const hostResult = hostIds.length
-    ? await supabase.from("user_profiles").select("id, display_name").in("id", hostIds)
-    : { data: [] as Array<{ id: string; display_name: string | null }> };
-
-  const hostNameMap = new Map(
-    ((hostResult.data ?? []) as Array<{ id: string; display_name: string | null }>).map((row) => [
-      row.id,
-      row.display_name?.trim() || "Betreiber",
-    ]),
-  );
+  const {
+    pending,
+    pendingError: error,
+    pendingHangouts,
+    pendingHangoutsError: hangoutError,
+    approvedParties,
+    approvedHangouts,
+    feedbackEntries,
+    feedbackError,
+    hostNameMap,
+  } = await loadAdminDashboardData();
 
   return (
     <AppShell>
-      <ScreenHeader title="Admin" subtitle="Freigaben für neue Event-Einreichungen." />
+      <ScreenHeader title="Admin" subtitle="Freigaben fuer neue Event-Einreichungen." />
 
       {!adminConfig.valid ? (
         <Card className="border-amber-200 bg-amber-50">
@@ -311,7 +92,7 @@ export default async function AdminPage({
 
       {feedbackError ? (
         <Card>
-          <p className="text-sm text-rose-600">Feedback-Einträge konnten nicht geladen werden.</p>
+          <p className="text-sm text-rose-600">Feedback-Eintraege konnten nicht geladen werden.</p>
         </Card>
       ) : null}
 
@@ -324,11 +105,11 @@ export default async function AdminPage({
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-zinc-900">{party.title}</p>
                 <p className="text-xs text-zinc-500">
-                  von {hostNameMap.get(party.host_user_id) ?? party.submitter_name ?? "Gast"}
+                  von {hostNameMap.get(party.hostUserId) ?? party.submitterName ?? "Gast"}
                 </p>
-                <p className="text-xs text-zinc-500">{formatDateTime(party.starts_at)}</p>
+                <p className="text-xs text-zinc-500">{formatDateTime(party.startsAt)}</p>
                 <p className="text-xs text-zinc-500">
-                  Max {party.max_guests} Gäste | Beitrag {formatEuroFromCents(Number(party.contribution_cents ?? 0))}
+                  Max {party.maxGuests} Gaeste | Beitrag {formatEuroFromCents(Number(party.contributionCents ?? 0))}
                 </p>
                 {party.description ? <p className="text-sm text-zinc-700">{party.description}</p> : null}
               </div>
@@ -375,11 +156,11 @@ export default async function AdminPage({
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-zinc-900">{hangout.title}</p>
                 <p className="text-xs text-zinc-500">
-                  von {hostNameMap.get(hangout.user_id) ?? hangout.submitter_name ?? "Gast"}
+                  von {hostNameMap.get(hangout.userId) ?? hangout.submitterName ?? "Gast"}
                 </p>
-                <p className="text-xs text-zinc-500">{formatDateTime(hangout.meetup_at ?? hangout.created_at)}</p>
-                {hangout.location_text ? <p className="text-xs text-zinc-500">Ort: {hangout.location_text}</p> : null}
-                {hangout.activity_type ? <p className="text-xs text-zinc-500">Typ: {hangout.activity_type}</p> : null}
+                <p className="text-xs text-zinc-500">{formatDateTime(hangout.meetupAt ?? hangout.createdAt)}</p>
+                {hangout.locationText ? <p className="text-xs text-zinc-500">Ort: {hangout.locationText}</p> : null}
+                {hangout.activityType ? <p className="text-xs text-zinc-500">Typ: {hangout.activityType}</p> : null}
                 {hangout.description ? <p className="text-sm text-zinc-700">{hangout.description}</p> : null}
               </div>
 
@@ -424,9 +205,9 @@ export default async function AdminPage({
             <Card key={`approved-party-${party.id}`} className="space-y-1 border-emerald-100 bg-emerald-50/40">
               <p className="text-sm font-semibold text-zinc-900">{party.title}</p>
               <p className="text-xs text-zinc-500">
-                von {hostNameMap.get(party.host_user_id) ?? party.submitter_name ?? "Gast"}
+                von {hostNameMap.get(party.hostUserId) ?? party.submitterName ?? "Gast"}
               </p>
-              <p className="text-xs text-zinc-500">{formatDateTime(party.starts_at)}</p>
+              <p className="text-xs text-zinc-500">{formatDateTime(party.startsAt)}</p>
               <p className="text-xs font-medium text-emerald-700">Freigegeben</p>
               <form action={deletePartySubmissionAction} className="pt-2">
                 <input type="hidden" name="partyId" value={party.id} />
@@ -436,7 +217,7 @@ export default async function AdminPage({
                   className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
                 >
                   <Trash2 size={14} />
-                  <span>Löschen</span>
+                  <span>Loeschen</span>
                 </button>
               </form>
             </Card>
@@ -458,9 +239,9 @@ export default async function AdminPage({
             <Card key={`approved-hangout-${hangout.id}`} className="space-y-1 border-emerald-100 bg-emerald-50/40">
               <p className="text-sm font-semibold text-zinc-900">{hangout.title}</p>
               <p className="text-xs text-zinc-500">
-                von {hostNameMap.get(hangout.user_id) ?? hangout.submitter_name ?? "Gast"}
+                von {hostNameMap.get(hangout.userId) ?? hangout.submitterName ?? "Gast"}
               </p>
-              <p className="text-xs text-zinc-500">{formatDateTime(hangout.meetup_at ?? hangout.created_at)}</p>
+              <p className="text-xs text-zinc-500">{formatDateTime(hangout.meetupAt ?? hangout.createdAt)}</p>
               <p className="text-xs font-medium text-emerald-700">Freigegeben</p>
               <form action={deleteHangoutSubmissionAction} className="pt-2">
                 <input type="hidden" name="hangoutId" value={hangout.id} />
@@ -470,7 +251,7 @@ export default async function AdminPage({
                   className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
                 >
                   <Trash2 size={14} />
-                  <span>Löschen</span>
+                  <span>Loeschen</span>
                 </button>
               </form>
             </Card>
@@ -504,12 +285,12 @@ export default async function AdminPage({
                         <p className="text-xs text-zinc-500">{feedbackTypeLabel(entry.type)}</p>
                       </div>
                     </div>
-                    <p className="text-xs text-zinc-500">Eingang: {formatDateTime(entry.created_at)}</p>
-                    {entry.reviewed_at ? (
-                      <p className="text-xs text-zinc-500">Zuletzt bearbeitet: {formatDateTime(entry.reviewed_at)}</p>
+                    <p className="text-xs text-zinc-500">Eingang: {formatDateTime(entry.createdAt)}</p>
+                    {entry.reviewedAt ? (
+                      <p className="text-xs text-zinc-500">Zuletzt bearbeitet: {formatDateTime(entry.reviewedAt)}</p>
                     ) : null}
-                    {entry.contact_email ? (
-                      <p className="text-xs text-zinc-500">Kontakt: {entry.contact_email}</p>
+                    {entry.contactEmail ? (
+                      <p className="text-xs text-zinc-500">Kontakt: {entry.contactEmail}</p>
                     ) : (
                       <p className="text-xs text-zinc-400">Kein Kontakt hinterlegt</p>
                     )}
@@ -521,8 +302,8 @@ export default async function AdminPage({
 
                 <p className="text-sm text-zinc-700">{entry.message}</p>
 
-                {entry.admin_note ? (
-                  <p className="rounded-xl bg-zinc-100 px-3 py-2 text-xs text-zinc-700">Notiz: {entry.admin_note}</p>
+                {entry.adminNote ? (
+                  <p className="rounded-xl bg-zinc-100 px-3 py-2 text-xs text-zinc-700">Notiz: {entry.adminNote}</p>
                 ) : null}
 
                 <form action={updateFeedbackStatusAction} className="grid gap-2 sm:grid-cols-[1fr_auto]">
@@ -541,7 +322,7 @@ export default async function AdminPage({
                     <input
                       type="text"
                       name="adminNote"
-                      defaultValue={entry.admin_note ?? ""}
+                      defaultValue={entry.adminNote ?? ""}
                       placeholder="Interne Notiz"
                       className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-xs"
                     />

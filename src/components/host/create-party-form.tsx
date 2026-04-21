@@ -6,9 +6,14 @@ import { useFormStatus } from "react-dom";
 import { createPartyAction, type CreatePartyActionState } from "@/app/actions/parties";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast-provider";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
 import { createBaseMapStyle } from "@/lib/map-style";
 import { ensurePerformanceMarkApi } from "@/lib/performance-compat";
+import {
+  reverseGeocodeCoordinates as reverseGeocodeCoordinatesService,
+  searchAddress as searchAddressService,
+} from "@/services/location/nominatim-service";
 
 type Props = {
   vibes: Array<{ id: number; label: string }>;
@@ -56,6 +61,7 @@ function SubmitPartyButton() {
 }
 
 export function CreatePartyForm({ vibes }: Props) {
+  const { showToast } = useToast();
   const safeVibes = useMemo(() => {
     const normalized = vibes
       .filter((vibe) => typeof vibe.id === "number" && Number.isFinite(vibe.id))
@@ -98,30 +104,33 @@ export function CreatePartyForm({ vibes }: Props) {
       setLocationState("Adresse wird aus Pin-Position ermittelt...");
 
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${encodeURIComponent(
-            String(nextLat),
-          )}&lon=${encodeURIComponent(String(nextLng))}`,
-        );
+        const result = await reverseGeocodeCoordinatesService(nextLat, nextLng);
 
-        if (!response.ok) {
+        if (result.status === "unavailable") {
           setLocationState("Pin gesetzt. Adresse konnte nicht automatisch aufgelöst werden.");
+          showToast({
+            variant: "error",
+            title: "Adresse nicht erreichbar",
+            message: "Der Geocoding-Dienst antwortet gerade nicht.",
+          });
           return;
         }
 
-        const result = (await response.json()) as { display_name?: string };
-        const displayName = (result.display_name ?? "").trim();
-
-        if (!displayName) {
+        if (result.status === "not_found") {
           setLocationState("Pin gesetzt. Keine genaue Adresse gefunden.");
           return;
         }
 
-        setAddressInput(displayName);
-        setResolvedAddress(displayName);
+        if (result.status !== "ok") {
+          return;
+        }
+
+        setAddressInput(result.displayName);
+        setResolvedAddress(result.displayName);
         setLocationState("Pin gesetzt und Adresse übernommen.");
       } catch {
         setLocationState("Pin gesetzt. Adresse konnte nicht automatisch geladen werden.");
+        showToast({ variant: "error", title: "Adressauflösung fehlgeschlagen" });
       } finally {
         setIsReverseGeocoding(false);
       }
@@ -219,6 +228,12 @@ export function CreatePartyForm({ vibes }: Props) {
       return;
     }
 
+    showToast({
+      variant: "success",
+      title: "Event eingereicht",
+      message: actionState.message || "Dein Event wurde zur Freigabe gespeichert.",
+    });
+
     formRef.current?.reset();
     setSelectedVibeId(String(safeVibes[0]?.id ?? ""));
     setCustomVibeLabel("");
@@ -228,11 +243,24 @@ export function CreatePartyForm({ vibes }: Props) {
     setLat(DEFAULT_CENTER.lat);
     setLng(DEFAULT_CENTER.lng);
     setLocationState("Event gespeichert.");
-  }, [actionState.ok, safeVibes]);
+  }, [actionState.message, actionState.ok, safeVibes, showToast]);
+
+  useEffect(() => {
+    if (actionState.ok || !actionState.message) {
+      return;
+    }
+
+    showToast({
+      variant: "error",
+      title: "Einreichen fehlgeschlagen",
+      message: actionState.message,
+    });
+  }, [actionState.message, actionState.ok, showToast]);
 
   const handleAutoLocation = () => {
     if (!navigator.geolocation) {
       setLocationState("Geolocation wird von diesem Browser nicht unterstützt.");
+      showToast({ variant: "error", title: "Geolocation nicht unterstützt" });
       return;
     }
 
@@ -253,6 +281,11 @@ export function CreatePartyForm({ vibes }: Props) {
       },
       () => {
         setLocationState("Standort konnte nicht ermittelt werden. Bitte Zugriff erlauben oder Pin manuell setzen.");
+        showToast({
+          variant: "error",
+          title: "Standort konnte nicht ermittelt werden",
+          message: "Bitte Standortzugriff erlauben oder den Pin manuell setzen.",
+        });
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
@@ -261,12 +294,14 @@ export function CreatePartyForm({ vibes }: Props) {
   const handleAddressSearch = async () => {
     if (!canLoadExternalServices) {
       setLocationState("Für Adresssuche bitte externe Dienste aktivieren.");
+      showToast({ variant: "info", title: "Externe Dienste deaktiviert" });
       return;
     }
 
     const query = addressInput.trim();
     if (!query) {
       setLocationState("Bitte gib eine Adresse ein.");
+      showToast({ variant: "info", title: "Adresse fehlt" });
       return;
     }
 
@@ -274,38 +309,36 @@ export function CreatePartyForm({ vibes }: Props) {
     setLocationState("Adresse wird gesucht...");
 
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&q=${encodeURIComponent(query)}`,
-      );
+      const result = await searchAddressService(query);
 
-      if (!response.ok) {
+      if (result.status === "unavailable") {
         setLocationState("Adresssuche derzeit nicht verfügbar. Bitte später erneut versuchen.");
+        showToast({ variant: "error", title: "Adresssuche nicht verfügbar" });
         return;
       }
 
-      const results = (await response.json()) as Array<{
-        lat: string;
-        lon: string;
-        display_name?: string;
-      }>;
-
-      const first = results[0];
-      if (!first) {
+      if (result.status === "not_found") {
         setLocationState("Adresse nicht gefunden. Bitte genauer eingeben.");
+        showToast({ variant: "info", title: "Adresse nicht gefunden" });
         return;
       }
 
-      const nextLat = Number(first.lat);
-      const nextLng = Number(first.lon);
-
-      if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng)) {
+      if (result.status === "invalid_coordinates") {
         setLocationState("Adresse konnte nicht aufgelöst werden.");
+        showToast({ variant: "error", title: "Adressdaten ungültig" });
         return;
       }
+
+      if (result.status !== "ok") {
+        return;
+      }
+
+      const nextLat = result.lat;
+      const nextLng = result.lng;
 
       setLat(nextLat);
       setLng(nextLng);
-      setResolvedAddress(first.display_name ?? query);
+      setResolvedAddress(result.displayName);
 
       markerRef.current?.setLngLat([nextLng, nextLat]);
       mapRef.current?.flyTo({ center: [nextLng, nextLat], zoom: 14, duration: 700 });
@@ -313,6 +346,7 @@ export function CreatePartyForm({ vibes }: Props) {
       setLocationState("Adresse gefunden und Pin gesetzt.");
     } catch {
       setLocationState("Adresssuche fehlgeschlagen. Bitte Pin manuell setzen.");
+      showToast({ variant: "error", title: "Adresssuche fehlgeschlagen" });
     } finally {
       setIsAddressSearching(false);
     }

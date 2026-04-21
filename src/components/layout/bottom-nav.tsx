@@ -15,6 +15,8 @@ const NAV = [
   { href: "/chat", label: "Chat", icon: MessageCircle },
 ];
 
+const COMING_SOON_HREFS = new Set(["/requests", "/chat"]);
+
 const initialHangoutState: HangoutActionState = {};
 const initialPartyState: CreatePartyActionState = {
   ok: false,
@@ -312,6 +314,7 @@ export function BottomNav() {
           >
             {NAV.map((item) => {
               const isPlus = item.href === "/plus";
+              const isComingSoon = COMING_SOON_HREFS.has(item.href);
               const active = !isPlus && pathname.startsWith(item.href);
               const Icon = item.icon;
 
@@ -326,6 +329,15 @@ export function BottomNav() {
                       <Icon size={18} strokeWidth={2.2} />
                       <span className="mt-1">{item.label}</span>
                     </button>
+                  ) : isComingSoon ? (
+                    <span
+                      aria-disabled="true"
+                      className="flex h-14 w-full cursor-not-allowed flex-col items-center justify-center rounded-xl text-[11px] font-semibold text-zinc-400"
+                    >
+                      <Icon size={18} strokeWidth={2.2} />
+                      <span className="mt-1">{item.label}</span>
+                      <span className="text-[9px] font-medium">Coming soon feature</span>
+                    </span>
                   ) : (
                     <Link
                       href={item.href}

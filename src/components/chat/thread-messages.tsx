@@ -1,52 +1,32 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { formatDateTime } from "@/lib/format";
-
-type Message = {
-  id: string;
-  sender_user_id: string;
-  body: string;
-  created_at: string;
-};
+import {
+  subscribeToThreadMessages,
+  type ThreadMessage,
+} from "@/services/chat/thread-messages-service";
 
 type Props = {
   threadId: string;
   currentUserId: string;
-  initialMessages: Message[];
+  initialMessages: ThreadMessage[];
 };
 
 export function ThreadMessages({ threadId, currentUserId, initialMessages }: Props) {
-  const [messages, setMessages] = useState<Message[]>(() => initialMessages);
+  const [messages, setMessages] = useState<ThreadMessage[]>(() => initialMessages);
 
   useEffect(() => {
-    const supabase = createClient();
-
-    const channel = supabase
-      .channel(`chat-${threadId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
-        (payload) => {
-          const row = payload.new as Message;
-          setMessages((prev) => [...prev, row]);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return subscribeToThreadMessages({
+      threadId,
+      onMessage: (message) => {
+        setMessages((prev) => [...prev, message]);
+      },
+    });
   }, [threadId]);
 
   const sorted = useMemo(
-    () => [...messages].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    () => [...messages].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     [messages],
   );
 
@@ -57,7 +37,7 @@ export function ThreadMessages({ threadId, currentUserId, initialMessages }: Pro
   return (
     <div className="space-y-2">
       {sorted.map((message) => {
-        const own = message.sender_user_id === currentUserId;
+        const own = message.senderUserId === currentUserId;
         return (
           <div key={message.id} className={`flex ${own ? "justify-end" : "justify-start"}`}>
             <div
@@ -67,7 +47,7 @@ export function ThreadMessages({ threadId, currentUserId, initialMessages }: Pro
             >
               <p>{message.body}</p>
               <p className={`mt-1 text-[10px] ${own ? "text-zinc-300" : "text-zinc-500"}`}>
-                {formatDateTime(message.created_at)}
+                {formatDateTime(message.createdAt)}
               </p>
               {!own ? (
                 <a

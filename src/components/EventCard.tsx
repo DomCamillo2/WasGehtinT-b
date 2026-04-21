@@ -12,10 +12,10 @@ import {
   MapPin,
   Sparkles,
 } from "lucide-react";
-import { PartyCard } from "@/lib/types";
+import { DiscoverEvent } from "@/services/discover/discover-view-model";
 
 type Props = {
-  party: PartyCard;
+  party: DiscoverEvent;
   expanded: boolean;
   onToggle: () => void;
   isAuthenticated: boolean;
@@ -24,8 +24,6 @@ type Props = {
   rankLabel?: string | null;
   isHotNow?: boolean;
   onToggleUpvote?: () => void;
-  onRequestAction?: () => void;
-  onChatAction?: () => void;
 };
 
 type TypeTagKey = "club-bar" | "wg-privat" | "treffen" | "daytime" | "extern";
@@ -53,8 +51,8 @@ const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
   },
 ];
 
-function resolveVenueLabel(party: PartyCard): string {
-  const locationName = (party.location_name ?? "").trim();
+function resolveVenueLabel(party: DiscoverEvent): string {
+  const locationName = (party.locationName ?? "").trim();
   if (locationName.length > 0) {
     const shortLocation = locationName.split(",")[0]?.trim();
     if (shortLocation) {
@@ -62,7 +60,7 @@ function resolveVenueLabel(party: PartyCard): string {
     }
   }
 
-  const vibeLabel = (party.vibe_label ?? "").trim();
+  const vibeLabel = (party.vibeLabel ?? "").trim();
   if (vibeLabel.length > 0 && vibeLabel.toLowerCase() !== "instagram") {
     return vibeLabel;
   }
@@ -70,16 +68,16 @@ function resolveVenueLabel(party: PartyCard): string {
   return "Tuebingen";
 }
 
-function getTypeTag(party: PartyCard): TypeTag {
+function getTypeTag(party: DiscoverEvent): TypeTag {
   const title = party.title.toLowerCase();
   const description = (party.description ?? "").toLowerCase();
-  const vibe = party.vibe_label.toLowerCase();
+  const vibe = party.vibeLabel.toLowerCase();
   const text = `${title} ${description} ${vibe}`;
 
-  if (party.event_scope === "daytime") {
+  if (party.eventScope === "daytime") {
     return {
       key: "daytime",
-      label: party.category_label?.trim() || "Tagesevent",
+      label: party.categoryLabel?.trim() || "Tagesevent",
       bookmarkClasses: "bg-sky-100/95 text-sky-800 ring-sky-300",
     };
   }
@@ -92,7 +90,7 @@ function getTypeTag(party: PartyCard): TypeTag {
     };
   }
 
-  if (!party.is_external) {
+  if (!party.isExternal) {
     return {
       key: "wg-privat",
       label: "WG/Privat",
@@ -122,8 +120,8 @@ function getTypeTag(party: PartyCard): TypeTag {
   };
 }
 
-function getAddressLine(party: PartyCard) {
-  const vibe = party.vibe_label.toLowerCase();
+function getAddressLine(party: DiscoverEvent) {
+  const vibe = party.vibeLabel.toLowerCase();
 
   if (vibe.includes("schlachthaus")) {
     return "Schlachthausstra\u00dfe 9, T\u00fcbingen";
@@ -134,18 +132,18 @@ function getAddressLine(party: PartyCard) {
   if (vibe.includes("clubhaus")) {
     return "Wilhelmstra\u00dfe 30, 72074 T\u00fcbingen";
   }
-  if (party.public_lat && party.public_lng) {
-    return `Koordinaten: ${party.public_lat.toFixed(4)}, ${party.public_lng.toFixed(4)}`;
+  if (party.publicLat && party.publicLng) {
+    return `Koordinaten: ${party.publicLat.toFixed(4)}, ${party.publicLng.toFixed(4)}`;
   }
-  if (party.location_name && party.location_name.trim().length > 0) {
-    return party.location_name;
+  if (party.locationName && party.locationName.trim().length > 0) {
+    return party.locationName;
   }
   return "Adresse wird vor dem Event bekannt gegeben";
 }
 
-function resolvePartnerLogo(party: PartyCard, typeTag: TypeTag): { src: string; alt: string } | null {
-  const locationName = (party.location_name ?? "").trim();
-  const probeText = `${locationName} ${party.vibe_label} ${party.title} ${party.external_link ?? ""}`;
+function resolvePartnerLogo(party: DiscoverEvent, typeTag: TypeTag): { src: string; alt: string } | null {
+  const locationName = (party.locationName ?? "").trim();
+  const probeText = `${locationName} ${party.vibeLabel} ${party.title} ${party.externalLink ?? ""}`;
 
   for (const partner of PARTNER_LOGOS) {
     if (partner.match.test(probeText)) {
@@ -195,19 +193,19 @@ const BERLIN_FULL_DATETIME_FORMATTER = new Intl.DateTimeFormat("de-DE", {
   timeStyle: "short",
 });
 
-function resolveMusicGenre(party: PartyCard): string | null {
-  if (party.music_genre && party.music_genre.trim().length > 0) {
-    return party.music_genre.trim();
+function resolveMusicGenre(party: DiscoverEvent): string | null {
+  if (party.musicGenre && party.musicGenre.trim().length > 0) {
+    return party.musicGenre.trim();
   }
 
-  const text = `${party.title} ${party.description ?? ""} ${party.vibe_label}`;
+  const text = `${party.title} ${party.description ?? ""} ${party.vibeLabel}`;
   for (const pattern of MUSIC_GENRE_PATTERNS) {
     if (pattern.regex.test(text)) {
       return pattern.label;
     }
   }
 
-  return party.is_external ? "Nicht angegeben" : null;
+  return party.isExternal ? "Nicht angegeben" : null;
 }
 
 export function EventCard({
@@ -220,8 +218,6 @@ export function EventCard({
   rankLabel,
   isHotNow = false,
   onToggleUpvote,
-  onRequestAction,
-  onChatAction,
 }: Props) {
   const typeTag = getTypeTag(party);
   const musicGenre = resolveMusicGenre(party);
@@ -229,7 +225,7 @@ export function EventCard({
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
   const [showFlameTooltip, setShowFlameTooltip] = useState(false);
 
-  const hostAvatarSrc = party.host_avatar_url ?? null;
+  const hostAvatarSrc = party.hostAvatarUrl ?? null;
   const partnerLogoSrc = partnerLogo?.src ?? null;
   const avatarSrc =
     partnerLogoSrc && failedImageSrc !== partnerLogoSrc
@@ -239,21 +235,21 @@ export function EventCard({
         : null;
   const isLocalAvatar = Boolean(avatarSrc?.startsWith("/"));
   const locationLine = resolveVenueLabel(party);
-  const normalizedSourceBadge = (party.source_badge ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+  const normalizedSourceBadge = (party.sourceBadge ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
   const shouldShowSourceBadge =
-    Boolean(party.source_badge) &&
+    Boolean(party.sourceBadge) &&
     normalizedSourceBadge !== "official scraper" &&
     !normalizedSourceBadge.includes("instagram");
-  const fallbackInitial = (party.vibe_label[0] || party.title[0] || "E").toUpperCase();
-  const effectiveUpvoteCount = Math.max(0, upvoteCount ?? party.upvote_count ?? 0);
+  const fallbackInitial = (party.vibeLabel[0] || party.title[0] || "E").toUpperCase();
+  const effectiveUpvoteCount = Math.max(0, upvoteCount ?? party.upvoteCount ?? 0);
   const canUpvote = true;
-  const startsAtDate = new Date(party.starts_at);
+  const startsAtDate = new Date(party.startsAt);
   const formattedDate = BERLIN_SHORT_DATE_FORMATTER.format(startsAtDate);
   const formattedTime = BERLIN_TIME_FORMATTER.format(startsAtDate);
-  const timingLabel = party.is_all_day ? "Ganztagig" : `${formattedTime} Uhr`;
+  const timingLabel = party.isAllDay ? "Ganztagig" : `${formattedTime} Uhr`;
   const cardBorderColor = isHotNow
     ? "#fb923c"
-    : party.is_external
+    : party.isExternal
       ? "color-mix(in srgb, var(--border-strong) 72%, rgba(148, 163, 184, 0.18))"
       : "color-mix(in srgb, var(--accent) 14%, var(--border-soft) 86%)";
   const cardShadow = isHotNow ? undefined : "0 14px 34px -24px rgba(15, 23, 42, 0.48)";
@@ -323,7 +319,7 @@ export function EventCard({
                   color: "color-mix(in srgb, #6ee7b7 72%, var(--foreground))",
                 }}
               >
-                {party.source_badge}
+                {party.sourceBadge}
               </span>
             ) : null}
 
@@ -478,28 +474,28 @@ export function EventCard({
                 {musicGenre}
               </p>
             ) : null}
-            {party.category_label ? (
+            {party.categoryLabel ? (
               <p className="mt-1">
                 <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                   Kategorie:
                 </span>{" "}
-                {party.category_label}
+                {party.categoryLabel}
               </p>
             ) : null}
-            {party.audience_label ? (
+            {party.audienceLabel ? (
               <p className="mt-1">
                 <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                   Zielgruppe:
                 </span>{" "}
-                {party.audience_label}
+                {party.audienceLabel}
               </p>
             ) : null}
-            {party.price_info ? (
+            {party.priceInfo ? (
               <p className="mt-1">
                 <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                   Preis:
                 </span>{" "}
-                {party.price_info}
+                {party.priceInfo}
               </p>
             ) : null}
             <p className="mt-1">
@@ -512,13 +508,13 @@ export function EventCard({
               <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                 Start:
               </span>{" "}
-              {BERLIN_FULL_DATETIME_FORMATTER.format(new Date(party.starts_at))}
+              {BERLIN_FULL_DATETIME_FORMATTER.format(new Date(party.startsAt))}
             </p>
             <p className="mt-1">
               <span className="font-semibold" style={{ color: "var(--foreground)" }}>
                 Ende:
               </span>{" "}
-              {BERLIN_FULL_DATETIME_FORMATTER.format(new Date(party.ends_at))}
+              {BERLIN_FULL_DATETIME_FORMATTER.format(new Date(party.endsAt))}
             </p>
             {party.description ? (
               <p className="mt-2" style={{ color: "var(--muted-foreground)" }}>
@@ -528,10 +524,10 @@ export function EventCard({
                 {party.description}
               </p>
             ) : null}
-            {party.is_external && party.external_link ? (
+            {party.isExternal && party.externalLink ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 <a
-                  href={party.external_link}
+                  href={party.externalLink}
                   target="_blank"
                   rel="noreferrer"
                   onClick={(event) => event.stopPropagation()}
@@ -547,11 +543,11 @@ export function EventCard({
                 </a>
               </div>
             ) : null}
-            {!party.is_external && party.host_user_id ? (
+            {!party.isExternal && party.hostUserId ? (
               <div className="mt-2 flex flex-wrap gap-2">
                 {isAuthenticated ? (
                   <Link
-                    href={`/profile/${party.host_user_id}`}
+                    href={`/profile/${party.hostUserId}`}
                     onClick={(event) => event.stopPropagation()}
                     className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
                     style={{
@@ -566,34 +562,34 @@ export function EventCard({
 
                 <button
                   type="button"
+                  disabled
                   onClick={(event) => {
                     event.stopPropagation();
-                    onRequestAction?.();
                   }}
-                  className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                  className="inline-flex cursor-not-allowed rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
                   style={{
-                    borderColor: "var(--nav-border)",
-                    backgroundColor: "var(--surface-elevated)",
-                    color: "var(--foreground)",
+                    borderColor: "var(--border-soft)",
+                    backgroundColor: "var(--surface-soft)",
+                    color: "var(--muted-foreground)",
                   }}
                 >
-                  Anfragen
+                  Anfragen (Coming soon feature)
                 </button>
 
                 <button
                   type="button"
+                  disabled
                   onClick={(event) => {
                     event.stopPropagation();
-                    onChatAction?.();
                   }}
-                  className="inline-flex rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                  className="inline-flex cursor-not-allowed rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
                   style={{
-                    borderColor: "var(--nav-border)",
-                    backgroundColor: "var(--surface-elevated)",
-                    color: "var(--foreground)",
+                    borderColor: "var(--border-soft)",
+                    backgroundColor: "var(--surface-soft)",
+                    color: "var(--muted-foreground)",
                   }}
                 >
-                  Chatten
+                  Chatten (Coming soon feature)
                 </button>
               </div>
             ) : null}

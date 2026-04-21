@@ -3,7 +3,7 @@ import { AdminLoginForm } from "@/components/auth/admin-login-form";
 import { Card } from "@/components/ui/card";
 import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
 import { getInternalAdminUserOrNull } from "@/lib/admin-guard";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserOrNull } from "@/services/auth/session-service";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +28,7 @@ export default async function AdminLoginPage() {
     redirect("/admin");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUserOrNull();
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-4 px-4 py-8">

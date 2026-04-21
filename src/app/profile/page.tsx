@@ -4,31 +4,9 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ScreenHeader } from "@/components/layout/screen-header";
 import { Card } from "@/components/ui/card";
 import { getCopy } from "@/lib/i18n";
-import { createClient } from "@/lib/supabase/server";
+import { loadProfilePageData } from "@/services/profile/profile-page-service";
 
 type SearchParams = Promise<{ saved?: string; error?: string }>;
-
-type ProfileRow = {
-  display_name: string | null;
-  avatar_url: string | null;
-  gender: "female" | "male" | "diverse" | null;
-  age: number | null;
-  study_program: string | null;
-  profile_visibility: "public" | "members" | "hidden" | null;
-};
-
-type SubmissionRow = {
-  id: string;
-  title: string;
-  starts_at: string;
-  created_at: string;
-  status: string | null;
-  review_status: string | null;
-};
-
-function isMissingColumnError(code: string | undefined) {
-  return code === "42703" || code === "PGRST204";
-}
 
 function safeDateTimeLabel(input: string): string {
   const parsed = new Date(input);
@@ -90,85 +68,12 @@ function getInfoBanner(params: { saved?: string; error?: string }) {
 
 export default async function ProfilePage({ searchParams }: { searchParams: SearchParams }) {
   const t = getCopy("de").profile;
-  const supabase = await createClient();
-  const [params, authResult] = await Promise.all([searchParams, supabase.auth.getUser()]);
-  const user = authResult.data.user;
+  const [params, profilePageData] = await Promise.all([searchParams, loadProfilePageData()]);
 
-  if (!user) {
+  if (!profilePageData) {
     return null;
   }
-
-  const profileResult = await supabase
-    .from("user_profiles")
-    .select("display_name, avatar_url, gender, age, study_program, profile_visibility")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const submissionQuery = await supabase
-    .from("parties")
-    .select("id, title, starts_at, created_at, status, review_status")
-    .eq("host_user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(12);
-
-  const fallbackSubmissionQuery = await (isMissingColumnError(submissionQuery.error?.code)
-    ? supabase
-        .from("parties")
-        .select("id, title, starts_at, created_at, status")
-        .eq("host_user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(12)
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const useFallback = isMissingColumnError(submissionQuery.error?.code);
-  const fallbackErrorCode = useFallback ? fallbackSubmissionQuery.error?.code : submissionQuery.error?.code;
-
-  const legacySubmissionQuery = await (isMissingColumnError(fallbackErrorCode)
-    ? supabase
-        .from("parties")
-        .select("id, title, date, created_at, is_published, review_status")
-        .eq("host_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(12)
-    : Promise.resolve({ data: null as null }));
-
-  const useLegacy = isMissingColumnError(fallbackErrorCode);
-
-  const rawSubmissionRows = useLegacy
-    ? ((legacySubmissionQuery.data ?? []) as Array<Record<string, unknown>>)
-    : useFallback
-      ? ((fallbackSubmissionQuery.data ?? []) as Array<Record<string, unknown>>)
-      : ((submissionQuery.data ?? []) as Array<Record<string, unknown>>);
-
-  const submissions = rawSubmissionRows.map((row) => {
-    const rawStatus = row.status;
-    const rawPublished = row.is_published;
-
-    return {
-      id: String(row.id ?? ""),
-      title: String(row.title ?? "Unbenannt"),
-      starts_at: String(row.starts_at ?? row.date ?? row.created_at ?? ""),
-      created_at: String(row.created_at ?? ""),
-      status:
-        typeof rawStatus === "string"
-          ? rawStatus
-          : typeof rawPublished === "boolean"
-            ? rawPublished
-              ? "published"
-              : "draft"
-            : null,
-      review_status: typeof row.review_status === "string" ? row.review_status : null,
-    } as SubmissionRow;
-  });
-
-  const profile = (profileResult.data ?? {
-    display_name: user.user_metadata.display_name ?? user.email?.split("@")[0] ?? "",
-    avatar_url: null,
-    gender: null,
-    age: null,
-    study_program: null,
-    profile_visibility: "members",
-  }) as ProfileRow;
+  const { profile, submissions, userEmail, userAvatarFallback, userDisplayFallback } = profilePageData;
 
   const banner = getInfoBanner(params);
 
@@ -178,20 +83,20 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
 
       <Card className="space-y-4 p-4">
         <div className="flex items-center gap-3">
-          {profile.avatar_url ? (
+          {profile.avatarUrl ? (
             <img
-              src={profile.avatar_url}
+              src={profile.avatarUrl}
               alt="Profilbild"
               className="h-14 w-14 rounded-full border border-zinc-200 object-cover"
             />
           ) : (
             <div className="grid h-14 w-14 place-items-center rounded-full border border-zinc-200 bg-zinc-100 text-base font-bold text-zinc-700">
-              {String(profile.display_name?.[0] ?? user.email?.[0] ?? "U").toUpperCase()}
+              {userAvatarFallback}
             </div>
           )}
           <div>
-            <p className="text-sm font-semibold text-zinc-900">{profile.display_name ?? t.noName}</p>
-            <p className="text-xs text-zinc-500">{user.email}</p>
+            <p className="text-sm font-semibold text-zinc-900">{profile.displayName ?? userDisplayFallback ?? t.noName}</p>
+            <p className="text-xs text-zinc-500">{userEmail}</p>
           </div>
         </div>
 
@@ -211,7 +116,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
           <input
             name="displayName"
             type="text"
-            defaultValue={profile.display_name ?? ""}
+            defaultValue={profile.displayName ?? ""}
             placeholder="Anzeigename"
             required
             className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 outline-none focus:border-zinc-400"
@@ -243,7 +148,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
           <input
             name="studyProgram"
             type="text"
-            defaultValue={profile.study_program ?? ""}
+            defaultValue={profile.studyProgram ?? ""}
             placeholder="Studiengang (optional)"
             className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 outline-none focus:border-zinc-400"
           />
@@ -255,7 +160,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
             <select
               id="profileVisibility"
               name="profileVisibility"
-              defaultValue={profile.profile_visibility ?? "members"}
+              defaultValue={profile.profileVisibility ?? "members"}
               className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-sm text-zinc-900 outline-none focus:border-zinc-400"
             >
               <option value="public">Öffentlich innerhalb der Plattform</option>
@@ -329,15 +234,15 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
             <div key={submission.id} className="rounded-xl border border-zinc-200 bg-white p-3">
               <p className="text-sm font-semibold text-zinc-900">{submission.title}</p>
               <p className="mt-0.5 text-xs text-zinc-500">
-                Start: {safeDateTimeLabel(submission.starts_at)}
+                Start: {safeDateTimeLabel(submission.startsAt)}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <span
                   className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${reviewStatusClassName(
-                    submission.review_status,
+                    submission.reviewStatus,
                   )}`}
                 >
-                  Review: {reviewStatusLabel(submission.review_status)}
+                  Review: {reviewStatusLabel(submission.reviewStatus)}
                 </span>
                 <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
                   Status: {publishStatusLabel(submission.status)}

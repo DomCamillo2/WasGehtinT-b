@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Building2,
   CalendarDays,
@@ -17,7 +16,10 @@ import {
 } from "lucide-react";
 import { EventCard } from "@/components/EventCard";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { PartyCard as PartyCardType } from "@/lib/types";
+import { useToast } from "@/components/ui/toast-provider";
+import { asServiceError } from "@/services/service-error";
+import { DiscoverEvent } from "@/services/discover/discover-view-model";
+import { togglePartyUpvote } from "@/services/events/upvotes-service";
 
 const DiscoverMap = dynamic(
   () => import("@/components/party/discover-map").then((module) => module.DiscoverMap),
@@ -65,7 +67,7 @@ const BERLIN_DAY_CHIP_FORMATTER = new Intl.DateTimeFormat("de-DE", {
 });
 
 type Props = {
-  parties: PartyCardType[];
+  parties: DiscoverEvent[];
   avatarFallback: string;
   isAuthenticated: boolean;
   canLoadMore: boolean;
@@ -76,8 +78,8 @@ function toDateKeyBerlin(iso: string) {
   return BERLIN_DAY_KEY_FORMATTER.format(new Date(iso));
 }
 
-function hasMapCoordinates(party: PartyCardType) {
-  return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
+function hasMapCoordinates(party: DiscoverEvent) {
+  return Number.isFinite(party.publicLat) && Number.isFinite(party.publicLng);
 }
 
 function shiftIsoMonth(isoDate: string, monthDelta: number): string {
@@ -104,7 +106,7 @@ export function DiscoverPremium({
   canLoadMore,
   loadMoreHref,
 }: Props) {
-  const router = useRouter();
+  const { showToast } = useToast();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [view, setView] = useState<ViewKey>("list");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
@@ -117,12 +119,12 @@ export function DiscoverPremium({
   const initialUpvoteCounts = useMemo(() => {
     const map: Record<string, number> = {};
     for (const party of parties) {
-      map[party.id] = Math.max(0, Number(party.upvote_count ?? 0));
+      map[party.id] = Math.max(0, Number(party.upvoteCount ?? 0));
     }
     return map;
   }, [parties]);
   const initialUpvotedIds = useMemo(
-    () => parties.filter((party) => party.upvoted_by_me).map((party) => party.id),
+    () => parties.filter((party) => party.upvotedByMe).map((party) => party.id),
     [parties],
   );
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(initialUpvoteCounts);
@@ -191,26 +193,26 @@ export function DiscoverPremium({
 
   const sortedParties = useMemo(() => {
     return [...parties].sort((left, right) => {
-      const leftScore = upvoteCounts[left.id] ?? left.upvote_count ?? 0;
-      const rightScore = upvoteCounts[right.id] ?? right.upvote_count ?? 0;
+      const leftScore = upvoteCounts[left.id] ?? left.upvoteCount ?? 0;
+      const rightScore = upvoteCounts[right.id] ?? right.upvoteCount ?? 0;
 
       if (rightScore !== leftScore) {
         return rightScore - leftScore;
       }
 
-      return new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime();
+      return new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime();
     });
   }, [parties, upvoteCounts]);
 
   const topScore = useMemo(() => {
     let max = 0;
     for (const party of sortedParties) {
-      const dateKey = toDateKeyBerlin(party.starts_at);
+      const dateKey = toDateKeyBerlin(party.startsAt);
       if (dateKey < todayKey) {
         continue;
       }
 
-      const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
+      const score = upvoteCounts[party.id] ?? party.upvoteCount ?? 0;
       if (score > max) {
         max = score;
       }
@@ -225,11 +227,11 @@ export function DiscoverPremium({
 
     return (
       sortedParties.find((party) => {
-        const dateKey = toDateKeyBerlin(party.starts_at);
+        const dateKey = toDateKeyBerlin(party.startsAt);
         if (dateKey < todayKey) {
           return false;
         }
-        return (upvoteCounts[party.id] ?? party.upvote_count ?? 0) === topScore;
+        return (upvoteCounts[party.id] ?? party.upvoteCount ?? 0) === topScore;
       }) ?? null
     );
   }, [sortedParties, topScore, upvoteCounts, todayKey]);
@@ -246,11 +248,11 @@ export function DiscoverPremium({
     let rank = 1;
 
     for (const party of sortedParties) {
-      if (party.is_external) {
+      if (party.isExternal) {
         continue;
       }
 
-      const score = upvoteCounts[party.id] ?? party.upvote_count ?? 0;
+      const score = upvoteCounts[party.id] ?? party.upvoteCount ?? 0;
       if (score <= 0) {
         continue;
       }
@@ -263,21 +265,21 @@ export function DiscoverPremium({
   }, [sortedParties, upvoteCounts]);
 
   const filteredParties = useMemo(() => {
-    const isClubEvent = (party: PartyCardType) => {
-      if (!party.is_external) {
+    const isClubEvent = (party: DiscoverEvent) => {
+      if (!party.isExternal) {
         return false;
       }
 
-      if (party.event_scope === "daytime") {
+      if (party.eventScope === "daytime") {
         return false;
       }
 
-      const categorySlug = (party.category_slug ?? "").toLowerCase();
+      const categorySlug = (party.categorySlug ?? "").toLowerCase();
       if (categorySlug === "market" || categorySlug === "flea-market") {
         return false;
       }
 
-      const text = `${party.title} ${party.description ?? ""} ${party.vibe_label}`.toLowerCase();
+      const text = `${party.title} ${party.description ?? ""} ${party.vibeLabel}`.toLowerCase();
       if (/markt|flohmarkt|messe|basar|rathaus|regionalmarkt|georgimarkt/.test(text)) {
         return false;
       }
@@ -287,8 +289,8 @@ export function DiscoverPremium({
 
     return sortedParties.filter((party) => {
       if (filter === "clubs" && !isClubEvent(party)) return false;
-      if (filter === "daytime" && party.event_scope !== "daytime") return false;
-      if (filter === "community" && !party.is_community && party.source_badge !== "Community") return false;
+      if (filter === "daytime" && party.eventScope !== "daytime") return false;
+      if (filter === "community" && !party.isCommunity && party.sourceBadge !== "Community") return false;
       if (onlyMappable && !hasMapCoordinates(party)) return false;
 
       return true;
@@ -324,6 +326,10 @@ export function DiscoverPremium({
   }
 
   async function toggleUpvote(eventId: string) {
+    if (!requireAuth("Um Events hochzuvoten, logge dich mit deiner Uni-Mail ein.")) {
+      return;
+    }
+
     const wasUpvoted = upvotedPartyIds.includes(eventId);
     const nextUpvoted = !wasUpvoted;
 
@@ -336,19 +342,7 @@ export function DiscoverPremium({
     }));
 
     try {
-      const response = await fetch(`/api/parties/${encodeURIComponent(eventId)}/upvote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ upvoted: nextUpvoted }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const data = (await response.json()) as { upvoted: boolean; upvoteCount: number };
+      const data = await togglePartyUpvote(eventId, nextUpvoted);
       setUpvotedPartyIds((current) =>
         data.upvoted
           ? Array.from(new Set([...current, eventId]))
@@ -358,25 +352,14 @@ export function DiscoverPremium({
         ...current,
         [eventId]: Math.max(0, Number(data.upvoteCount ?? 0)),
       }));
-    } catch {
-      // Keep optimistic state on network/backend issues.
+    } catch (error) {
+      const serviceError = asServiceError(error);
+      showToast({
+        variant: "error",
+        title: "Upvote fehlgeschlagen",
+        message: serviceError.message,
+      });
     }
-  }
-
-  function handleRequestAction() {
-    if (!requireAuth("Um bei einer Party anzufragen und die genaue Location zu sehen, logge dich mit deiner Uni-Mail ein.")) {
-      return;
-    }
-
-    router.push("/requests");
-  }
-
-  function handleChatAction() {
-    if (!requireAuth("Um mit Hosts und Gästen zu chatten, logge dich mit deiner Uni-Mail ein.")) {
-      return;
-    }
-
-    router.push("/chat");
   }
 
   const viewItems = [
@@ -403,7 +386,7 @@ export function DiscoverPremium({
   }
 
   const selectedCalendarEvents = useMemo(() => {
-    return filteredParties.filter((party) => toDateKeyBerlin(party.starts_at) === selectedCalendarDate);
+    return filteredParties.filter((party) => toDateKeyBerlin(party.startsAt) === selectedCalendarDate);
   }, [filteredParties, selectedCalendarDate]);
 
   const selectedCalendarLabel = useMemo(() => {
@@ -541,14 +524,14 @@ export function DiscoverPremium({
                 <button
                   type="button"
                   onClick={() => {
-                    setAuthSheetReason("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
+                    setAuthSheetReason("Login ist aktuell deaktiviert. Coming soon feature.");
                     setShowAuthSheet(true);
                   }}
                   className="grid h-11 w-11 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
                   style={{
                     background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
                   }}
-                  aria-label="Login öffnen"
+                  aria-label="Coming soon Hinweis öffnen"
                 >
                   {avatarFallback}
                 </button>
@@ -684,24 +667,23 @@ export function DiscoverPremium({
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full" style={{ backgroundColor: "var(--nav-border)" }} />
             <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
-              Mit Uni-Mail freischalten
+              Coming soon feature
             </h2>
             <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
               {authSheetReason}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <Link
-                href="/auth"
-                onClick={() => setShowAuthSheet(false)}
-                className="inline-flex h-11 items-center justify-center rounded-xl border text-sm font-semibold"
+              <span
+                aria-disabled="true"
+                className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border text-sm font-semibold"
                 style={{
-                  borderColor: "var(--nav-border)",
-                  backgroundColor: "var(--surface-elevated)",
-                  color: "var(--foreground)",
+                  borderColor: "var(--border-soft)",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--muted-foreground)",
                 }}
               >
-                Einloggen
-              </Link>
+                Login (Coming soon feature)
+              </span>
               <span
                 aria-disabled="true"
                 className="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border text-sm font-semibold"
@@ -788,7 +770,7 @@ export function DiscoverPremium({
                   return <div key={`calendar-empty-${index}`} className="h-9" />;
                 }
 
-                const hasEvents = filteredParties.some((party) => toDateKeyBerlin(party.starts_at) === cell.isoDate);
+                const hasEvents = filteredParties.some((party) => toDateKeyBerlin(party.startsAt) === cell.isoDate);
                 const active = selectedCalendarDate === cell.isoDate;
 
                 return (
@@ -844,7 +826,7 @@ export function DiscoverPremium({
                     expanded={expandedCardId === party.id}
                     isAuthenticated={isAuthenticated}
                     upvoted={upvotedPartyIds.includes(party.id)}
-                    upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                    upvoteCount={upvoteCounts[party.id] ?? party.upvoteCount ?? 0}
                     isHotNow={hotPartyIds.has(party.id)}
                     rankLabel={
                       rankByPartyId.has(party.id)
@@ -852,8 +834,6 @@ export function DiscoverPremium({
                         : null
                     }
                     onToggleUpvote={() => toggleUpvote(party.id)}
-                    onRequestAction={handleRequestAction}
-                    onChatAction={handleChatAction}
                     onToggle={() =>
                       setExpandedCardId((current) => (current === party.id ? null : party.id))
                     }
@@ -877,7 +857,7 @@ export function DiscoverPremium({
                 expanded={expandedCardId === party.id}
                 isAuthenticated={isAuthenticated}
                 upvoted={upvotedPartyIds.includes(party.id)}
-                upvoteCount={upvoteCounts[party.id] ?? party.upvote_count ?? 0}
+                upvoteCount={upvoteCounts[party.id] ?? party.upvoteCount ?? 0}
                 isHotNow={hotPartyIds.has(party.id)}
                 rankLabel={
                   rankByPartyId.has(party.id)
@@ -885,8 +865,6 @@ export function DiscoverPremium({
                     : null
                 }
                 onToggleUpvote={() => toggleUpvote(party.id)}
-                onRequestAction={handleRequestAction}
-                onChatAction={handleChatAction}
                 onToggle={() =>
                   setExpandedCardId((current) => (current === party.id ? null : party.id))
                 }
@@ -939,4 +917,3 @@ export function DiscoverPremium({
     </div>
   );
 }
-

@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { PartyCard } from "@/lib/types";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
 import { createBaseMapStyle } from "@/lib/map-style";
 import { ensurePerformanceMarkApi } from "@/lib/performance-compat";
+import { DiscoverEvent } from "@/services/discover/discover-view-model";
 
 type Props = {
-  parties: PartyCard[];
+  parties: DiscoverEvent[];
 };
 
 const KUCKUCK_RED = "#b00000";
@@ -43,12 +43,8 @@ const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = 
   },
 ];
 
-function hasCoordinates(party: PartyCard) {
-  return Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng);
-}
-
-function getVenueKey(party: PartyCard): "kuckuck" | "clubhaus" | "schlachthaus" | "frau-holle" | "schwarzes-schaf" | null {
-  const location = `${party.location_name ?? ""} ${party.vibe_label} ${party.title}`.toLowerCase();
+function getVenueKey(party: DiscoverEvent): "kuckuck" | "clubhaus" | "schlachthaus" | "frau-holle" | "schwarzes-schaf" | null {
+  const location = `${party.locationName ?? ""} ${party.vibeLabel} ${party.title}`.toLowerCase();
 
   if (location.includes("kuckuck")) return "kuckuck";
   if (location.includes("clubhaus")) return "clubhaus";
@@ -63,9 +59,9 @@ function getVenueKey(party: PartyCard): "kuckuck" | "clubhaus" | "schlachthaus" 
   return null;
 }
 
-function resolvePartyCoordinates(party: PartyCard): { lat: number; lng: number } | null {
-  if (Number.isFinite(party.public_lat) && Number.isFinite(party.public_lng)) {
-    return { lat: Number(party.public_lat), lng: Number(party.public_lng) };
+function resolvePartyCoordinates(party: DiscoverEvent): { lat: number; lng: number } | null {
+  if (Number.isFinite(party.publicLat) && Number.isFinite(party.publicLng)) {
+    return { lat: Number(party.publicLat), lng: Number(party.publicLng) };
   }
 
   const venueKey = getVenueKey(party);
@@ -78,8 +74,8 @@ function resolvePartyCoordinates(party: PartyCard): { lat: number; lng: number }
   return null;
 }
 
-function resolveMarkerTheme(party: PartyCard) {
-  const location = `${party.location_name ?? ""} ${party.vibe_label} ${party.title}`.toLowerCase();
+function resolveMarkerTheme(party: DiscoverEvent) {
+  const location = `${party.locationName ?? ""} ${party.vibeLabel} ${party.title}`.toLowerCase();
 
   for (const matcher of VENUE_ICON_MATCHERS) {
     if (matcher.match.test(location)) {
@@ -129,7 +125,7 @@ function resolveMarkerTheme(party: PartyCard) {
     return { background: SCHAF_CYAN, foreground: "#ffffff", glyph: "SS", venue: "Schwarzes Schaf" };
   }
 
-  if (party.is_external) {
+  if (party.isExternal) {
     return { background: "#0f172a", foreground: "#ffffff", glyph: "E", venue: "Extern" };
   }
 
@@ -146,7 +142,7 @@ function formatStartForPopup(startsAt: string) {
   }).format(new Date(startsAt));
 }
 
-function createPopupNode(party: PartyCard, venueLabel: string) {
+function createPopupNode(party: DiscoverEvent, venueLabel: string) {
   const root = document.createElement("div");
   root.className = "space-y-1";
 
@@ -157,8 +153,8 @@ function createPopupNode(party: PartyCard, venueLabel: string) {
 
   const metaNode = document.createElement("p");
   metaNode.className = "text-xs text-zinc-600";
-  const locationLabel = party.location_name?.trim() || venueLabel;
-  metaNode.textContent = `${locationLabel} · ${formatStartForPopup(party.starts_at)} Uhr`;
+  const locationLabel = party.locationName?.trim() || venueLabel;
+  metaNode.textContent = `${locationLabel} · ${formatStartForPopup(party.startsAt)} Uhr`;
   root.appendChild(metaNode);
 
   return root;
@@ -188,7 +184,7 @@ function createMarkerElement(theme: { glyph: string; background: string; foregro
 export function DiscoverMap({ parties }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<import("maplibre-gl").Map | null>(null);
-  const maplibreRef = useRef<any>(null);
+  const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null);
   const markersRef = useRef<Array<import("maplibre-gl").Marker>>([]);
   const lastMarkerSignatureRef = useRef<string>("");
   const [mapReady, setMapReady] = useState(false);
@@ -196,7 +192,10 @@ export function DiscoverMap({ parties }: Props) {
     if (typeof window === "undefined") return false;
     return hasExternalServicesConsent();
   });
-  const partiesWithCoords = useMemo(() => parties.filter((party) => resolvePartyCoordinates(party) !== null), [parties]);
+  const partiesWithCoords = useMemo(
+    () => parties.filter((party) => resolvePartyCoordinates(party) !== null),
+    [parties],
+  );
 
   useEffect(() => {
     if (!canLoadMap || !mapRef.current || mapInstanceRef.current) {
@@ -207,7 +206,8 @@ export function DiscoverMap({ parties }: Props) {
 
     void (async () => {
       ensurePerformanceMarkApi();
-      const maplibre = (await import("maplibre-gl")).default;
+      const maplibreModule = await import("maplibre-gl");
+      const maplibre = ("default" in maplibreModule ? maplibreModule.default : maplibreModule) as typeof import("maplibre-gl");
       maplibreRef.current = maplibre;
 
       if (!mounted || !mapRef.current) {
