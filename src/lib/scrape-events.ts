@@ -5,6 +5,9 @@ import { GoogleGenAI } from "@google/genai";
 
 const APIFY_ACTOR_ID = "apify/instagram-profile-scraper";
 const MAX_POSTS = 3;
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash-lite"] as const;
+const GEMINI_MAX_RETRIES_PER_MODEL = 2;
+const GEMINI_RETRY_DELAYS_MS = [300, 1000] as const;
 
 export type ScrapedEvent = {
   title: string;
@@ -128,37 +131,6 @@ function extractInstagramPostCandidate(username: string, post: unknown): Instagr
   return { externalId, sourceUrl, caption };
 }
 
-function extractCaptionsFromItem(item: unknown): string[] {
-  const itemObj = toObjectRecord(item);
-  if (!itemObj) {
-    return [];
-  }
-
-  const captions: string[] = [];
-  const directCaption = normalizeCaption(itemObj.caption);
-  if (directCaption) {
-    captions.push(directCaption);
-  }
-
-  const latestPosts = Array.isArray(itemObj.latestPosts) ? itemObj.latestPosts : [];
-  for (const post of latestPosts) {
-    const caption = extractCaptionFromPost(post);
-    if (caption) {
-      captions.push(caption);
-    }
-  }
-
-  const timelinePosts = Array.isArray(itemObj.latestIgtvVideos) ? itemObj.latestIgtvVideos : [];
-  for (const post of timelinePosts) {
-    const caption = extractCaptionFromPost(post);
-    if (caption) {
-      captions.push(caption);
-    }
-  }
-
-  return captions;
-}
-
 function extractInstagramPostCandidatesFromItem(username: string, item: unknown): InstagramPostCandidate[] {
   const itemObj = toObjectRecord(item);
   if (!itemObj) {
@@ -193,6 +165,63 @@ function buildGeminiPrompt(captions: string[]): string {
     "Captions:",
     JSON.stringify(captions, null, 2),
   ].join("\n");
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && typeof error.message === "string") {
+    return error.message;
+  }
+
+  return String(error ?? "");
+}
+
+function isTransientGeminiError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return ["429", "500", "502", "503", "504", "unavailable", "timeout", "deadline", "temporar", "econnreset"]
+    .some((token) => message.includes(token));
+}
+
+async function generateGeminiContentWithRetry(gemini: GoogleGenAI, prompt: string): Promise<string> {
+  let lastError: unknown;
+
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < GEMINI_MAX_RETRIES_PER_MODEL; attempt += 1) {
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            temperature: 0,
+            responseMimeType: "application/json",
+          },
+        });
+
+        return typeof response.text === "string" ? response.text : "";
+      } catch (error) {
+        lastError = error;
+
+        if (!isTransientGeminiError(error)) {
+          throw error;
+        }
+
+        const isLastAttemptForModel = attempt >= GEMINI_MAX_RETRIES_PER_MODEL - 1;
+        if (!isLastAttemptForModel) {
+          const waitMs = GEMINI_RETRY_DELAYS_MS[Math.min(attempt, GEMINI_RETRY_DELAYS_MS.length - 1)];
+          await sleep(waitMs);
+        }
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Gemini request failed after retries.");
 }
 
 function parseGeminiJsonArray(raw: string): ScrapedEvent[] {
@@ -300,16 +329,20 @@ export async function parseEventsFromCaptions(captions: string[]): Promise<Scrap
   const gemini = new GoogleGenAI({ apiKey: geminiApiKey });
   const prompt = buildGeminiPrompt(dedupedCaptions);
 
-  const response = await gemini.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      temperature: 0,
-      responseMimeType: "application/json",
-    },
-  });
+  let rawText = "";
+  try {
+    rawText = await generateGeminiContentWithRetry(gemini, prompt);
+  } catch (error) {
+    if (isTransientGeminiError(error)) {
+      console.warn("Gemini temporarily unavailable while parsing Instagram captions. Returning empty result.", {
+        error: getErrorMessage(error),
+      });
+      return [];
+    }
 
-  const rawText = typeof response.text === "string" ? response.text : "";
+    throw error;
+  }
+
   if (!rawText) {
     return [];
   }
