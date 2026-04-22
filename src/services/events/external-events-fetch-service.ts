@@ -1,18 +1,22 @@
-"use server";
+import "server-only";
 
+import * as cheerio from "cheerio";
+import { unstable_cache } from "next/cache";
 import { PartyCard } from "@/lib/types";
-import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
+import {
+  fetchSchlachthausEvents,
+  fetchDignightsEvents,
+  fetchEpplehausEvents,
+  fetchTuebingenFleaMarketEvents,
+  fetchTuebingenMarketEvents,
+} from "@/lib/scrapers/official-venues";
 
-export async function fetchExternalEventsAction(): Promise<PartyCard[]> {
-  return fetchExternalEvents();
-}
-"use server";
-
-import { PartyCard } from "@/lib/types";
-import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
-
-// This action intentionally delegates to the service layer to keep routes/components
-// decoupled from scraping implementation details.
+const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
+const KUCKUCK_LAT = 48.5413588;
+const KUCKUCK_LNG = 9.0599431;
+const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
+const CLUBHAUS_LAT = 48.5243852;
+const CLUBHAUS_LNG = 9.0605991;
 
 type ParsedEvent = {
   dateKey: string;
@@ -28,13 +32,12 @@ const CANCELLED_EVENT_PATTERNS: Array<{ pattern: RegExp; description: string }> 
   { pattern: /\bcancelled\b/i, description: "cancelled" },
   { pattern: /\bcanceled\b/i, description: "canceled" },
   { pattern: /\bcancel\b/i, description: "cancel" },
-  { pattern: /\bfällt\s+aus\b/i, description: "fällt aus" },
+  { pattern: /\bf\u00e4llt\s+aus\b/i, description: "f\u00e4llt aus" },
 ];
 
 function validateCancellationPatterns(): void {
   for (const { pattern, description } of CANCELLED_EVENT_PATTERNS) {
     try {
-      // Force a no-op test at startup to catch malformed regex edits early.
       void pattern.test(description);
     } catch (error) {
       console.error("[external-events] Invalid cancellation regex pattern:", description, error);
@@ -79,7 +82,6 @@ function toIsoDate(day: number, month: number): string | null {
     return null;
   }
 
-  // Reject date overflows like 31.2. that Date auto-normalizes.
   if (
     candidate.getUTCFullYear() !== year ||
     candidate.getUTCMonth() !== month - 1 ||
@@ -88,7 +90,6 @@ function toIsoDate(day: number, month: number): string | null {
     return null;
   }
 
-  // Never return past dates.
   if (candidate.getTime() < now.getTime()) {
     return null;
   }
@@ -99,7 +100,7 @@ function toIsoDate(day: number, month: number): string | null {
 function normalizeChunk(input: string): string {
   return input
     .replace(/\s+/g, " ")
-    .replace(/([a-zäöüß])([A-ZÄÖÜ])/g, "$1 $2")
+    .replace(/([a-z\u00e4\u00f6\u00fc\u00df])([A-Z\u00c4\u00d6\u00dc])/g, "$1 $2")
     .trim();
 }
 
@@ -190,7 +191,7 @@ function parseWeeklyProgram(rawText: string): ParsedEvent[] {
   return events;
 }
 
-async function fetchKuckuckEventsAction(): Promise<PartyCard[]> {
+async function fetchKuckuckEvents(): Promise<PartyCard[]> {
   try {
     const response = await fetch(KUCKUCK_PROGRAM_URL, {
       cache: "no-store",
@@ -211,7 +212,7 @@ async function fetchKuckuckEventsAction(): Promise<PartyCard[]> {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")}`,
       title: event.title,
-      description: event.description || "Kuckuck Event in Tübingen",
+      description: event.description || "Kuckuck Event in T\u00fcbingen",
       starts_at: event.startsAt,
       ends_at: new Date(new Date(event.startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString(),
       max_guests: 0,
@@ -251,7 +252,7 @@ function normalizeFsrvvTitle(raw: string): string {
   return `Clubhausfest: ${clean}`;
 }
 
-async function fetchFsrvvClubhausEventsAction(): Promise<PartyCard[]> {
+async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
   try {
     const response = await fetch(FSRVV_CLUBHAUS_URL, {
       cache: "no-store",
@@ -325,7 +326,7 @@ async function fetchFsrvvClubhausEventsAction(): Promise<PartyCard[]> {
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "")}`,
           title: event.title,
-          description: "Offizieller Clubhausfesttermin (FSRVV), Wilhelmstraße 30, 72074 Tübingen",
+          description: "Offizieller Clubhausfesttermin (FSRVV), Wilhelmstra\u00dfe 30, 72074 T\u00fcbingen",
           starts_at: startsAt,
           ends_at: new Date(new Date(startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString(),
           max_guests: 0,
@@ -358,8 +359,8 @@ const getCachedExternalEvents = unstable_cache(
       tuebingenMarketEvents,
       tuebingenFleaMarketEvents,
     ] = await Promise.all([
-      fetchKuckuckEventsAction(),
-      fetchFsrvvClubhausEventsAction(),
+      fetchKuckuckEvents(),
+      fetchFsrvvClubhausEvents(),
       fetchSchlachthausEvents(),
       fetchDignightsEvents(),
       fetchEpplehausEvents(),
@@ -381,8 +382,7 @@ const getCachedExternalEvents = unstable_cache(
         const endMs = new Date(event.ends_at).getTime();
         return Number.isFinite(endMs) && endMs >= nowMs;
       });
-    
-    // Remove duplicates by ID
+
     const uniqueMap = new Map<string, PartyCard>();
     for (const event of allEvents) {
       if (!uniqueMap.has(event.id)) {
@@ -398,6 +398,6 @@ const getCachedExternalEvents = unstable_cache(
   { revalidate: 60 * 5, tags: ["external-events"] },
 );
 
-export async function fetchExternalEventsAction(): Promise<PartyCard[]> {
-  return fetchExternalEvents();
+export async function fetchExternalEvents(): Promise<PartyCard[]> {
+  return getCachedExternalEvents();
 }

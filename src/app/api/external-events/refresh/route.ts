@@ -1,6 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
-import { fetchExternalEventsAction } from "@/app/actions/external-events";
 import { syncExternalEventsToCache } from "@/lib/external-events-cache";
+import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   }
 
   revalidateTag("external-events", "max");
-  const events = await fetchExternalEventsAction();
+  const events = await fetchExternalEvents();
   const syncResult = await syncExternalEventsToCache(events);
   revalidatePath("/discover");
 

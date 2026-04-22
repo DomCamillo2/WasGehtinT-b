@@ -1,4 +1,4 @@
-import { fetchExternalEventsAction } from "@/app/actions/external-events";
+import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
 
 export type ExternalEventDebugItem = {
   id: string;
@@ -8,7 +8,7 @@ export type ExternalEventDebugItem = {
 };
 
 export async function loadExternalEventsDebugItems(): Promise<ExternalEventDebugItem[]> {
-  const events = await fetchExternalEventsAction();
+  const events = await fetchExternalEvents();
 
   return events.map((event) => ({
     id: event.id,

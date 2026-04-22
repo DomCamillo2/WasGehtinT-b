@@ -369,6 +369,7 @@ async function handleCronScrape(request: Request) {
   let postErrors = 0;
   let parseFailures = 0;
   let skippedByCaptionHeuristic = 0;
+  const captionParseCache = new Map<string, Awaited<ReturnType<typeof parseEventsFromCaptions>>>();
   const venueErrors: string[] = [];
   const runVenues = pickVenuesForRun(VENUES, MAX_VENUES_PER_RUN);
 
@@ -401,12 +402,21 @@ async function handleCronScrape(request: Request) {
         }
 
         let parsedEvents: Awaited<ReturnType<typeof parseEventsFromCaptions>> = [];
-        try {
-          parsedEvents = await parseEventsFromCaptions([post.caption]);
-        } catch (error) {
-          parseFailures += 1;
-          const message = error instanceof Error ? error.message : String(error);
-          console.warn(`[cron/scrape] ${venue}: caption parse failed for ${post.externalId}: ${message}`);
+        const captionCacheKey = post.caption.trim();
+
+        if (captionCacheKey && captionParseCache.has(captionCacheKey)) {
+          parsedEvents = captionParseCache.get(captionCacheKey) ?? [];
+        } else {
+          try {
+            parsedEvents = await parseEventsFromCaptions([post.caption]);
+            if (captionCacheKey) {
+              captionParseCache.set(captionCacheKey, parsedEvents);
+            }
+          } catch (error) {
+            parseFailures += 1;
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn(`[cron/scrape] ${venue}: caption parse failed for ${post.externalId}: ${message}`);
+          }
         }
 
         if (parsedEvents.length === 0) {

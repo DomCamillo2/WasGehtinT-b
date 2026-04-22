@@ -7,6 +7,17 @@ export const runtime = "nodejs";
 
 const INSTAGRAM_SOURCE = "instagram-scraper";
 
+function isAuthorized(request: Request): boolean {
+  const secret = process.env.CRON_SECRET?.trim();
+  const authHeader = request.headers.get("authorization")?.trim();
+
+  if (!secret) {
+    return false;
+  }
+
+  return authHeader === `Bearer ${secret}`;
+}
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -60,6 +71,10 @@ function buildCacheRows(venue: string, events: Awaited<ReturnType<typeof scrapeI
 }
 
 export async function GET(request: Request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const venue = searchParams.get("venue")?.trim() || "frau_holle_tuebingen";
 
