@@ -48,6 +48,20 @@ const MAX_POSTS_PER_VENUE = (() => {
   return Math.min(Math.floor(parsed), 3);
 })();
 const EVENT_HINT_REGEX = /(\d{1,2}\.\d{1,2}\.|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}:\d{2}\b|\buhr\b|\beinlass\b|\bstart\b|\bline\s*up\b|\btickets?\b|\bheute\b|\bmorgen\b|\bfreitag\b|\bsamstag\b|\bsonntag\b|\bmo\b|\bdi\b|\bmi\b|\bdo\b|\bfr\b|\bsa\b|\bso\b)/i;
+const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
+  { regex: /techno|acid\s*techno/i, label: "Techno" },
+  { regex: /house|deep\s*house|afro\s*house/i, label: "House" },
+  { regex: /drum\s*&?\s*bass|dnb/i, label: "Drum & Bass" },
+  { regex: /hip\s*hop|rap|trap/i, label: "Hip-Hop" },
+  { regex: /reggaeton|latin/i, label: "Reggaeton" },
+  { regex: /rnb|r\s*&\s*b/i, label: "R&B" },
+  { regex: /electro|edm/i, label: "Electro" },
+  { regex: /disco|funk/i, label: "Disco/Funk" },
+  { regex: /rock|indie|metal|punk/i, label: "Rock/Indie" },
+  { regex: /karaoke/i, label: "Karaoke" },
+  { regex: /90s|2000s|80s/i, label: "Classics" },
+  { regex: /mixed\s*music|all\s*styles|querbeet/i, label: "Mixed" },
+];
 
 function slugify(value: string): string {
   return value
@@ -103,6 +117,21 @@ function pickVenuesForRun(venues: string[], maxVenues: number): string[] {
 
 function isLikelyEventCaption(caption: string): boolean {
   return EVENT_HINT_REGEX.test(caption);
+}
+
+function inferMusicGenre(text: string): string | null {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  for (const pattern of MUSIC_GENRE_PATTERNS) {
+    if (pattern.regex.test(normalized)) {
+      return pattern.label;
+    }
+  }
+
+  return null;
 }
 
 function resolveFallbackLocation(venue: string): string {
@@ -239,6 +268,7 @@ async function insertEventRow(input: {
   date: string;
   time: string;
   location: string;
+  musicGenre: string | null;
 }): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   const startsAt = parseStartDate(input.date, input.time);
@@ -282,7 +312,7 @@ async function insertEventRow(input: {
     external_link: input.post.sourceUrl,
     vibe_label: "Instagram",
     location_name: input.location,
-    music_genre: null,
+    music_genre: input.musicGenre,
     scraped_at: scrapedAt,
   };
 
@@ -310,7 +340,7 @@ async function insertEventRow(input: {
     external_link: input.post.sourceUrl,
     vibe_label: "Instagram",
     location_name: input.location,
-    music_genre: null,
+    music_genre: input.musicGenre,
     scraped_at: scrapedAt,
   };
 
@@ -430,6 +460,7 @@ async function handleCronScrape(request: Request) {
         for (const event of parsedEvents) {
           const normalizedTitle = event.title.trim();
           const normalizedLocation = event.location.trim();
+          const inferredMusicGenre = inferMusicGenre(`${normalizedTitle} ${event.description ?? ""}`);
 
           const inserted = await insertEventRow({
             venue,
@@ -439,6 +470,7 @@ async function handleCronScrape(request: Request) {
             date: event.date,
             time: event.time,
             location: normalizedLocation,
+            musicGenre: inferredMusicGenre,
           });
 
           if (inserted) {
