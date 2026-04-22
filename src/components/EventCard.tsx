@@ -72,6 +72,7 @@ function getTypeTag(party: DiscoverEvent): TypeTag {
   const title = party.title.toLowerCase();
   const description = (party.description ?? "").toLowerCase();
   const vibe = party.vibeLabel.toLowerCase();
+  const location = (party.locationName ?? "").toLowerCase();
   const text = `${title} ${description} ${vibe}`;
 
   if (party.eventScope === "daytime") {
@@ -99,12 +100,16 @@ function getTypeTag(party: DiscoverEvent): TypeTag {
   }
 
   if (
-    vibe.includes("kuckuck") ||
-    vibe.includes("schlachthaus") ||
-    vibe.includes("clubhaus") ||
-    vibe.includes("sudhaus") ||
+    vibe.includes("kuckuck") || location.includes("kuckuck") ||
+    vibe.includes("schlachthaus") || location.includes("schlachthaus") ||
+    vibe.includes("clubhaus") || location.includes("clubhaus") ||
+    vibe.includes("sudhaus") || location.includes("sudhaus") ||
     vibe.includes("top10") ||
-    vibe.includes("blauer turm")
+    vibe.includes("blauer turm") ||
+    location.includes("holle") ||
+    location.includes("zahni") ||
+    location.includes("schwarzes schaf") ||
+    location.includes("schaf")
   ) {
     return {
       key: "club-bar",
@@ -256,6 +261,7 @@ export function EventCard({
 
   return (
     <article
+      id={`event-${party.id}`}
       onClick={onToggle}
       className={`relative h-full w-full min-w-0 rounded-[26px] border p-3.5 lg:[contain-intrinsic-size:360px] lg:[content-visibility:auto] transition-all hover:-translate-y-[1px] hover:shadow-[0_18px_36px_-24px_rgba(15,23,42,0.5)] ${
         isHotNow ? "hot-card-glow" : ""
@@ -454,6 +460,37 @@ export function EventCard({
         </div>
       </div>
 
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <Link
+          href={party.detailHref}
+          onClick={(event) => event.stopPropagation()}
+          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold"
+          style={{
+            borderColor: "var(--nav-border)",
+            backgroundColor: "var(--surface-soft)",
+            color: "var(--foreground)",
+          }}
+        >
+          Details ansehen
+        </Link>
+
+        {party.externalLink ? (
+          <a
+            href={party.externalLink}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(event) => event.stopPropagation()}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
+            style={{
+              color: "var(--accent-strong)",
+            }}
+          >
+            Quelle
+            <ArrowUpRight size={13} />
+          </a>
+        ) : null}
+      </div>
+
       {expanded ? (
         <div className="mt-2 overflow-hidden">
           <div
@@ -526,10 +563,8 @@ export function EventCard({
             ) : null}
             {party.isExternal && party.externalLink ? (
               <div className="mt-3 flex flex-wrap gap-2">
-                <a
-                  href={party.externalLink}
-                  target="_blank"
-                  rel="noreferrer"
+                <Link
+                  href={party.detailHref}
                   onClick={(event) => event.stopPropagation()}
                   className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
                   style={{
@@ -538,9 +573,8 @@ export function EventCard({
                     color: "var(--foreground)",
                   }}
                 >
-                  Zur Veranstaltung
-                  <ArrowUpRight size={13} />
-                </a>
+                  Detailseite
+                </Link>
               </div>
             ) : null}
             {!party.isExternal && party.hostUserId ? (

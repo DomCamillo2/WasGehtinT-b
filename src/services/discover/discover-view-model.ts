@@ -2,6 +2,7 @@ import { PartyCard } from "@/lib/types";
 
 export type DiscoverEvent = {
   id: string;
+  detailHref: string;
   title: string;
   description: string | null;
   startsAt: string;
@@ -33,6 +34,7 @@ export type DiscoverEvent = {
 export function mapPartyCardToDiscoverEvent(party: PartyCard): DiscoverEvent {
   return {
     id: party.id,
+    detailHref: `/event/${party.id}`,
     title: party.title,
     description: party.description,
     startsAt: party.starts_at,

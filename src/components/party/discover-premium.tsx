@@ -456,6 +456,14 @@ export function DiscoverPremium({
               <h1 className="mt-1.5 max-w-[16ch] text-[2rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)] lg:max-w-[18ch] lg:text-[3.2rem]">
                 {"Was geht in T\u00fcbingen heute?"}
               </h1>
+              <p
+                className="mt-3 max-w-[46rem] text-sm leading-6 lg:text-[0.98rem]"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                WasGehtTueb sammelt aktuelle Studentenpartys, Clubnaechte, Community-Treffen und
+                Tagesevents in Tuebingen. Hier findest du kommende Events mit Zeiten, Orten,
+                Kartenpunkten und weiterfuehrenden Links zu Veranstaltern und Locations.
+              </p>
               <div
                 className="mt-3 inline-flex items-center gap-1 rounded-[18px] border p-1"
                 style={{

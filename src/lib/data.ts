@@ -380,6 +380,83 @@ export async function getExternalEventById(eventId: string) {
   } as PartyCard;
 }
 
+export async function getPublicPartyById(eventId: string) {
+  const supabase = await createClient();
+
+  const query = await supabase.from("v_public_parties").select("*").eq("id", eventId).maybeSingle();
+
+  const fallbackQuery =
+    query.error?.code === "42703" || query.error?.code === "PGRST204"
+      ? await supabase.from("v_public_parties").select("*").eq("id", eventId).maybeSingle()
+      : query;
+
+  const data = fallbackQuery.data as
+    | {
+        id: string;
+        title: string;
+        description: string | null;
+        starts_at?: string | null;
+        ends_at?: string | null;
+        max_guests: number | null;
+        contribution_cents: number | null;
+        public_lat: number | null;
+        public_lng: number | null;
+        is_external?: boolean | null;
+        external_link?: string | null;
+        status?: string | null;
+        vibe_label: string | null;
+        spots_left: number | null;
+        location_name?: string | null;
+        date?: string | null;
+        location?: string | null;
+        review_status?: string | null;
+        is_published?: boolean | null;
+        created_at: string;
+      }
+    | null;
+
+  if (fallbackQuery.error) {
+    console.error("[getPublicPartyById] Failed:", fallbackQuery.error.message);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const publishedByStatus = data.status === "published";
+  const approvedByReview = data.review_status === "approved";
+  const publishedByLegacyFlag = data.is_published === true;
+
+  if (!publishedByStatus && !approvedByReview && !publishedByLegacyFlag) {
+    return null;
+  }
+
+  const startsAt = data.starts_at ?? data.date ?? data.created_at;
+  const endsAt = data.ends_at ?? data.starts_at ?? data.date ?? data.created_at;
+
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    starts_at: startsAt,
+    ends_at: endsAt,
+    max_guests: Number(data.max_guests ?? 50),
+    contribution_cents: Number(data.contribution_cents ?? 0),
+    public_lat: data.public_lat ?? null,
+    public_lng: data.public_lng ?? null,
+    is_external: data.is_external === true,
+    external_link: data.external_link ?? null,
+    vibe_label: data.vibe_label ?? "Party",
+    spots_left: Number(data.spots_left ?? data.max_guests ?? 50),
+    location_name: data.location_name ?? data.location ?? "Tuebingen",
+    source_badge: "Party",
+    is_community: false,
+    upvote_count: 0,
+    upvoted_by_me: false,
+  } as PartyCard;
+}
+
 export async function getCommunityHangoutsForDiscover(
   options: EventWindowOptions = {},
   client?: PublicDataClient,
@@ -459,6 +536,69 @@ export async function getCommunityHangoutsForDiscover(
 
       return mapped;
     });
+}
+
+export async function getCommunityHangoutById(eventId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("hangouts")
+    .select("id, title, description, meetup_at, created_at, location_text, review_status, status, is_published")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[getCommunityHangoutById] Failed to fetch hangout:", error.message);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const row = data as {
+    id: string;
+    title: string | null;
+    description: string | null;
+    meetup_at: string | null;
+    created_at: string | null;
+    location_text: string | null;
+    review_status?: string;
+    status?: string;
+    is_published?: boolean;
+  };
+
+  const approved = row.review_status === "approved";
+  const published = row.status === "published";
+  const isPublished = row.is_published === true;
+
+  if (!approved && !published && !isPublished) {
+    return null;
+  }
+
+  const startsAt = row.meetup_at ?? row.created_at ?? new Date(0).toISOString();
+  const safeTitle = (row.title ?? "Community Event").trim() || "Community Event";
+  const safeLocation = (row.location_text ?? "Community").trim() || "Community";
+
+  return {
+    id: row.id,
+    title: safeTitle,
+    description: row.description ?? null,
+    starts_at: startsAt,
+    ends_at: startsAt,
+    max_guests: 99,
+    contribution_cents: 0,
+    public_lat: null,
+    public_lng: null,
+    is_external: false,
+    external_link: null,
+    vibe_label: "Community",
+    spots_left: 99,
+    location_name: safeLocation,
+    source_badge: "Community",
+    is_community: true,
+    upvote_count: 0,
+    upvoted_by_me: false,
+  } as PartyCard;
 }
 
 export async function getBringProgressMap(partyIds: string[]) {
