@@ -1,9 +1,11 @@
 import { DiscoverEvent } from "@/services/discover/discover-view-model";
-import { SITE_NAME, absoluteUrl } from "@/lib/site-config";
+import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site-config";
 
 type Props = {
   events: DiscoverEvent[];
 };
+
+const SITE_IMAGE = `${SITE_URL}/Logo.png`;
 
 function truncateText(value: string | null, maxLength = 220) {
   const normalized = (value ?? "").replace(/\s+/g, " ").trim();
@@ -45,11 +47,31 @@ function toSchemaLocation(event: DiscoverEvent) {
   };
 }
 
+function toOffers(event: DiscoverEvent, eventUrl: string) {
+  const isFree =
+    event.contributionCents === 0 ||
+    event.priceInfo?.toLowerCase().includes("free") === true ||
+    event.priceInfo?.toLowerCase().includes("kostenlos") === true;
+
+  const price = isFree ? "0" : (event.contributionCents / 100).toFixed(2);
+
+  return {
+    "@type": "Offer",
+    price,
+    priceCurrency: "EUR",
+    availability: "https://schema.org/InStock",
+    url: event.externalLink ?? eventUrl,
+  };
+}
+
 function toEventListItem(event: DiscoverEvent, position: number) {
   const url = getEventUrl(event);
   const description =
     truncateText(event.description) ||
     `${event.title} in Tuebingen am ${new Date(event.startsAt).toISOString()}.`;
+
+  const organizerName = event.sourceBadge?.trim() || event.locationName?.trim() || SITE_NAME;
+  const organizerUrl = event.externalLink ?? absoluteUrl("/discover");
 
   return {
     "@type": "ListItem",
@@ -62,18 +84,25 @@ function toEventListItem(event: DiscoverEvent, position: number) {
       startDate: event.startsAt,
       endDate: event.endsAt || event.startsAt,
       description,
+      image: SITE_IMAGE,
       eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
       eventStatus: "https://schema.org/EventScheduled",
       location: toSchemaLocation(event),
+      offers: toOffers(event, url),
       organizer: {
         "@type": "Organization",
-        name: event.sourceBadge?.trim() || event.locationName?.trim() || SITE_NAME,
+        name: organizerName,
+        url: organizerUrl,
       },
+      ...(event.musicGenre
+        ? {
+            performer: {
+              "@type": "PerformingGroup",
+              name: event.musicGenre,
+            },
+          }
+        : {}),
       url,
-      isAccessibleForFree:
-        event.contributionCents === 0 ||
-        event.priceInfo?.toLowerCase().includes("free") === true ||
-        event.priceInfo?.toLowerCase().includes("kostenlos") === true,
     },
   };
 }

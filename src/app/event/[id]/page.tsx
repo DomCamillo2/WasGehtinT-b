@@ -128,6 +128,8 @@ export default async function ExternalEventPage({
         url={absoluteUrl(`/event/${event.id}`)}
         organizerName={event.sourceBadge?.trim() || clubName}
         externalLink={event.externalLink}
+        priceInfo={event.priceInfo}
+        musicGenre={event.musicGenre}
       />
 
       <div className="space-y-3">
