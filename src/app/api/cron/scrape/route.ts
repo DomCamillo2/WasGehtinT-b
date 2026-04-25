@@ -13,7 +13,9 @@ const DEFAULT_VENUES = [
   "frau_holle_tuebingen",
   "zahnis_tuebingen",
   "schwarzes_schaf_tuebingen",
-  "schwarzesschaf_tuebingen",
+  "fsk.tuebingen",
+  "fachschaftmedizintuebingen",
+  "fachschaftmewi",
 ];
 
 const CONFIGURED_VENUES =
@@ -27,9 +29,9 @@ const VENUES = Array.from(
 );
 const INSTAGRAM_SOURCE = "instagram";
 const SCRAPE_COOLDOWN_MINUTES = (() => {
-  const parsed = Number(process.env.INSTAGRAM_SCRAPE_COOLDOWN_MINUTES ?? "360");
+  const parsed = Number(process.env.INSTAGRAM_SCRAPE_COOLDOWN_MINUTES ?? "1320");
   if (!Number.isFinite(parsed) || parsed < 0) {
-    return 360;
+    return 1320;
   }
   return Math.floor(parsed);
 })();
@@ -48,6 +50,7 @@ const MAX_POSTS_PER_VENUE = (() => {
   return Math.min(Math.floor(parsed), 3);
 })();
 const EVENT_HINT_REGEX = /(\d{1,2}\.\d{1,2}\.|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}:\d{2}\b|\buhr\b|\beinlass\b|\bstart\b|\bline\s*up\b|\btickets?\b|\bheute\b|\bmorgen\b|\bfreitag\b|\bsamstag\b|\bsonntag\b|\bmo\b|\bdi\b|\bmi\b|\bdo\b|\bfr\b|\bsa\b|\bso\b)/i;
+const INTERNAL_ADMIN_REGEX = /\bf[\s\-]?sitzung\b|\bfachschaftssitzung\b|\btagesordnung\b|\bto[\s\-]?punkt\b|\babstimmung\b|\bproto(?:koll)?\b|\bwahl(?:en)?\b|\bkandidatur\b|\bamtszeit\b/i;
 const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
   { regex: /techno|acid\s*techno/i, label: "Techno" },
   { regex: /house|deep\s*house|afro\s*house/i, label: "House" },
@@ -116,6 +119,7 @@ function pickVenuesForRun(venues: string[], maxVenues: number): string[] {
 }
 
 function isLikelyEventCaption(caption: string): boolean {
+  if (INTERNAL_ADMIN_REGEX.test(caption)) return false;
   return EVENT_HINT_REGEX.test(caption);
 }
 
@@ -144,6 +148,18 @@ function resolveFallbackLocation(venue: string): string {
   }
   if (normalized.includes("holle")) {
     return "Holle Tuebingen";
+  }
+  if (normalized.includes("fsk")) {
+    return "FSK, Tuebingen";
+  }
+  if (normalized.includes("fachschaftmedizin")) {
+    return "Fachschaft Medizin, Tuebingen";
+  }
+  if (normalized.includes("fachschaftmewi")) {
+    return "Fachschaft MeWi, Tuebingen";
+  }
+  if (normalized.includes("fachschaft")) {
+    return "Fachschaft, Tuebingen";
   }
   return "Tuebingen";
 }
@@ -357,13 +373,18 @@ async function insertEventRow(input: {
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
-  const authHeader = request.headers.get("authorization")?.trim();
 
   if (!secret) {
     return false;
   }
 
-  return authHeader === `Bearer ${secret}`;
+  const authHeader = request.headers.get("authorization")?.trim();
+  if (authHeader === `Bearer ${secret}`) {
+    return true;
+  }
+
+  const url = new URL(request.url);
+  return url.searchParams.get("secret") === secret;
 }
 
 async function handleCronScrape(request: Request) {
@@ -399,7 +420,6 @@ async function handleCronScrape(request: Request) {
   let postErrors = 0;
   let parseFailures = 0;
   let skippedByCaptionHeuristic = 0;
-  const captionParseCache = new Map<string, Awaited<ReturnType<typeof parseEventsFromCaptions>>>();
   const venueErrors: string[] = [];
   const runVenues = pickVenuesForRun(VENUES, MAX_VENUES_PER_RUN);
 
@@ -408,8 +428,9 @@ async function handleCronScrape(request: Request) {
       const posts = await fetchLatestInstagramPosts(venue, MAX_POSTS_PER_VENUE);
       totalFound += posts.length;
 
+      // Filter down to new, event-like posts before touching Gemini.
       let skippedCachedPosts = 0;
-      let insertedForVenue = 0;
+      const newPosts: InstagramPostCandidate[] = [];
       for (const post of posts) {
         let alreadyProcessed = false;
         try {
@@ -431,33 +452,42 @@ async function handleCronScrape(request: Request) {
           continue;
         }
 
-        let parsedEvents: Awaited<ReturnType<typeof parseEventsFromCaptions>> = [];
-        const captionCacheKey = post.caption.trim();
+        newPosts.push(post);
+      }
 
-        if (captionCacheKey && captionParseCache.has(captionCacheKey)) {
-          parsedEvents = captionParseCache.get(captionCacheKey) ?? [];
-        } else {
-          try {
-            parsedEvents = await parseEventsFromCaptions([post.caption]);
-            if (captionCacheKey) {
-              captionParseCache.set(captionCacheKey, parsedEvents);
+      // Single Gemini call for all new captions in this venue.
+      let insertedForVenue = 0;
+      if (newPosts.length > 0) {
+        const captions = newPosts.map((p) => p.caption);
+        let allParsed: Awaited<ReturnType<typeof parseEventsFromCaptions>> = [];
+        try {
+          allParsed = await parseEventsFromCaptions(captions);
+        } catch (error) {
+          parseFailures += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(`[cron/scrape] ${venue}: caption parse failed: ${message}`);
+        }
+
+        // Fallback per-post if Gemini returned nothing.
+        const eventsToInsert: Array<{ post: InstagramPostCandidate; event: ReturnType<typeof parseEventsFromCaptionFallback>[0] }> = [];
+        if (allParsed.length > 0) {
+          for (const event of allParsed) {
+            // Best-effort: attribute event to the post whose caption contains the event date.
+            const matchedPost = newPosts.find((p) => p.caption.includes(event.date.slice(5).replace("-", ".")))
+              ?? newPosts[0];
+            if (matchedPost) {
+              eventsToInsert.push({ post: matchedPost, event });
             }
-          } catch (error) {
-            parseFailures += 1;
-            const message = error instanceof Error ? error.message : String(error);
-            console.warn(`[cron/scrape] ${venue}: caption parse failed for ${post.externalId}: ${message}`);
+          }
+        } else {
+          for (const post of newPosts) {
+            for (const event of parseEventsFromCaptionFallback(post.caption, venue)) {
+              eventsToInsert.push({ post, event });
+            }
           }
         }
 
-        if (parsedEvents.length === 0) {
-          parsedEvents = parseEventsFromCaptionFallback(post.caption, venue);
-        }
-
-        if (parsedEvents.length === 0) {
-          continue;
-        }
-
-        for (const event of parsedEvents) {
+        for (const { post, event } of eventsToInsert) {
           const normalizedTitle = event.title.trim();
           const normalizedLocation = event.location.trim();
           const inferredMusicGenre = inferMusicGenre(`${normalizedTitle} ${event.description ?? ""}`);

@@ -68,6 +68,17 @@ export async function createPartyAction(
     const startDate = new Date(startsAt);
     const endDate = new Date(endsAt);
 
+    // Fail fast before any DB calls.
+    if (!title) return { ok: false, message: "Bitte gib einen Titel an." };
+    if (title.length > 120) return { ok: false, message: "Titel zu lang (max. 120 Zeichen)." };
+    if (!startsAt || !endsAt || Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return { ok: false, message: "Bitte gültige Start- und Endzeiten angeben." };
+    }
+    if (startDate >= endDate) return { ok: false, message: "Endzeit muss nach Startzeit liegen." };
+    if (!Number.isFinite(maxGuests) || maxGuests < 1 || maxGuests > 200) {
+      return { ok: false, message: "Gästezahl muss zwischen 1 und 200 liegen." };
+    }
+
     const publicLat = clampRoundedCoordinate(rawLat, -90, 90);
     const publicLng = clampRoundedCoordinate(rawLng, -180, 180);
     const locationName = locationNameRaw.length > 140 ? locationNameRaw.slice(0, 140) : locationNameRaw;
@@ -126,27 +137,11 @@ export async function createPartyAction(
       }
     }
 
-    const shouldAutoApprove = false;
     const nextStatus = "draft";
     const nextReviewStatus = "pending";
 
-    if (
-      !title ||
-      !startsAt ||
-      !endsAt ||
-      !Number.isFinite(resolvedVibeId) ||
-      resolvedVibeId <= 0 ||
-      !Number.isFinite(maxGuests) ||
-      maxGuests < 1 ||
-      maxGuests > 200 ||
-      Number.isNaN(startDate.getTime()) ||
-      Number.isNaN(endDate.getTime()) ||
-      startDate >= endDate
-    ) {
-      return {
-        ok: false,
-        message: "Bitte prüfe Titel, Zeiten, Vibe und Gästezahl. Endzeit muss nach Startzeit liegen.",
-      };
+    if (!Number.isFinite(resolvedVibeId) || resolvedVibeId <= 0) {
+      return { ok: false, message: "Bitte wähle einen gültigen Vibe aus." };
     }
 
     const baseInsert = {

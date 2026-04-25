@@ -3,6 +3,17 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["apify-client"],
+  outputFileTracingIncludes: {
+    "/api/cron/scrape": [
+      "./node_modules/proxy-agent/**",
+      "./node_modules/agent-base/**",
+      "./node_modules/http-proxy-agent/**",
+      "./node_modules/https-proxy-agent/**",
+      "./node_modules/pac-proxy-agent/**",
+      "./node_modules/socks-proxy-agent/**",
+      "./node_modules/proxy-from-env/**",
+    ],
+  },
   turbopack: {
     root: path.resolve(__dirname),
   },

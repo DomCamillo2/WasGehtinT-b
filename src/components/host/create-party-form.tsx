@@ -5,7 +5,6 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useFormStatus } from "react-dom";
 import { createPartyAction, type CreatePartyActionState } from "@/app/actions/parties";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast-provider";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
 import { createBaseMapStyle } from "@/lib/map-style";
@@ -17,6 +16,7 @@ import {
 
 type Props = {
   vibes: Array<{ id: number; label: string }>;
+  isAuthenticated?: boolean;
 };
 
 const INITIAL_CREATE_PARTY_STATE: CreatePartyActionState = {
@@ -34,39 +34,49 @@ const FALLBACK_VIBES: Array<{ id: number; label: string }> = [
 
 function getVibeEmoji(label: string) {
   const text = label.toLowerCase();
-
   if (text.includes("chill")) return "🍺";
   if (text.includes("beer") || text.includes("pong")) return "🏓";
   if (text.includes("eskal") || text.includes("techno") || text.includes("club")) return "🔊";
   if (text.includes("house") || text.includes("party")) return "🎉";
   if (text.includes("karaoke")) return "🎤";
-
   return "✨";
+}
+
+const fieldCls =
+  "field-surface h-12 w-full rounded-2xl px-4 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]";
+const labelCls = "text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]";
+const hintCls = "text-xs text-[var(--muted-foreground)]";
+const ghostBtnCls =
+  "inline-flex items-center rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-elevated)] px-4 text-sm font-medium text-[var(--foreground)] transition active:scale-[0.99] disabled:opacity-60";
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-1">
+      <span className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">{label}</span>
+      <div className="flex-1 border-t border-[var(--border-soft)]" />
+    </div>
+  );
 }
 
 function SubmitPartyButton() {
   const { pending } = useFormStatus();
-  const idleLabel = "Event zur Freigabe einreichen";
-  const pendingLabel = "Wird eingereicht...";
-
   return (
     <PrimaryButton
       type="submit"
       disabled={pending}
       className="h-12 w-full rounded-2xl bg-gradient-to-r from-violet-600 to-blue-600 text-base font-semibold text-white shadow-[0_12px_28px_rgba(79,70,229,0.35)] transition hover:from-violet-500 hover:to-blue-500 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {pending ? pendingLabel : idleLabel}
+      {pending ? "Wird eingereicht..." : "Event zur Freigabe einreichen"}
     </PrimaryButton>
   );
 }
 
-export function CreatePartyForm({ vibes }: Props) {
+export function CreatePartyForm({ vibes, isAuthenticated = true }: Props) {
   const { showToast } = useToast();
   const safeVibes = useMemo(() => {
     const normalized = vibes
-      .filter((vibe) => typeof vibe.id === "number" && Number.isFinite(vibe.id))
-      .map((vibe) => ({ id: vibe.id, label: vibe.label?.trim() || `Vibe #${vibe.id}` }));
-
+      .filter((v) => typeof v.id === "number" && Number.isFinite(v.id))
+      .map((v) => ({ id: v.id, label: v.label?.trim() || `Vibe #${v.id}` }));
     return normalized.length > 0 ? normalized : FALLBACK_VIBES;
   }, [vibes]);
 
@@ -96,35 +106,21 @@ export function CreatePartyForm({ vibes }: Props) {
 
   const reverseGeocodeCoordinates = useCallback(
     async (nextLat: number, nextLng: number) => {
-      if (!canLoadExternalServices) {
-        return;
-      }
-
+      if (!canLoadExternalServices) return;
       setIsReverseGeocoding(true);
       setLocationState("Adresse wird aus Pin-Position ermittelt...");
-
       try {
         const result = await reverseGeocodeCoordinatesService(nextLat, nextLng);
-
         if (result.status === "unavailable") {
           setLocationState("Pin gesetzt. Adresse konnte nicht automatisch aufgelöst werden.");
-          showToast({
-            variant: "error",
-            title: "Adresse nicht erreichbar",
-            message: "Der Geocoding-Dienst antwortet gerade nicht.",
-          });
+          showToast({ variant: "error", title: "Adresse nicht erreichbar", message: "Der Geocoding-Dienst antwortet gerade nicht." });
           return;
         }
-
         if (result.status === "not_found") {
           setLocationState("Pin gesetzt. Keine genaue Adresse gefunden.");
           return;
         }
-
-        if (result.status !== "ok") {
-          return;
-        }
-
+        if (result.status !== "ok") return;
         setAddressInput(result.displayName);
         setResolvedAddress(result.displayName);
         setLocationState("Pin gesetzt und Adresse übernommen.");
@@ -135,42 +131,28 @@ export function CreatePartyForm({ vibes }: Props) {
         setIsReverseGeocoding(false);
       }
     },
-    [canLoadExternalServices],
+    [canLoadExternalServices, showToast],
   );
 
   useEffect(() => {
-    if (!safeVibes.length) {
-      return;
-    }
-
-    const exists = selectedVibeId === "__custom__" || safeVibes.some((vibe) => String(vibe.id) === selectedVibeId);
-    if (!exists) {
-      setSelectedVibeId(String(safeVibes[0].id));
-    }
+    if (!safeVibes.length) return;
+    const exists = selectedVibeId === "__custom__" || safeVibes.some((v) => String(v.id) === selectedVibeId);
+    if (!exists) setSelectedVibeId(String(safeVibes[0].id));
   }, [safeVibes, selectedVibeId]);
 
   useEffect(() => {
-    if (!canLoadExternalServices || !mapContainerRef.current || mapRef.current) {
-      return;
-    }
-
+    if (!canLoadExternalServices || !mapContainerRef.current || mapRef.current) return;
     let mounted = true;
-
     void (async () => {
       ensurePerformanceMarkApi();
       const maplibre = (await import("maplibre-gl")).default;
-
-      if (!mounted || !mapContainerRef.current || mapRef.current) {
-        return;
-      }
-
+      if (!mounted || !mapContainerRef.current || mapRef.current) return;
       const map = new maplibre.Map({
         container: mapContainerRef.current,
         style: createBaseMapStyle(),
         center: [DEFAULT_CENTER.lng, DEFAULT_CENTER.lat],
         zoom: 12,
       });
-
       const markerElement = document.createElement("div");
       markerElement.style.width = "24px";
       markerElement.style.height = "24px";
@@ -179,36 +161,25 @@ export function CreatePartyForm({ vibes }: Props) {
       markerElement.style.border = "2px solid #ffffff";
       markerElement.style.boxShadow = "0 10px 22px rgba(124,58,237,0.45), 0 0 0 8px rgba(124,58,237,0.16)";
       markerElement.style.transform = "translateZ(0)";
-
-      const marker = new maplibre.Marker({
-        element: markerElement,
-        draggable: true,
-      })
+      const marker = new maplibre.Marker({ element: markerElement, draggable: true })
         .setLngLat([DEFAULT_CENTER.lng, DEFAULT_CENTER.lat])
         .addTo(map);
-
       marker.on("dragend", () => {
         const pos = marker.getLngLat();
         setLat(pos.lat);
         setLng(pos.lng);
         void reverseGeocodeCoordinates(pos.lat, pos.lng);
       });
-
       map.on("click", (event) => {
         marker.setLngLat(event.lngLat);
         setLat(event.lngLat.lat);
         setLng(event.lngLat.lng);
         void reverseGeocodeCoordinates(event.lngLat.lat, event.lngLat.lng);
       });
-
       mapRef.current = map;
       markerRef.current = marker;
-
-      map.on("load", () => {
-        map.resize();
-      });
+      map.on("load", () => { map.resize(); });
     })();
-
     return () => {
       mounted = false;
       markerRef.current?.remove();
@@ -224,16 +195,8 @@ export function CreatePartyForm({ vibes }: Props) {
   }, [lat, lng]);
 
   useEffect(() => {
-    if (!actionState.ok) {
-      return;
-    }
-
-    showToast({
-      variant: "success",
-      title: "Event eingereicht",
-      message: actionState.message || "Dein Event wurde zur Freigabe gespeichert.",
-    });
-
+    if (!actionState.ok) return;
+    showToast({ variant: "success", title: "Event eingereicht", message: actionState.message || "Dein Event wurde zur Freigabe gespeichert." });
     formRef.current?.reset();
     setSelectedVibeId(String(safeVibes[0]?.id ?? ""));
     setCustomVibeLabel("");
@@ -246,15 +209,8 @@ export function CreatePartyForm({ vibes }: Props) {
   }, [actionState.message, actionState.ok, safeVibes, showToast]);
 
   useEffect(() => {
-    if (actionState.ok || !actionState.message) {
-      return;
-    }
-
-    showToast({
-      variant: "error",
-      title: "Einreichen fehlgeschlagen",
-      message: actionState.message,
-    });
+    if (actionState.ok || !actionState.message) return;
+    showToast({ variant: "error", title: "Einreichen fehlgeschlagen", message: actionState.message });
   }, [actionState.message, actionState.ok, showToast]);
 
   const handleAutoLocation = () => {
@@ -263,9 +219,7 @@ export function CreatePartyForm({ vibes }: Props) {
       showToast({ variant: "error", title: "Geolocation nicht unterstützt" });
       return;
     }
-
     setLocationState("Standort wird ermittelt...");
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const nextLat = position.coords.latitude;
@@ -273,19 +227,13 @@ export function CreatePartyForm({ vibes }: Props) {
         setLat(nextLat);
         setLng(nextLng);
         setResolvedAddress("");
-
         markerRef.current?.setLngLat([nextLng, nextLat]);
         mapRef.current?.flyTo({ center: [nextLng, nextLat], zoom: 13 });
-
         setLocationState("Standort automatisch gefunden.");
       },
       () => {
         setLocationState("Standort konnte nicht ermittelt werden. Bitte Zugriff erlauben oder Pin manuell setzen.");
-        showToast({
-          variant: "error",
-          title: "Standort konnte nicht ermittelt werden",
-          message: "Bitte Standortzugriff erlauben oder den Pin manuell setzen.",
-        });
+        showToast({ variant: "error", title: "Standort konnte nicht ermittelt werden", message: "Bitte Standortzugriff erlauben oder den Pin manuell setzen." });
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
@@ -297,52 +245,37 @@ export function CreatePartyForm({ vibes }: Props) {
       showToast({ variant: "info", title: "Externe Dienste deaktiviert" });
       return;
     }
-
     const query = addressInput.trim();
     if (!query) {
       setLocationState("Bitte gib eine Adresse ein.");
       showToast({ variant: "info", title: "Adresse fehlt" });
       return;
     }
-
     setIsAddressSearching(true);
     setLocationState("Adresse wird gesucht...");
-
     try {
       const result = await searchAddressService(query);
-
       if (result.status === "unavailable") {
         setLocationState("Adresssuche derzeit nicht verfügbar. Bitte später erneut versuchen.");
         showToast({ variant: "error", title: "Adresssuche nicht verfügbar" });
         return;
       }
-
       if (result.status === "not_found") {
         setLocationState("Adresse nicht gefunden. Bitte genauer eingeben.");
         showToast({ variant: "info", title: "Adresse nicht gefunden" });
         return;
       }
-
       if (result.status === "invalid_coordinates") {
         setLocationState("Adresse konnte nicht aufgelöst werden.");
         showToast({ variant: "error", title: "Adressdaten ungültig" });
         return;
       }
-
-      if (result.status !== "ok") {
-        return;
-      }
-
-      const nextLat = result.lat;
-      const nextLng = result.lng;
-
-      setLat(nextLat);
-      setLng(nextLng);
+      if (result.status !== "ok") return;
+      setLat(result.lat);
+      setLng(result.lng);
       setResolvedAddress(result.displayName);
-
-      markerRef.current?.setLngLat([nextLng, nextLat]);
-      mapRef.current?.flyTo({ center: [nextLng, nextLat], zoom: 14, duration: 700 });
-
+      markerRef.current?.setLngLat([result.lng, result.lat]);
+      mapRef.current?.flyTo({ center: [result.lng, result.lat], zoom: 14, duration: 700 });
       setLocationState("Adresse gefunden und Pin gesetzt.");
     } catch {
       setLocationState("Adresssuche fehlgeschlagen. Bitte Pin manuell setzen.");
@@ -353,182 +286,196 @@ export function CreatePartyForm({ vibes }: Props) {
   };
 
   const updateBringItem = (index: number, value: string) => {
-    setBringItems((prev) => prev.map((entry, entryIndex) => (entryIndex === index ? value : entry)));
+    setBringItems((prev) => prev.map((entry, i) => (i === index ? value : entry)));
   };
 
-  const addBringItem = () => {
-    setBringItems((prev) => [...prev, ""]);
+  const addBringItem = () => setBringItems((prev) => [...prev, ""]);
+
+  const removeBringItem = (index: number) => {
+    setBringItems((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
   };
 
   return (
-    <Card className="space-y-4 rounded-2xl border-zinc-200/80 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-      <h2 className="text-base font-semibold text-zinc-900">Neue Party erstellen</h2>
-      <p className="text-xs text-zinc-500">Mobile-optimiert: große Touch-Flächen, schneller Vibe- und Standort-Picker.</p>
+    <div className="surface-card space-y-5 rounded-2xl p-5">
+      <div>
+        <h2 className="text-base font-semibold text-[var(--foreground)]">Neues Event einreichen</h2>
+        <p className={`mt-0.5 ${hintCls}`}>Wird vor der Veröffentlichung vom Admin geprüft.</p>
+      </div>
 
-      <form ref={formRef} action={formAction} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="party-title" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Titel der Party
-          </label>
-          <input
-            id="party-title"
-            name="title"
-            placeholder="z. B. WG Warm-up Donnerstag"
-            required
-            className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-          />
-          <p className="text-xs text-zinc-500">Kurz und erkennbar – dieser Name steht in Discover und auf der Karte.</p>
-        </div>
+      <form ref={formRef} action={formAction} className="space-y-5">
 
-        <div className="space-y-1.5">
-          <label htmlFor="party-description" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Beschreibung (optional)
-          </label>
-          <textarea
-            id="party-description"
-            name="description"
-            placeholder="z. B. Musikrichtung, Dresscode, was schon da ist"
-            className="min-h-24 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-          />
-          <p className="text-xs text-zinc-500">Hilft Gästen einzuschätzen, ob die Stimmung zu ihrer Gruppe passt.</p>
-        </div>
+        {/* Basic info */}
+        <div className="space-y-4">
+          <SectionDivider label="Grundinfos" />
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label htmlFor="party-start" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Startzeit
-            </label>
-            <input
-              id="party-start"
-              name="startsAt"
-              type="datetime-local"
-              required
-              className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-            />
-            <p className="text-xs text-zinc-500">Wann es losgeht.</p>
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="party-end" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Endzeit
-            </label>
-            <input
-              id="party-end"
-              name="endsAt"
-              type="datetime-local"
-              required
-              className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-            />
-            <p className="text-xs text-zinc-500">Bis wann Gäste ungefähr bleiben können.</p>
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">Vibe auswählen</label>
-          <div className="relative">
-            <select
-              name="vibeId"
-              value={selectedVibeId}
-              onChange={(event) => setSelectedVibeId(event.target.value)}
-              className="h-12 w-full appearance-none rounded-2xl border border-zinc-200 bg-white px-4 pr-10 text-sm font-medium text-zinc-800 outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-            >
-              {safeVibes.map((vibe) => (
-                <option key={vibe.id} value={String(vibe.id)}>
-                  {getVibeEmoji(vibe.label)} {vibe.label}
-                </option>
-              ))}
-              <option value="__custom__">✨ Eigenen Vibe eingeben</option>
-            </select>
-            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-400">⌄</span>
-          </div>
-          {selectedVibeId === "__custom__" ? (
+          {!isAuthenticated && (
             <div className="space-y-1.5">
+              <label htmlFor="party-submitter-name" className={labelCls}>Dein Name *</label>
               <input
-                name="customVibeLabel"
-                value={customVibeLabel}
-                onChange={(event) => setCustomVibeLabel(event.target.value)}
-                maxLength={48}
+                id="party-submitter-name"
+                name="submitterName"
+                placeholder="z. B. Max Mustermann"
+                maxLength={80}
                 required
-                placeholder="z. B. Volleyball, Beerpong, Study Break"
-                className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                className={fieldCls}
               />
-              <p className="text-xs text-zinc-500">Dein eigener Vibe wird gespeichert und künftig auswählbar.</p>
+              <p className={hintCls}>Wird im Admin-Panel angezeigt, damit wir euch zuordnen können.</p>
             </div>
-          ) : (
-            <input type="hidden" name="customVibeLabel" value="" />
           )}
-          <input type="hidden" name="defaultVibeId" value={String(safeVibes[0]?.id ?? "")} />
-          <p className="text-xs text-zinc-500">Wähle den Party-Style in einem schnellen Dropdown.</p>
-        </div>
 
-        <input type="hidden" name="publishMode" value="published" />
-        <p className="text-xs text-zinc-500">Alle Club-Events werden immer zuerst vom Admin geprüft und erst danach veröffentlicht.</p>
-
-        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label htmlFor="party-max-guests" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Max. Gäste
-            </label>
+            <label htmlFor="party-title" className={labelCls}>Titel *</label>
             <input
-              id="party-max-guests"
-              name="maxGuests"
-              type="number"
-              min={1}
-              max={200}
-              defaultValue={20}
+              id="party-title"
+              name="title"
+              placeholder="z. B. WG Warm-up Donnerstag"
+              maxLength={120}
               required
-              className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-              placeholder="z. B. 20"
+              className={fieldCls}
             />
-            <p className="text-xs text-zinc-500">Wie viele Gäste du insgesamt aufnehmen willst.</p>
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="party-contribution" className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Beitrag pro Person (€)
+            <label htmlFor="party-description" className={labelCls}>
+              Beschreibung <span className="normal-case font-normal">(optional)</span>
             </label>
-            <input
-              id="party-contribution"
-              name="contributionEur"
-              type="number"
-              step="0.5"
-              min={0}
-              defaultValue={5}
-              required
-              className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-              placeholder="z. B. 5"
+            <textarea
+              id="party-description"
+              name="description"
+              placeholder="z. B. Musikrichtung, Dresscode, was schon da ist"
+              className="field-surface min-h-24 w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
             />
-            <p className="text-xs text-zinc-500">Wird beim Bezahlprozess pro Gast berechnet.</p>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">Standort (grob für Discover)</label>
-          <div className="space-y-2">
-            <label htmlFor="party-address" className="text-xs font-medium text-zinc-600">
-              Adresse eingeben
-            </label>
-            <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="party-start" className={labelCls}>Startzeit *</label>
               <input
-                id="party-address"
-                type="text"
-                value={addressInput}
-                onChange={(event) => setAddressInput(event.target.value)}
-                placeholder="z. B. Gartenstraße 12, Tübingen"
-                className="h-11 min-w-0 flex-1 rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                id="party-start"
+                name="startsAt"
+                type="datetime-local"
+                required
+                className={fieldCls}
               />
-              <button
-                type="button"
-                onClick={handleAddressSearch}
-                disabled={isAddressSearching || !canLoadExternalServices}
-                className="inline-flex h-11 shrink-0 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-800 transition active:scale-[0.99] disabled:opacity-60"
-              >
-                {isAddressSearching ? "Suche..." : "Adresse finden"}
-              </button>
             </div>
-            <p className="text-xs text-zinc-500">
-              Nach Auswahl wird der Pin automatisch auf die Adresse gesetzt. Wenn du den Pin ziehst, wird die Adresse automatisch aktualisiert.
-            </p>
-            {!canLoadExternalServices ? (
+            <div className="space-y-1.5">
+              <label htmlFor="party-end" className={labelCls}>Endzeit *</label>
+              <input
+                id="party-end"
+                name="endsAt"
+                type="datetime-local"
+                required
+                className={fieldCls}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Vibe */}
+        <div className="space-y-4">
+          <SectionDivider label="Vibe" />
+          <div className="space-y-1.5">
+            <label className={labelCls}>Stil</label>
+            <div className="relative">
+              <select
+                name="vibeId"
+                value={selectedVibeId}
+                onChange={(e) => setSelectedVibeId(e.target.value)}
+                className="field-surface h-12 w-full appearance-none rounded-2xl px-4 pr-10 text-sm font-medium outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+              >
+                {safeVibes.map((vibe) => (
+                  <option key={vibe.id} value={String(vibe.id)}>
+                    {getVibeEmoji(vibe.label)} {vibe.label}
+                  </option>
+                ))}
+                <option value="__custom__">✨ Eigenen Vibe eingeben</option>
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--muted-foreground)]">⌄</span>
+            </div>
+            {selectedVibeId === "__custom__" ? (
+              <div className="space-y-1">
+                <input
+                  name="customVibeLabel"
+                  value={customVibeLabel}
+                  onChange={(e) => setCustomVibeLabel(e.target.value)}
+                  maxLength={48}
+                  required
+                  placeholder="z. B. Volleyball, Beerpong, Study Break"
+                  className={fieldCls}
+                />
+                <p className={hintCls}>Dein eigener Vibe wird gespeichert und künftig auswählbar.</p>
+              </div>
+            ) : (
+              <input type="hidden" name="customVibeLabel" value="" />
+            )}
+            <input type="hidden" name="defaultVibeId" value={String(safeVibes[0]?.id ?? "")} />
+          </div>
+        </div>
+
+        {/* Capacity */}
+        <div className="space-y-4">
+          <SectionDivider label="Kapazität" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="party-max-guests" className={labelCls}>Max. Gäste *</label>
+              <input
+                id="party-max-guests"
+                name="maxGuests"
+                type="number"
+                min={1}
+                max={200}
+                defaultValue={20}
+                required
+                placeholder="20"
+                className={fieldCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="party-contribution" className={labelCls}>Beitrag / Person (€)</label>
+              <input
+                id="party-contribution"
+                name="contributionEur"
+                type="number"
+                step="0.5"
+                min={0}
+                defaultValue={5}
+                required
+                placeholder="5"
+                className={fieldCls}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Location */}
+        <div className="space-y-3">
+          <SectionDivider label="Standort" />
+
+          <div className="flex gap-2">
+            <input
+              id="party-address"
+              type="text"
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleAddressSearch(); } }}
+              placeholder="z. B. Gartenstraße 12, Tübingen"
+              className="field-surface h-11 min-w-0 flex-1 rounded-2xl px-4 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            />
+            <button
+              type="button"
+              onClick={() => void handleAddressSearch()}
+              disabled={isAddressSearching || !canLoadExternalServices}
+              className={`${ghostBtnCls} h-11 shrink-0`}
+            >
+              {isAddressSearching ? "Suche..." : "Suchen"}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={handleAutoLocation} className={`${ghostBtnCls} h-9 px-3 text-xs`}>
+              📍 GPS
+            </button>
+            {!canLoadExternalServices && (
               <button
                 type="button"
                 onClick={() => {
@@ -536,33 +483,28 @@ export function CreatePartyForm({ vibes }: Props) {
                   setCanLoadExternalServices(true);
                   setLocationState("Externe Dienste aktiviert.");
                 }}
-                className="inline-flex h-9 items-center rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+                className="inline-flex h-9 items-center rounded-xl bg-[var(--accent)] px-3 text-xs font-semibold text-white"
               >
-                Externe Dienste aktivieren
+                Karte aktivieren
               </button>
-            ) : null}
+            )}
           </div>
-          <button
-            type="button"
-            onClick={handleAutoLocation}
-            className="inline-flex h-11 items-center rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-800 transition active:scale-[0.99]"
-          >
-            Standort automatisch finden
-          </button>
-          <p className="text-xs text-zinc-500">
+
+          <p className={hintCls}>
             {locationState}
             {isReverseGeocoding ? " (wird aktualisiert...)" : ""}
           </p>
-          {resolvedAddress ? <p className="text-xs text-zinc-600">Erkannte Adresse: {resolvedAddress}</p> : null}
+          {resolvedAddress ? <p className={`${hintCls} font-medium`}>✓ {resolvedAddress}</p> : null}
+
           {canLoadExternalServices ? (
-            <div ref={mapContainerRef} className="h-44 w-full overflow-hidden rounded-2xl border border-zinc-200" />
+            <div ref={mapContainerRef} className="h-44 w-full overflow-hidden rounded-2xl border border-[var(--border-soft)]" />
           ) : (
-            <div className="grid h-44 w-full place-items-center rounded-2xl border border-zinc-200 bg-zinc-100 px-3 text-center text-xs text-zinc-600">
-              Karte ist deaktiviert, bis externe Dienste akzeptiert wurden.
+            <div className="grid h-44 w-full place-items-center rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3 text-center text-xs text-[var(--muted-foreground)]">
+              Karte deaktiviert — bitte Karte aktivieren.
             </div>
           )}
-          <p className="text-xs text-zinc-500">
-            Pin antippen/ziehen, um die Position grob anzupassen. Aktuell: {formattedLat}, {formattedLng}
+          <p className={hintCls}>
+            Pin antippen/ziehen zum Anpassen · {formattedLat}, {formattedLng}
           </p>
 
           <input type="hidden" name="publicLat" value={formattedLat} />
@@ -570,46 +512,58 @@ export function CreatePartyForm({ vibes }: Props) {
           <input type="hidden" name="locationName" value={resolvedAddress || addressInput.trim()} />
         </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Mitbring-Liste (optional)</p>
-          <p className="text-xs text-zinc-500">Item ergänzen per Plus-Button, z. B. Snacks, Mixer, Becher.</p>
-
-          <div className="grid grid-cols-1 gap-2">
+        {/* Bring list */}
+        <div className="space-y-3">
+          <SectionDivider label="Mitbring-Liste" />
+          <p className={hintCls}>Optional: Was sollen Gäste mitbringen? z. B. Snacks, Becher, Mixer.</p>
+          <div className="space-y-2">
             {bringItems.map((item, index) => (
-              <input
-                key={`bring-item-${index}`}
-                name="bringItem"
-                value={item}
-                onChange={(event) => updateBringItem(index, event.target.value)}
-                placeholder={`Item ${index + 1}`}
-                className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
-              />
+              <div key={`bring-item-${index}`} className="flex gap-2">
+                <input
+                  name="bringItem"
+                  value={item}
+                  onChange={(e) => updateBringItem(index, e.target.value)}
+                  placeholder={`Item ${index + 1}`}
+                  className="field-surface h-11 flex-1 rounded-2xl px-4 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+                />
+                {bringItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeBringItem(index)}
+                    aria-label="Item entfernen"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-elevated)] text-[var(--muted-foreground)] transition hover:border-rose-400 hover:text-rose-500 active:scale-[0.97]"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
           </div>
-
           <button
             type="button"
             onClick={addBringItem}
-            className="inline-flex h-10 items-center rounded-2xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition active:scale-[0.99]"
+            className={`${ghostBtnCls} h-9 px-3 text-xs`}
           >
-            ＋ Item hinzufügen
+            + Item hinzufügen
           </button>
         </div>
+
+        <input type="hidden" name="publishMode" value="published" />
 
         <SubmitPartyButton />
 
         {actionState.message ? (
           <div
-            className={`rounded-2xl border px-3 py-2 text-sm ${
+            className={`rounded-2xl px-3 py-2.5 text-sm ${
               actionState.ok
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-rose-200 bg-rose-50 text-rose-700"
+                ? "bg-[var(--success-soft)] text-emerald-600"
+                : "bg-[rgba(239,68,68,0.10)] text-rose-500"
             }`}
           >
             {actionState.message}
           </div>
         ) : null}
       </form>
-    </Card>
+    </div>
   );
 }

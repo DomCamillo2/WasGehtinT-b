@@ -1,5 +1,0 @@
-NEXT_PUBLIC_SUPABASE_URL=https://zntlopkzeklxdfvldugb.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_gB5rEG5kyEWAq6EQm2fCQg_l7AHyEcM
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<set-in-dashboard-if-needed>
-SUPABASE_SERVICE_ROLE_KEY=<set-in-dashboard>
-SUPABASE_SECRET_API_KEY=<set-in-dashboard>

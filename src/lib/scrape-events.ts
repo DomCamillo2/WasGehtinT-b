@@ -146,24 +146,24 @@ function extractInstagramPostCandidatesFromItem(username: string, item: unknown)
     .filter((post): post is InstagramPostCandidate => post !== null);
 }
 
+const CAPTION_MAX_CHARS = 500;
+
+function truncateCaption(caption: string): string {
+  if (caption.length <= CAPTION_MAX_CHARS) return caption;
+  const hashtagStart = caption.search(/(\s#\w|\n#\w)/);
+  const cutAt = hashtagStart > 100 ? Math.min(hashtagStart, CAPTION_MAX_CHARS) : CAPTION_MAX_CHARS;
+  return caption.slice(0, cutAt).trimEnd();
+}
+
 function buildGeminiPrompt(captions: string[]): string {
+  const truncated = captions.map(truncateCaption);
   return [
-    "You extract real-world upcoming event data from Instagram captions.",
-    "Use only the given captions. Do not invent events or fields.",
-    "If no upcoming event is present, return an empty JSON array.",
-    "Output must be valid JSON only, with no markdown, no prose, no comments.",
-    "Return a JSON array where each object has exactly these keys:",
-    "title, date, time, location, description",
-    "Rules:",
-    "- date must be in YYYY-MM-DD format.",
-    "- If exact date is unknown, omit that event.",
-    "- Keep time as found in text (e.g., '21:00', 'ab 20 Uhr').",
-    "- Keep location as found in text.",
-    "- description should be concise and factual.",
-    "- Deduplicate overlapping events.",
+    "Extract upcoming public events from these Instagram captions. Return JSON array only, no prose.",
+    "Each object: {title, date (YYYY-MM-DD), time, location, description}",
+    "Omit events with unknown date. Exclude F-Sitzung, Fachschaftssitzung, meetings, votes — only public events (parties, concerts, etc.).",
     "",
     "Captions:",
-    JSON.stringify(captions, null, 2),
+    JSON.stringify(truncated, null, 2),
   ].join("\n");
 }
 
@@ -311,6 +311,13 @@ export async function fetchLatestInstagramPosts(username: string, limit: number 
   return posts;
 }
 
+async function tryParseWithKey(apiKey: string, prompt: string): Promise<ScrapedEvent[]> {
+  const gemini = new GoogleGenAI({ apiKey });
+  const rawText = await generateGeminiContentWithRetry(gemini, prompt);
+  if (!rawText) return [];
+  return parseGeminiJsonArray(rawText);
+}
+
 export async function parseEventsFromCaptions(captions: string[]): Promise<ScrapedEvent[]> {
   const dedupedCaptions = captions
     .map((caption) => caption.trim())
@@ -321,33 +328,43 @@ export async function parseEventsFromCaptions(captions: string[]): Promise<Scrap
     return [];
   }
 
-  const geminiApiKey = getRequiredValue(
+  const primaryKey = getRequiredValue(
     process.env.GEMINI_API_KEY ?? process.env.gemini_api_key ?? process.env.GOOGLE_API_KEY,
     "GEMINI_API_KEY",
   );
+  const fallbackKey = process.env.GEMINI_API_FALLBACK?.trim() || null;
 
-  const gemini = new GoogleGenAI({ apiKey: geminiApiKey });
   const prompt = buildGeminiPrompt(dedupedCaptions);
 
-  let rawText = "";
   try {
-    rawText = await generateGeminiContentWithRetry(gemini, prompt);
-  } catch (error) {
-    if (isTransientGeminiError(error)) {
+    return await tryParseWithKey(primaryKey, prompt);
+  } catch (primaryError) {
+    if (fallbackKey) {
+      console.warn("Gemini primary key failed, retrying with fallback key.", {
+        error: getErrorMessage(primaryError),
+      });
+      try {
+        return await tryParseWithKey(fallbackKey, prompt);
+      } catch (fallbackError) {
+        if (isTransientGeminiError(fallbackError)) {
+          console.warn("Gemini fallback key also unavailable. Returning empty result.", {
+            error: getErrorMessage(fallbackError),
+          });
+          return [];
+        }
+        throw fallbackError;
+      }
+    }
+
+    if (isTransientGeminiError(primaryError)) {
       console.warn("Gemini temporarily unavailable while parsing Instagram captions. Returning empty result.", {
-        error: getErrorMessage(error),
+        error: getErrorMessage(primaryError),
       });
       return [];
     }
 
-    throw error;
+    throw primaryError;
   }
-
-  if (!rawText) {
-    return [];
-  }
-
-  return parseGeminiJsonArray(rawText);
 }
 
 export async function scrapeInstagramEvents(username: string): Promise<ScrapedEvent[]> {
