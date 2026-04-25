@@ -457,9 +457,13 @@ export function DiscoverPremium({
                 {"Was geht in T\u00fcbingen heute?"}
               </h1>
               <p
-                className="mt-3 max-w-[46rem] text-sm leading-6 lg:text-[0.98rem]"
+                className="mt-2 text-sm leading-snug lg:text-[0.98rem]"
                 style={{ color: "var(--muted-foreground)" }}
               >
+                {"Partys, Clubs & Events – immer aktuell."}
+              </p>
+              {/* SEO text — hidden visually, readable by crawlers and screen readers */}
+              <p className="sr-only">
                 WasGehtTueb sammelt aktuelle Studentenpartys, Clubnaechte, Community-Treffen und
                 Tagesevents in Tuebingen. Hier findest du kommende Events mit Zeiten, Orten,
                 Kartenpunkten und weiterfuehrenden Links zu Veranstaltern und Locations.
