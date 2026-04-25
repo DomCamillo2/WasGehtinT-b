@@ -656,7 +656,7 @@ export async function getMyRequests(userId: string) {
 export async function getPartyAddressForUser(partyId: string, userId: string) {
   const supabase = await createClient();
 
-  const [{ data: party }, { data: accepted }] = await Promise.all([
+  const [{ data: party }, { data: accepted }, { data: location }] = await Promise.all([
     supabase.from("parties").select("id, host_user_id, title").eq("id", partyId).maybeSingle(),
     supabase
       .from("party_requests")
@@ -664,6 +664,11 @@ export async function getPartyAddressForUser(partyId: string, userId: string) {
       .eq("party_id", partyId)
       .eq("requester_user_id", userId)
       .eq("status", "accepted")
+      .maybeSingle(),
+    supabase
+      .from("party_locations")
+      .select("street, house_number, postal_code, city, address_note")
+      .eq("party_id", partyId)
       .maybeSingle(),
   ]);
 
@@ -677,12 +682,6 @@ export async function getPartyAddressForUser(partyId: string, userId: string) {
   if (!isHost && !isAcceptedGuest) {
     return null;
   }
-
-  const { data: location } = await supabase
-    .from("party_locations")
-    .select("street, house_number, postal_code, city, address_note")
-    .eq("party_id", partyId)
-    .maybeSingle();
 
   return {
     partyTitle: party.title,
@@ -702,29 +701,28 @@ export async function getHostDashboard(userId: string) {
     supabase.from("party_vibes").select("id, label").eq("is_active", true),
   ]);
 
-  const fallbackVibesRes = await (vibesRes.error
-    ? supabase.from("party_vibes").select("id, label")
-    : Promise.resolve({ data: null as null, error: null as null }));
-
-  const safeVibes =
-    vibesRes.error && fallbackVibesRes.data
-      ? fallbackVibesRes.data
-      : (vibesRes.data ?? []);
-
-  const hostPartyIds = new Set(
-    ((dashboardRes.data ?? []) as Array<{ party_id: string }>).map((party) => party.party_id),
+  const hostPartyIdList = Array.from(
+    new Set(((dashboardRes.data ?? []) as Array<{ party_id: string }>).map((party) => party.party_id)),
   );
 
-  const hostPartyIdList = Array.from(hostPartyIds);
-  const requestsRes =
+  const [fallbackVibesRes, requestsRes] = await Promise.all([
+    vibesRes.error
+      ? supabase.from("party_vibes").select("id, label")
+      : Promise.resolve({ data: null as null, error: null as null }),
     hostPartyIdList.length > 0
-      ? await supabase
+      ? supabase
           .from("party_requests")
           .select("id, party_id, requester_user_id, group_size, status, message, created_at, parties(title)")
           .eq("status", "pending")
           .in("party_id", hostPartyIdList)
           .order("created_at", { ascending: false })
-      : ({ data: [] } as { data: Array<Record<string, unknown>> });
+      : Promise.resolve({ data: [] as Array<Record<string, unknown>>, error: null }),
+  ]);
+
+  const safeVibes =
+    vibesRes.error && fallbackVibesRes.data
+      ? fallbackVibesRes.data
+      : (vibesRes.data ?? []);
 
   const pending = (requestsRes.data ?? []) as Array<Record<string, unknown>>;
 

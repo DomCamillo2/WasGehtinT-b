@@ -37,11 +37,27 @@ async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard
   const supabase = await createClient();
   const partyIds = parties.map((party) => party.id);
 
-  const { data: partyRows, error: partyRowsError } = await supabase
-    .from("parties")
-    .select("id, host_user_id, location_name")
-    .in("id", partyIds);
+  // Use host IDs already present on the party cards to start the avatar fetch
+  // in parallel with the parties table query (which adds location_name).
+  const preliminaryHostIds = Array.from(
+    new Set(
+      parties
+        .map((p) => p.host_user_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  );
 
+  const [{ data: partyRows, error: partyRowsError }, avatarResultPrelim] = await Promise.all([
+    supabase.from("parties").select("id, host_user_id, location_name").in("id", partyIds),
+    preliminaryHostIds.length > 0
+      ? supabase
+          .from("user_profiles")
+          .select("id, avatar_url, profile_visibility")
+          .in("id", preliminaryHostIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; avatar_url: string | null; profile_visibility?: string | null }>, error: null }),
+  ]);
+
+  // If location_name column is missing fall back without it (rare schema-migration case).
   const fallbackPartyRowsResult = await (isMissingColumnError(partyRowsError?.code)
     ? supabase.from("parties").select("id, host_user_id").in("id", partyIds)
     : Promise.resolve({ data: null as null, error: null as null }));
@@ -55,40 +71,39 @@ async function enrichPartiesForDiscover(parties: PartyCard[]): Promise<PartyCard
           location_name?: string | null;
         }>);
 
-  const hostIds = Array.from(
+  // If the parties table returned different host IDs than what the view had,
+  // fetch the missing avatars now (usually a no-op).
+  const authoratativeHostIds = Array.from(
     new Set(
       safePartyRows
         .map((row) => row.host_user_id)
         .filter((value): value is string => typeof value === "string" && value.length > 0),
     ),
   );
+  const missingHostIds = authoratativeHostIds.filter((id) => !preliminaryHostIds.includes(id));
+  const extraAvatarResult =
+    missingHostIds.length > 0
+      ? await supabase
+          .from("user_profiles")
+          .select("id, avatar_url, profile_visibility")
+          .in("id", missingHostIds)
+      : { data: [] as Array<{ id: string; avatar_url: string | null; profile_visibility?: string | null }>, error: null };
 
-  let avatarMap = new Map<string, string>();
-  if (hostIds.length > 0) {
-    const avatarResult = await supabase
-      .from("user_profiles")
-      .select("id, avatar_url, profile_visibility")
-      .in("id", hostIds);
+  const allAvatarRows = [
+    ...((avatarResultPrelim.data ?? []) as Array<{ id: string; avatar_url: string | null; profile_visibility?: string | null }>),
+    ...((extraAvatarResult.data ?? []) as Array<{ id: string; avatar_url: string | null; profile_visibility?: string | null }>),
+  ];
 
-    if (!avatarResult.error) {
-      avatarMap = new Map(
-        (
-          (avatarResult.data ?? []) as Array<{
-            id: string;
-            avatar_url: string | null;
-            profile_visibility?: "public" | "members" | "hidden" | null;
-          }>
-        )
-          .filter(
-            (row) =>
-              typeof row.avatar_url === "string" &&
-              row.avatar_url.length > 0 &&
-              row.profile_visibility !== "hidden",
-          )
-          .map((row) => [row.id, row.avatar_url as string]),
-      );
-    }
-  }
+  const avatarMap = new Map(
+    allAvatarRows
+      .filter(
+        (row) =>
+          typeof row.avatar_url === "string" &&
+          row.avatar_url.length > 0 &&
+          row.profile_visibility !== "hidden",
+      )
+      .map((row) => [row.id, row.avatar_url as string]),
+  );
 
   const metaByPartyId = new Map(
     safePartyRows.map((row) => [
@@ -155,7 +170,7 @@ const loadDiscoverPublicDataCached = unstable_cache(
   },
   ["discover-public-data-v1"],
   {
-    revalidate: 120,
+    revalidate: 300,
     tags: ["discover-public"],
   },
 );
