@@ -24,7 +24,7 @@ const initialPartyState: CreatePartyActionState = {
 };
 
 const sheetFieldClassName =
-  "h-11 w-full rounded-xl border bg-white/90 px-3 text-sm text-slate-900 outline-none";
+  "h-11 w-full rounded-xl border px-3 text-sm outline-none bg-[var(--surface-elevated)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -139,9 +139,9 @@ export function BottomNav() {
               <form
                 ref={hangoutFormRef}
                 action={hangoutFormAction}
-                className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3"
+                className="mb-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3"
               >
-                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-600">
                   <Sparkles size={16} />
                   {"Spontane Aktivit\u00e4t sofort posten"}
                 </div>
@@ -150,27 +150,27 @@ export function BottomNav() {
                     name="submitterName"
                     maxLength={80}
                     placeholder="Dein Name (bei Einreichung ohne Account)"
-                    className={clsx(sheetFieldClassName, "border-emerald-200 focus:border-emerald-400")}
+                    className={clsx(sheetFieldClassName, "border-emerald-500/30 focus:border-emerald-500")}
                   />
                   <input
                     name="title"
                     required
                     maxLength={120}
                     placeholder={"z. B. Vorgl\u00fchen 20:00 auf dem Sand"}
-                    className={clsx(sheetFieldClassName, "border-emerald-200 focus:border-emerald-400")}
+                    className={clsx(sheetFieldClassName, "border-emerald-500/30 focus:border-emerald-500")}
                   />
                   <input
                     name="locationText"
                     required
                     maxLength={160}
                     placeholder="Wo? z. B. Neckarinsel"
-                    className={clsx(sheetFieldClassName, "border-emerald-200 focus:border-emerald-400")}
+                    className={clsx(sheetFieldClassName, "border-emerald-500/30 focus:border-emerald-500")}
                   />
                   <input
                     name="meetupAt"
                     type="datetime-local"
                     required
-                    className={clsx(sheetFieldClassName, "border-emerald-200 focus:border-emerald-400")}
+                    className={clsx(sheetFieldClassName, "border-emerald-500/30 focus:border-emerald-500")}
                   />
                   <textarea
                     name="description"
@@ -178,15 +178,15 @@ export function BottomNav() {
                     maxLength={600}
                     rows={3}
                     placeholder="Beschreibung: was geplant ist und was man mitbringen soll"
-                    className="w-full rounded-xl border border-emerald-200 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-400"
+                    className="w-full rounded-xl border border-emerald-500/30 bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none focus:border-emerald-500"
                   />
                   <div className="flex items-center gap-2">
                     <select
                       name="activityType"
                       defaultValue="meetup"
                       className={clsx(
-                        "h-11 flex-1 rounded-xl border bg-white/90 px-3 text-sm text-slate-900 outline-none",
-                        "border-emerald-200 focus:border-emerald-400",
+                        "h-11 flex-1 rounded-xl border px-3 text-sm outline-none bg-[var(--surface-elevated)] text-[var(--foreground)]",
+                        "border-emerald-500/30 focus:border-emerald-500",
                       )}
                     >
                       <option value="meetup">Treffen</option>
@@ -205,7 +205,7 @@ export function BottomNav() {
                   </div>
                 </div>
                 {hangoutState.error ? (
-                  <p className="mt-2 rounded-xl bg-red-100 px-3 py-2 text-xs text-red-700">
+                  <p className="mt-2 rounded-xl bg-red-500/10 px-3 py-2 text-xs text-red-500">
                     {hangoutState.error}
                   </p>
                 ) : null}
@@ -214,9 +214,9 @@ export function BottomNav() {
               <form
                 ref={partyFormRef}
                 action={partyFormAction}
-                className="rounded-2xl border border-violet-200 bg-violet-50 p-3"
+                className="rounded-2xl border border-violet-500/25 bg-violet-500/10 p-3"
               >
-                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-800">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-500">
                   <Flame size={16} />
                   Club Event einreichen
                 </div>
@@ -225,41 +225,41 @@ export function BottomNav() {
                     name="submitterName"
                     maxLength={80}
                     placeholder="Dein Name (bei Einreichung ohne Account)"
-                    className={clsx(sheetFieldClassName, "border-violet-200 focus:border-violet-400")}
+                    className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
                   />
                   <input
                     name="title"
                     required
                     maxLength={120}
                     placeholder="Titel des Club-Events"
-                    className={clsx(sheetFieldClassName, "border-violet-200 focus:border-violet-400")}
+                    className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
                   />
                   <textarea
                     name="description"
                     maxLength={600}
                     rows={3}
                     placeholder="Kurzbeschreibung"
-                    className="w-full rounded-xl border border-violet-200 bg-white/90 px-3 py-2 text-sm text-slate-900 outline-none focus:border-violet-400"
+                    className="w-full rounded-xl border border-violet-500/30 bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none focus:border-violet-500"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       name="startsAt"
                       type="datetime-local"
                       required
-                      className={clsx(sheetFieldClassName, "border-violet-200 focus:border-violet-400")}
+                      className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
                     />
                     <input
                       name="endsAt"
                       type="datetime-local"
                       required
-                      className={clsx(sheetFieldClassName, "border-violet-200 focus:border-violet-400")}
+                      className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
                     />
                   </div>
                   <input
                     name="locationName"
                     maxLength={140}
                     placeholder="Ort (optional)"
-                    className={clsx(sheetFieldClassName, "border-violet-200 focus:border-violet-400")}
+                    className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
                   />
                   <input type="hidden" name="vibeId" value="1" />
                   <input type="hidden" name="defaultVibeId" value="1" />
@@ -278,7 +278,7 @@ export function BottomNav() {
                   <p
                     className={clsx(
                       "mt-2 rounded-xl px-3 py-2 text-xs",
-                      partyState.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700",
+                      partyState.ok ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500",
                     )}
                   >
                     {partyState.message}
@@ -292,7 +292,7 @@ export function BottomNav() {
 
       {submitNotice ? (
         <div className="fixed inset-x-0 top-4 z-50 mx-auto w-full max-w-md px-4">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-[0_12px_30px_rgba(5,150,105,0.2)]">
+          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-600 shadow-[0_12px_30px_rgba(5,150,105,0.2)]">
             {submitNotice}
           </div>
         </div>
