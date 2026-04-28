@@ -429,7 +429,7 @@ export function DiscoverPremium({
 
   return (
     <div className="relative space-y-4 pb-32 lg:space-y-6 lg:pb-20">
-      <header className="surface-card relative overflow-hidden rounded-[28px] px-4 py-3.5 lg:px-7 lg:py-6">
+      <header className="surface-card relative overflow-hidden rounded-[28px] px-4 py-4 lg:px-7 lg:py-6">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-95"
@@ -448,12 +448,12 @@ export function DiscoverPremium({
           }}
         />
         <div className="relative">
-          <div className="flex items-start justify-between gap-3 lg:gap-8">
-            <div className="min-w-0 lg:max-w-[34rem]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+            <div className="min-w-0 max-w-[18rem] sm:max-w-[24rem] lg:max-w-[34rem]">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--accent-strong)]">
                 {"WasGehtT\u00fcb"}
               </p>
-              <h1 className="mt-1.5 max-w-[16ch] text-[2rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)] lg:max-w-[18ch] lg:text-[3.2rem]">
+              <h1 className="mt-1.5 max-w-[14ch] text-[1.85rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)] sm:max-w-[16ch] sm:text-[2rem] lg:max-w-[18ch] lg:text-[3.2rem]">
                 {"Was geht in T\u00fcbingen heute?"}
               </h1>
               <p
@@ -468,27 +468,14 @@ export function DiscoverPremium({
                 Tagesevents in Tuebingen. Hier findest du kommende Events mit Zeiten, Orten,
                 Kartenpunkten und weiterfuehrenden Links zu Veranstaltern und Locations.
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  "Aus lokalen Quellen gesammelt",
-                  "Karte, Kalender und Detailseiten",
-                  "Fuer Tuebingen statt fuer ganz Deutschland",
-                ].map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold"
-                    style={{
-                      borderColor: "var(--border-soft)",
-                      backgroundColor: "color-mix(in srgb, var(--surface-card) 82%, transparent)",
-                      color: "var(--foreground)",
-                    }}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
+              <p
+                className="mt-2.5 text-[12px] leading-relaxed sm:text-[13px]"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                {"Aus lokalen Quellen. Mit Karte, Kalender und Detailseiten."}
+              </p>
               <div
-                className="mt-3 inline-flex items-center gap-1 rounded-[18px] border p-1"
+                className="mt-4 inline-flex w-full items-center gap-1 rounded-[18px] border p-1 sm:w-auto"
                 style={{
                   borderColor: "var(--border-soft)",
                   backgroundColor: "color-mix(in srgb, var(--surface-card) 74%, transparent)",
@@ -503,7 +490,7 @@ export function DiscoverPremium({
                       key={item.key}
                       type="button"
                       onClick={() => setView(item.key)}
-                      className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition sm:text-sm ${
+                      className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[11px] font-semibold transition sm:flex-none sm:px-2.5 sm:text-sm ${
                         active ? "text-white shadow-md" : ""
                       }`}
                       style={
@@ -516,7 +503,7 @@ export function DiscoverPremium({
                       }
                       aria-label={`${item.label} anzeigen`}
                     >
-                      <Icon size={14} />
+                      <Icon size={13} />
                       <span>{item.label}</span>
                     </button>
                   );
@@ -524,12 +511,12 @@ export function DiscoverPremium({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 lg:self-start">
-              <ThemeToggle className="shadow-[0_12px_28px_-22px_var(--shadow-color)]" />
+            <div className="flex items-center justify-between gap-2 lg:justify-end lg:self-start">
+              <ThemeToggle className="h-10 w-10 shadow-[0_12px_28px_-22px_var(--shadow-color)]" />
               <button
                 type="button"
                 onClick={() => setShowFilterSheet(true)}
-                className="grid h-11 w-11 place-items-center rounded-2xl border shadow-[0_10px_25px_-18px_var(--shadow-color)]"
+                className="grid h-10 w-10 place-items-center rounded-2xl border shadow-[0_10px_25px_-18px_var(--shadow-color)]"
                 style={{
                   borderColor: "var(--border-soft)",
                   backgroundColor: "var(--surface-soft)",
@@ -543,7 +530,7 @@ export function DiscoverPremium({
               {isAuthenticated ? (
                 <Link
                   href="/profile"
-                  className="grid h-11 w-11 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
+                  className="grid h-10 w-10 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
                   style={{
                     background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
                   }}
@@ -558,7 +545,7 @@ export function DiscoverPremium({
                     setAuthSheetReason("Profile und persoenliche Features werden spaeter freigeschaltet.");
                     setShowAuthSheet(true);
                   }}
-                  className="grid h-11 w-11 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
+                  className="grid h-10 w-10 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
                   style={{
                     background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
                   }}
