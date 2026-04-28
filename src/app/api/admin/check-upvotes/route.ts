@@ -3,9 +3,27 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const ADMIN_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+function isAuthorized(request: Request): boolean {
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) {
+    return false;
+  }
 
-export async function GET() {
+  const authHeader = request.headers.get("authorization")?.trim();
+  if (authHeader === `Bearer ${secret}`) {
+    return true;
+  }
+
+  const url = new URL(request.url);
+  return url.searchParams.get("secret") === secret;
+}
+
+export async function GET(request: Request) {
   try {
+    if (!isAuthorized(request)) {
+      return Response.json({ status: "unauthorized" }, { status: 401 });
+    }
+
     if (!SUPABASE_URL || !ADMIN_KEY) {
       return Response.json(
         {

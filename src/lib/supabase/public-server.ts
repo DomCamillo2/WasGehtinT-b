@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getMissingSupabaseEnv, getSupabasePublicKey } from "@/lib/env";
 
-let publicSingleton: SupabaseClient<any, "public", any> | null = null;
+let publicSingleton: SupabaseClient | null = null;
 
 export function getSupabasePublicServerClient() {
   const missing = getMissingSupabaseEnv();
@@ -13,7 +13,7 @@ export function getSupabasePublicServerClient() {
   const publicKey = getSupabasePublicKey()!;
 
   if (!publicSingleton) {
-    publicSingleton = createClient<any>(url, publicKey, {
+    publicSingleton = createClient(url, publicKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
