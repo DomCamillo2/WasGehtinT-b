@@ -21,6 +21,30 @@ function isFreeEntry(priceInfo: string | null | undefined): boolean {
   return lower.includes("frei") || lower.includes("kostenlos") || lower.includes("free") || lower === "0";
 }
 
+function extractPrice(priceInfo: string | null | undefined): string | null {
+  if (!priceInfo) {
+    return null;
+  }
+
+  if (isFreeEntry(priceInfo)) {
+    return "0";
+  }
+
+  const normalized = priceInfo.replace(",", ".").trim();
+  const match = normalized.match(/(\d+(?:\.\d{1,2})?)/);
+
+  if (!match) {
+    return null;
+  }
+
+  const parsed = Number(match[1]);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return parsed.toFixed(2);
+}
+
 export function EventSchema({
   name,
   startDate,
@@ -34,7 +58,18 @@ export function EventSchema({
   musicGenre,
 }: Props) {
   const offerUrl = externalLink ?? url;
-  const price = isFreeEntry(priceInfo) ? "0" : "0";
+  const price = extractPrice(priceInfo);
+  const offers = {
+    "@type": "Offer",
+    availability: "https://schema.org/InStock",
+    url: offerUrl,
+    ...(price !== null
+      ? {
+          price,
+          priceCurrency: "EUR",
+        }
+      : {}),
+  };
 
   const schema = {
     "@context": "https://schema.org",
@@ -56,13 +91,7 @@ export function EventSchema({
         addressCountry: "DE",
       },
     },
-    offers: {
-      "@type": "Offer",
-      price,
-      priceCurrency: "EUR",
-      availability: "https://schema.org/InStock",
-      url: offerUrl,
-    },
+    offers,
     organizer: organizerName
       ? {
           "@type": "Organization",

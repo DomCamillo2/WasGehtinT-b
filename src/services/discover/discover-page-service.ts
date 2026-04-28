@@ -143,7 +143,10 @@ export type DiscoverPageData = {
   avatarFallback: string;
   isAuthenticated: boolean;
   canLoadMore: boolean;
-  loadMoreHref: string;
+  currentWeeks: number;
+  initialView: "calendar" | "list" | "map";
+  initialFilter: "all" | "community" | "clubs" | "daytime";
+  initialCalendarDate: string;
 };
 
 type DiscoverPublicData = {
@@ -201,8 +204,6 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
 
   const parties = [...dbParties, ...communityHangouts, ...externalParties];
   const canLoadMore = weeks < MAX_WEEKS;
-  const nextWeeks = Math.min(MAX_WEEKS, weeks + WEEK_STEP);
-  const loadMoreHref = `/discover?weeks=${nextWeeks}`;
 
   const eventIds = parties.map((party) => party.id);
   const upvoteCountMap = new Map<string, number>();
@@ -243,12 +244,30 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
   const discoverEvents = partiesWithUpvotes.map(mapPartyCardToDiscoverEvent);
 
   const avatarFallback = String(user?.email?.[0] ?? "G").toUpperCase();
+  const initialView =
+    searchParams.view === "calendar" || searchParams.view === "map" || searchParams.view === "list"
+      ? searchParams.view
+      : "list";
+  const initialFilter =
+    searchParams.type === "community" ||
+    searchParams.type === "clubs" ||
+    searchParams.type === "daytime" ||
+    searchParams.type === "all"
+      ? searchParams.type
+      : "all";
+  const initialCalendarDate =
+    typeof searchParams.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date)
+      ? searchParams.date
+      : "";
 
   return {
     parties: discoverEvents,
     avatarFallback,
     isAuthenticated: Boolean(user),
     canLoadMore,
-    loadMoreHref,
+    currentWeeks: weeks,
+    initialView,
+    initialFilter,
+    initialCalendarDate,
   };
 }

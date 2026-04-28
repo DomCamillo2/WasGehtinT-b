@@ -87,6 +87,36 @@ export async function decideRequestAction(formData: FormData): Promise<void> {
     return;
   }
 
+  const { data: requestRow, error: requestLookupError } = await supabase
+    .from("party_requests")
+    .select("id, party_id, parties(host_user_id)")
+    .eq("id", requestId)
+    .single();
+
+  if (requestLookupError) {
+    console.error("[decideRequestAction] Failed to load request for authorization:", requestLookupError);
+    return;
+  }
+
+  const hostUserId =
+    requestRow &&
+    typeof requestRow === "object" &&
+    "parties" in requestRow &&
+    requestRow.parties &&
+    typeof requestRow.parties === "object" &&
+    "host_user_id" in requestRow.parties
+      ? requestRow.parties.host_user_id
+      : null;
+
+  if (!hostUserId || hostUserId !== user.id) {
+    console.warn("[decideRequestAction] Unauthorized request decision attempt:", {
+      requestId,
+      userId: user.id,
+      hostUserId,
+    });
+    return;
+  }
+
   const { error } = await supabase
     .from("party_requests")
     .update({

@@ -45,7 +45,16 @@ export default async function DiscoverPage({
   searchParams: Promise<{ view?: string; date?: string; type?: string; weeks?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const { parties, avatarFallback, isAuthenticated, canLoadMore, loadMoreHref } = await loadDiscoverPageData(
+  const {
+    parties,
+    avatarFallback,
+    isAuthenticated,
+    canLoadMore,
+    currentWeeks,
+    initialView,
+    initialFilter,
+    initialCalendarDate,
+  } = await loadDiscoverPageData(
     resolvedSearchParams,
   );
 
@@ -57,7 +66,10 @@ export default async function DiscoverPage({
         avatarFallback={avatarFallback}
         isAuthenticated={isAuthenticated}
         canLoadMore={canLoadMore}
-        loadMoreHref={loadMoreHref}
+        currentWeeks={currentWeeks}
+        initialView={initialView}
+        initialFilter={initialFilter}
+        initialCalendarDate={initialCalendarDate}
       />
     </AppShell>
   );

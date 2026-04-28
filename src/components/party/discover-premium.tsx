@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   CalendarDays,
@@ -71,15 +72,46 @@ type Props = {
   avatarFallback: string;
   isAuthenticated: boolean;
   canLoadMore: boolean;
-  loadMoreHref: string;
+  currentWeeks: number;
+  initialView: ViewKey;
+  initialFilter: FilterKey;
+  initialCalendarDate: string;
 };
 
 function toDateKeyBerlin(iso: string) {
   return BERLIN_DAY_KEY_FORMATTER.format(new Date(iso));
 }
 
+function getFallbackVenueKey(party: DiscoverEvent) {
+  const location = `${party.locationName ?? ""} ${party.vibeLabel} ${party.title}`.toLowerCase();
+
+  if (location.includes("kuckuck")) return "kuckuck";
+  if (location.includes("clubhaus")) return "clubhaus";
+  if (location.includes("schlachthaus")) return "schlachthaus";
+  if (
+    location.includes("frau holle") ||
+    location.includes("frau_holle") ||
+    location.includes("holle") ||
+    location.includes("haaggasse")
+  ) {
+    return "frau-holle";
+  }
+  if (
+    location.includes("schwarzes schaf") ||
+    location.includes("schwarzesschaf") ||
+    location.includes("schaf")
+  ) {
+    return "schwarzes-schaf";
+  }
+
+  return null;
+}
+
 function hasMapCoordinates(party: DiscoverEvent) {
-  return Number.isFinite(party.publicLat) && Number.isFinite(party.publicLng);
+  return (
+    (Number.isFinite(party.publicLat) && Number.isFinite(party.publicLng)) ||
+    getFallbackVenueKey(party) !== null
+  );
 }
 
 function shiftIsoMonth(isoDate: string, monthDelta: number): string {
@@ -104,17 +136,21 @@ export function DiscoverPremium({
   avatarFallback,
   isAuthenticated,
   canLoadMore,
-  loadMoreHref,
+  currentWeeks,
+  initialView,
+  initialFilter,
+  initialCalendarDate,
 }: Props) {
+  const router = useRouter();
   const { showToast } = useToast();
-  const [filter, setFilter] = useState<FilterKey>("all");
-  const [view, setView] = useState<ViewKey>("list");
+  const [filter, setFilter] = useState<FilterKey>(initialFilter);
+  const [view, setView] = useState<ViewKey>(initialView);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [authSheetReason, setAuthSheetReason] = useState("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
   const [onlyMappable, setOnlyMappable] = useState(false);
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>("");
-  const [calendarMonthDate, setCalendarMonthDate] = useState<string>("");
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(initialCalendarDate);
+  const [calendarMonthDate, setCalendarMonthDate] = useState<string>(initialCalendarDate);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const initialUpvoteCounts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -332,6 +368,7 @@ export function DiscoverPremium({
 
     const wasUpvoted = upvotedPartyIds.includes(eventId);
     const nextUpvoted = !wasUpvoted;
+    const previousCount = upvoteCounts[eventId] ?? parties.find((party) => party.id === eventId)?.upvoteCount ?? 0;
 
     setUpvotedPartyIds((current) =>
       nextUpvoted ? Array.from(new Set([...current, eventId])) : current.filter((id) => id !== eventId),
@@ -353,6 +390,14 @@ export function DiscoverPremium({
         [eventId]: Math.max(0, Number(data.upvoteCount ?? 0)),
       }));
     } catch (error) {
+      setUpvotedPartyIds((current) =>
+        wasUpvoted ? Array.from(new Set([...current, eventId])) : current.filter((id) => id !== eventId),
+      );
+      setUpvoteCounts((current) => ({
+        ...current,
+        [eventId]: Math.max(0, previousCount),
+      }));
+
       const serviceError = asServiceError(error);
       showToast({
         variant: "error",
@@ -367,6 +412,27 @@ export function DiscoverPremium({
     { key: "list" as const, label: "Liste", icon: List },
     { key: "map" as const, label: "Karte", icon: MapIcon },
   ];
+
+  function buildLoadMoreHref() {
+    const params = new URLSearchParams();
+    const nextWeeks = Math.min(24, currentWeeks + 4);
+
+    if (view !== "list") {
+      params.set("view", view);
+    }
+
+    if (filter !== "all") {
+      params.set("type", filter);
+    }
+
+    if (view === "calendar" && selectedCalendarDate) {
+      params.set("date", selectedCalendarDate);
+    }
+
+    params.set("weeks", String(nextWeeks));
+
+    return `/discover?${params.toString()}`;
+  }
 
   function resetToAllView() {
     setFilter("all");
@@ -472,7 +538,7 @@ export function DiscoverPremium({
                 className="mt-2.5 text-[12px] leading-relaxed sm:text-[13px]"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                {"Aus lokalen Quellen. Mit Karte, Kalender und Detailseiten."}
+                {"Alles, was in Tuebingen heute wichtig ist, auf einen Blick."}
               </p>
               <div
                 className="mt-4 inline-flex w-full items-center gap-1 rounded-[18px] border p-1 sm:w-auto"
@@ -905,8 +971,8 @@ export function DiscoverPremium({
                   </p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
                     {hasMoreVisibleParties
-                      ? "Zeigt sofort die nächsten 20 Ergebnisse an."
-                      : "Wenn du weiter vorausplanen willst, laden wir die nächsten Wochen erst auf Wunsch nach."}
+                      ? `Zeigt sofort die naechsten ${LOAD_MORE_STEP} Events in deiner aktuellen Ansicht an.`
+                      : "Wenn du weiter vorausplanen willst, laden wir passend zu deiner aktuellen Ansicht weitere Wochen nach."}
                   </p>
                 </div>
                 {hasMoreVisibleParties ? (
@@ -919,13 +985,14 @@ export function DiscoverPremium({
                     Mehr laden
                   </button>
                 ) : (
-                  <Link
-                    href={loadMoreHref}
+                  <button
+                    type="button"
+                    onClick={() => router.push(buildLoadMoreHref())}
                     className="inline-flex shrink-0 items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
                     style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
                   >
                     Mehr laden
-                  </Link>
+                  </button>
                 )}
               </div>
             </div>
