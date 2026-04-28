@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 
 const DEFAULT_VENUES = [
   "frau_holle_tuebingen",
+  "stadtkindtuebingen",
   "kuckuck_bar_tuebingen",
   "queerspaceparties",
   "luscht.tuebingen",
