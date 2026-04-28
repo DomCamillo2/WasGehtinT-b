@@ -211,6 +211,11 @@ async function upsertJob(apiKey, jobsList, jobConfig) {
 }
 
 async function main() {
+  if ((getEnv("ENABLE_CRONJOB_ORG_SETUP") || "false").toLowerCase() !== "true") {
+    console.log("[cronjob] Skipped. Set ENABLE_CRONJOB_ORG_SETUP=true to configure cron-job.org.");
+    return;
+  }
+
   const cronApiKey = getRequiredEnvValue(
     ["CRON_JOB_API_KEY", "Cron-job_API_KEY", "CRONJOB_API_KEY"],
     "Missing CRON_JOB_API_KEY environment variable",

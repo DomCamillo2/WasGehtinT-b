@@ -401,32 +401,20 @@ Vermeide, Scraperdaten direkt in Discover-Komponenten oder Page-Dateien aufzuber
 
 Nutze Cron-Auslöser ausschließlich über definierte Backend-Endpunkte.
 
-Aktuelle Vercel-Cron-Konfiguration in `web/vercel.json`:
+Aktuelle Source-of-Truth für Scheduling ist **GitHub Actions**:
 
-- `/api/cron/scrape` um `40 2 * * *`
-- `/api/external-events/refresh` um `0 3 * * *`
+- Workflow: `web/.github/workflows/external-events-refresh.yml`
+- Trigger: alle 6 Stunden
+- Ausführung: `web/scripts/sync-external-events-to-supabase.mjs`
 
-Das bedeutet aktuell:
+`web/vercel.json` enthält aktuell bewusst keine produktiven Cron-Einträge.
 
-- Der Instagram-/Apify-Lauf startet täglich zuerst.
-- Der Refresh der offiziellen External Events läuft danach separat.
-
-Zusätzlich existiert eine externe Cron-Verwaltung über `cron-job.org`.
-
-Konkrete Projektdatei:
-
-- `web/scripts/setup-cronjob-org.mjs`
-
-Aktuelle Rolle dieser Datei:
-
-- Sie richtet einen externen Job für `/api/external-events/refresh` ein.
-- Sie authentifiziert den Job über `Authorization: Bearer <CRON_SECRET>`.
-- Sie dient als operativer Setup- und Fallback-Mechanismus außerhalb von Vercel.
+`web/scripts/setup-cronjob-org.mjs` bleibt als optionaler Fallback für Notfälle erhalten, ist aber **nicht** Teil des regulären Produktionsbetriebs.
 
 Nutze bei Änderungen an Cron-Logik immer diese Regel:
 
 - Ändere Schedule, Auth und Zielroute bewusst zusammen.
-- Dokumentiere, ob der Trigger von Vercel Cron, cron-job.org oder beiden kommt.
+- Dokumentiere genau eine aktive Scheduler-Quelle.
 - Vermeide doppelte, unkoordinierte Trigger auf dieselbe Route.
 
 ### Debug- und Testpfade

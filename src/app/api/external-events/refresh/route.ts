@@ -1,8 +1,17 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { syncExternalEventsToCache } from "@/lib/external-events-cache";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
 
 export const dynamic = "force-dynamic";
+const OFFICIAL_SOURCE = "official-scraper";
+const REFRESH_COOLDOWN_MINUTES = (() => {
+  const parsed = Number(process.env.EXTERNAL_EVENTS_REFRESH_COOLDOWN_MINUTES ?? "10");
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 10;
+  }
+  return Math.floor(parsed);
+})();
 
 function isAuthorized(request: Request) {
   const cronSecret = process.env.CRON_SECRET?.trim();
@@ -40,6 +49,37 @@ export async function GET(request: Request) {
   }
 
   try {
+    if (REFRESH_COOLDOWN_MINUTES > 0) {
+      const supabase = getSupabaseAdmin();
+      const lastRunResult = await supabase
+        .from("external_events_cache")
+        .select("scraped_at")
+        .eq("source", OFFICIAL_SOURCE)
+        .order("scraped_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!lastRunResult.error && lastRunResult.data?.scraped_at) {
+        const lastRunMs = new Date(lastRunResult.data.scraped_at).getTime();
+        const cooldownMs = REFRESH_COOLDOWN_MINUTES * 60 * 1000;
+        if (Number.isFinite(lastRunMs) && Date.now() - lastRunMs < cooldownMs) {
+          return Response.json({
+            ok: true,
+            skipped: true,
+            reason: "cooldown-active",
+            cooldownMinutes: REFRESH_COOLDOWN_MINUTES,
+            lastRunAt: lastRunResult.data.scraped_at,
+            durationMs: Date.now() - startedAt,
+          }, {
+            status: 200,
+            headers: {
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+      }
+    }
+
     revalidateTag("external-events", "max");
     const events = await fetchExternalEvents();
     const syncResult = await syncExternalEventsToCache(events);

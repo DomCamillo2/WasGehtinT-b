@@ -79,6 +79,9 @@ Externe Events sind jetzt sauber vom Frontend getrennt:
 - Frontend liest nur aus Supabase (`v_external_events_public`).
 - Background-Worker scraped Quellen und schreibt direkt in `external_events_cache`.
 - Der Worker laeuft in GitHub Actions (`.github/workflows/external-events-refresh.yml`).
+- Das ist die aktive Source-of-Truth fuer Scheduling in Produktion.
+- `vercel.json` enthaelt bewusst keine aktiven Cronjobs.
+- `scripts/setup-cronjob-org.mjs` ist nur ein optionaler Fallback und standardmaessig nicht aktiv.
 
 Benötigte GitHub Repository Secrets:
 

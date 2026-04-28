@@ -6,6 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 
 const INSTAGRAM_SOURCE = "instagram-scraper";
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -73,6 +74,17 @@ function buildCacheRows(venue: string, events: Awaited<ReturnType<typeof scrapeI
 export async function GET(request: Request) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  if (IS_PRODUCTION && process.env.ALLOW_TEST_SCRAPE_IN_PROD !== "true") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "disabled_in_production",
+        message: "Test scrape endpoint is disabled in production by default.",
+      },
+      { status: 403 },
+    );
   }
 
   const { searchParams } = new URL(request.url);
