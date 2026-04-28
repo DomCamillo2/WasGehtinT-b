@@ -9,6 +9,10 @@ import {
   fetchEpplehausEvents,
   fetchTuebingenFleaMarketEvents,
   fetchTuebingenMarketEvents,
+  fetchUniCalendarEvents,
+  fetchSudhausEvents,
+  fetchClubVoltaireEvents,
+  fetchDaiEvents,
 } from "@/lib/scrapers/official-venues";
 
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
@@ -271,6 +275,34 @@ function normalizeFsrvvTitle(raw: string): string {
   return `Clubhausfest: ${clean}`;
 }
 
+function normalizeForDedupe(value: string | null | undefined): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function buildEventSignature(event: PartyCard): string {
+  const startsAt = new Date(event.starts_at);
+  const dayKey = Number.isNaN(startsAt.getTime())
+    ? "unknown-day"
+    : startsAt.toISOString().slice(0, 10);
+
+  const location = normalizeForDedupe(event.location_name ?? "");
+  const title = normalizeForDedupe(event.title ?? "");
+  return `${dayKey}|${location}|${title}`;
+}
+
+function scoreEventForDedupe(event: PartyCard): number {
+  let score = 0;
+  if (Number.isFinite(event.public_lat) && Number.isFinite(event.public_lng)) score += 2;
+  if (typeof event.external_link === "string" && event.external_link.trim().length > 0) score += 1;
+  if (typeof event.description === "string" && event.description.trim().length > 24) score += 1;
+  return score;
+}
+
 async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
   try {
     const response = await fetch(FSRVV_CLUBHAUS_URL, {
@@ -390,6 +422,10 @@ const getCachedExternalEvents = unstable_cache(
       epplehausEvents,
       tuebingenMarketEvents,
       tuebingenFleaMarketEvents,
+      uniCalendarEvents,
+      sudhausEvents,
+      clubVoltaireEvents,
+      daiEvents,
     ] = await Promise.all([
       fetchKuckuckEvents(),
       fetchFsrvvClubhausEvents(),
@@ -398,6 +434,10 @@ const getCachedExternalEvents = unstable_cache(
       fetchEpplehausEvents(),
       fetchTuebingenMarketEvents(),
       fetchTuebingenFleaMarketEvents(),
+      fetchUniCalendarEvents(),
+      fetchSudhausEvents(),
+      fetchClubVoltaireEvents(),
+      fetchDaiEvents(),
     ]);
 
     const allEvents = [
@@ -408,6 +448,10 @@ const getCachedExternalEvents = unstable_cache(
       ...epplehausEvents,
       ...tuebingenMarketEvents,
       ...tuebingenFleaMarketEvents,
+      ...uniCalendarEvents,
+      ...sudhausEvents,
+      ...clubVoltaireEvents,
+      ...daiEvents,
     ]
       .filter((event) => !isCancelledOrOutageEvent(event))
       .filter((event) => {
@@ -416,13 +460,25 @@ const getCachedExternalEvents = unstable_cache(
       });
 
     const uniqueMap = new Map<string, PartyCard>();
+    const signatureMap = new Map<string, PartyCard>();
     for (const event of allEvents) {
       if (!uniqueMap.has(event.id)) {
         uniqueMap.set(event.id, event);
+      } else {
+        const existingById = uniqueMap.get(event.id)!;
+        if (scoreEventForDedupe(event) > scoreEventForDedupe(existingById)) {
+          uniqueMap.set(event.id, event);
+        }
+      }
+
+      const signature = buildEventSignature(event);
+      const existingBySignature = signatureMap.get(signature);
+      if (!existingBySignature || scoreEventForDedupe(event) > scoreEventForDedupe(existingBySignature)) {
+        signatureMap.set(signature, event);
       }
     }
 
-    return Array.from(uniqueMap.values()).sort(
+    return Array.from(signatureMap.values()).sort(
       (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
     );
   },

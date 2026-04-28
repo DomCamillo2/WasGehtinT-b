@@ -18,6 +18,8 @@ function inferExternalCategoryFields(input: {
   title?: string | null;
   description?: string | null;
   vibe_label?: string | null;
+  location_name?: string | null;
+  starts_at?: string | null;
   category_slug?: string | null;
   category_label?: string | null;
   event_scope?: "nightlife" | "daytime" | "mixed" | null;
@@ -30,7 +32,7 @@ function inferExternalCategoryFields(input: {
     };
   }
 
-  const haystack = [input.title, input.description, input.vibe_label]
+  const haystack = [input.title, input.description, input.vibe_label, input.location_name]
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     .join(" ")
     .toLowerCase();
@@ -56,6 +58,95 @@ function inferExternalCategoryFields(input: {
     return {
       category_slug: "market",
       category_label: "Markt",
+      event_scope: "daytime" as const,
+    };
+  }
+
+  const isEpplehaus =
+    haystack.includes("epplehaus") ||
+    haystack.includes("karlstraße 13") ||
+    haystack.includes("karlstrasse 13");
+  if (isEpplehaus) {
+    const daytimeCulturePattern =
+      /\b(workshop|skillshare|film|kino|doku|vernissage|ausstellung|theater|poetry|zine|flohmarkt|brunch|cafe|café|kaffee|kuefa|küfa|polit|diskussion|gespräch|gesprach|vortrag|lesung|infoabend|kundgebung|plenum)\b/i;
+    const nightlifePattern =
+      /\b(konzert|concert|party|rave|dj|club|aftershow|dance|tanzen|live(\s+musik|\s+show)?|punk|ska|metal|hip[\s-]?hop|techno)\b/i;
+
+    if (daytimeCulturePattern.test(haystack)) {
+      return {
+        category_slug: "culture",
+        category_label: "Kultur",
+        event_scope: "daytime" as const,
+      };
+    }
+
+    if (nightlifePattern.test(haystack)) {
+      return {
+        category_slug: "concert",
+        category_label: "Konzert",
+        event_scope: "nightlife" as const,
+      };
+    }
+
+    const startsAt = input.starts_at ? new Date(input.starts_at) : null;
+    const startHour = startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt.getUTCHours() : null;
+    if (startHour !== null && startHour < 18) {
+      return {
+        category_slug: "community",
+        category_label: "Community",
+        event_scope: "daytime" as const,
+      };
+    }
+  }
+
+  const daytimeKnowledgePattern =
+    /\b(vortrag|workshop|diskussion|diskurs|talk|lesung|seminar|treffen|plenum|infoabend|kultur|ausstellung|film|kino|markt|flohmarkt)\b/i;
+  const nightlifePattern =
+    /\b(club|party|rave|dj|aftershow|concert|kiez|nacht|night|techno|drum\s*&?\s*bass|house|reggaeton)\b/i;
+  const universityPattern =
+    /\b(uni|universit[aä]t|hochschule|fachschaft|hochschulgruppe|campus|studierenden|student)\b/i;
+  const sudhausCulturePattern =
+    /\b(sudhaus|kultur|konzert|theater|b[uü]hne|literatur|kabarett)\b/i;
+
+  const startsAt = input.starts_at ? new Date(input.starts_at) : null;
+  const startHourUtc = startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt.getUTCHours() : null;
+
+  if (universityPattern.test(haystack) && daytimeKnowledgePattern.test(haystack)) {
+    return {
+      category_slug: "workshop",
+      category_label: "Workshop",
+      event_scope: "daytime" as const,
+    };
+  }
+
+  if (sudhausCulturePattern.test(haystack) && !nightlifePattern.test(haystack)) {
+    return {
+      category_slug: "culture",
+      category_label: "Kultur",
+      event_scope: "daytime" as const,
+    };
+  }
+
+  if (nightlifePattern.test(haystack)) {
+    return {
+      category_slug: "party",
+      category_label: "Party",
+      event_scope: "nightlife" as const,
+    };
+  }
+
+  if (daytimeKnowledgePattern.test(haystack)) {
+    return {
+      category_slug: "culture",
+      category_label: "Kultur",
+      event_scope: "daytime" as const,
+    };
+  }
+
+  if (startHourUtc !== null && startHourUtc < 18) {
+    return {
+      category_slug: "community",
+      category_label: "Community",
       event_scope: "daytime" as const,
     };
   }

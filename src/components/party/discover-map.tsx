@@ -10,6 +10,7 @@ import { DiscoverEvent } from "@/services/discover/discover-view-model";
 type Props = {
   parties: DiscoverEvent[];
 };
+type MapTheme = "light" | "dark";
 
 const KUCKUCK_RED = "#b00000";
 const CLUBHAUS_BLUE = "#1d4ed8";
@@ -24,6 +25,12 @@ const VENUE_COORDS = {
   schlachthaus: { lat: 48.5255, lng: 9.0515 },
   frauHolle: { lat: 48.5203906, lng: 9.051808 },
   schwarzesSchaf: { lat: 48.5212656, lng: 9.0574061 },
+  epplehaus: { lat: 48.522317, lng: 9.048936 },
+  blauerTurm: { lat: 48.5178, lng: 9.0601 },
+  top10: { lat: 48.5145, lng: 9.0835 },
+  sudhaus: { lat: 48.5065, lng: 9.0625 },
+  uhlandstrasse: { lat: 48.52162, lng: 9.05496 },
+  marktplatz: { lat: 48.52156, lng: 9.05774 },
 } as const;
 
 const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = [
@@ -43,7 +50,21 @@ const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = 
   },
 ];
 
-function getVenueKey(party: DiscoverEvent): "kuckuck" | "clubhaus" | "schlachthaus" | "frau-holle" | "schwarzes-schaf" | null {
+function getVenueKey(
+  party: DiscoverEvent,
+):
+  | "kuckuck"
+  | "clubhaus"
+  | "schlachthaus"
+  | "frau-holle"
+  | "schwarzes-schaf"
+  | "epplehaus"
+  | "blauer-turm"
+  | "top10"
+  | "sudhaus"
+  | "uhlandstrasse"
+  | "marktplatz"
+  | null {
   const location = `${party.locationName ?? ""} ${party.vibeLabel} ${party.title}`.toLowerCase();
 
   if (location.includes("kuckuck")) return "kuckuck";
@@ -54,6 +75,16 @@ function getVenueKey(party: DiscoverEvent): "kuckuck" | "clubhaus" | "schlachtha
   }
   if (location.includes("schwarzes schaf") || location.includes("schwarzesschaf") || location.includes("schaf")) {
     return "schwarzes-schaf";
+  }
+  if (location.includes("epplehaus")) return "epplehaus";
+  if (location.includes("blauer turm")) return "blauer-turm";
+  if (location.includes("top10")) return "top10";
+  if (location.includes("sudhaus")) return "sudhaus";
+  if (location.includes("uhlandstraße") || location.includes("uhlandstrasse") || location.includes("flohmarkt")) {
+    return "uhlandstrasse";
+  }
+  if (location.includes("marktplatz") || location.includes("rathaus") || location.includes("markt")) {
+    return "marktplatz";
   }
 
   return null;
@@ -70,6 +101,12 @@ function resolvePartyCoordinates(party: DiscoverEvent): { lat: number; lng: numb
   if (venueKey === "schlachthaus") return VENUE_COORDS.schlachthaus;
   if (venueKey === "frau-holle") return VENUE_COORDS.frauHolle;
   if (venueKey === "schwarzes-schaf") return VENUE_COORDS.schwarzesSchaf;
+  if (venueKey === "epplehaus") return VENUE_COORDS.epplehaus;
+  if (venueKey === "blauer-turm") return VENUE_COORDS.blauerTurm;
+  if (venueKey === "top10") return VENUE_COORDS.top10;
+  if (venueKey === "sudhaus") return VENUE_COORDS.sudhaus;
+  if (venueKey === "uhlandstrasse") return VENUE_COORDS.uhlandstrasse;
+  if (venueKey === "marktplatz") return VENUE_COORDS.marktplatz;
 
   return null;
 }
@@ -123,6 +160,24 @@ function resolveMarkerTheme(party: DiscoverEvent) {
 
   if (location.includes("schwarzes schaf") || location.includes("schwarzesschaf") || location.includes("schaf")) {
     return { background: SCHAF_CYAN, foreground: "#ffffff", glyph: "SS", venue: "Schwarzes Schaf" };
+  }
+  if (location.includes("epplehaus")) {
+    return { background: "#15803d", foreground: "#ffffff", glyph: "E", venue: "Epplehaus" };
+  }
+  if (location.includes("blauer turm")) {
+    return { background: "#1e40af", foreground: "#ffffff", glyph: "BT", venue: "Blauer Turm" };
+  }
+  if (location.includes("top10")) {
+    return { background: "#7c3aed", foreground: "#ffffff", glyph: "T10", venue: "Top10" };
+  }
+  if (location.includes("sudhaus")) {
+    return { background: "#334155", foreground: "#ffffff", glyph: "SH", venue: "Sudhaus" };
+  }
+  if (location.includes("uhlandstraße") || location.includes("uhlandstrasse") || location.includes("flohmarkt")) {
+    return { background: "#0f766e", foreground: "#ffffff", glyph: "FM", venue: "Flohmarkt" };
+  }
+  if (location.includes("marktplatz") || location.includes("rathaus") || location.includes("markt")) {
+    return { background: "#b45309", foreground: "#ffffff", glyph: "M", venue: "Markt" };
   }
 
   if (party.isExternal) {
@@ -192,10 +247,31 @@ export function DiscoverMap({ parties }: Props) {
     if (typeof window === "undefined") return false;
     return hasExternalServicesConsent();
   });
+  const [mapTheme, setMapTheme] = useState<MapTheme>(() => {
+    if (typeof document === "undefined") return "light";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  });
   const partiesWithCoords = useMemo(
     () => parties.filter((party) => resolvePartyCoordinates(party) !== null),
     [parties],
   );
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const root = document.documentElement;
+    const syncTheme = () => {
+      setMapTheme(root.classList.contains("dark") ? "dark" : "light");
+    };
+
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!canLoadMap || !mapRef.current || mapInstanceRef.current) {
@@ -216,7 +292,7 @@ export function DiscoverMap({ parties }: Props) {
 
       const map = new maplibre.Map({
         container: mapRef.current,
-        style: createBaseMapStyle(),
+        style: createBaseMapStyle(mapTheme),
         center: [9.0599431, 48.5413588],
         zoom: 12,
       });
@@ -238,7 +314,7 @@ export function DiscoverMap({ parties }: Props) {
       lastMarkerSignatureRef.current = "";
       setMapReady(false);
     };
-  }, [canLoadMap]);
+  }, [canLoadMap, mapTheme]);
 
   useEffect(() => {
     if (!canLoadMap || !mapReady || !mapInstanceRef.current || !maplibreRef.current) {

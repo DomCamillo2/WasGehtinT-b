@@ -4,18 +4,18 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
-import { CirclePlus, Compass, Flame, Inbox, MessageCircle, Sparkles, X } from "lucide-react";
+import { CirclePlus, Compass, Flame, MessageCircle, Sparkles, X } from "lucide-react";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
 import { createPartyAction, type CreatePartyActionState } from "@/app/actions/parties";
 
 const NAV = [
   { href: "/discover", label: "Entdecken", icon: Compass },
   { href: "/plus", label: "Plus", icon: CirclePlus },
-  { href: "/requests", label: "Anfragen", icon: Inbox },
+  { href: "/discover?liked=1", label: "Likes", icon: Flame },
   { href: "/chat", label: "Chat", icon: MessageCircle },
 ];
 
-const COMING_SOON_HREFS = new Set(["/requests", "/chat"]);
+const COMING_SOON_HREFS = new Set(["/chat"]);
 
 const initialHangoutState: HangoutActionState = {};
 const initialPartyState: CreatePartyActionState = {

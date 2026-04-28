@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; date?: string; type?: string; weeks?: string }>;
+  searchParams: Promise<{ view?: string; date?: string; type?: string; weeks?: string; liked?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const {

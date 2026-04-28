@@ -15,6 +15,10 @@ const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
 const TUEBINGEN_MARKETS_URL = "https://www.tuebingen.de/3393.html";
 const TUEBINGEN_FLEA_MARKETS_URL = "https://www.tuebingen.de/3392.html";
+const UNI_EVENTS_URL = "https://uni-tuebingen.de/universitaet/aktuelles-und-publikationen/veranstaltungskalender/";
+const SUDHAUS_URL = "https://www.sudhaus-tuebingen.de/programm/alle.html";
+const CLUB_VOLTAIRE_URL = "https://club-voltaire.net/kalender/";
+const DAI_URL = "https://www.dai-tuebingen.de/veranstaltungen/";
 
 /**
  * Generate a stable ID for an external event
@@ -148,6 +152,134 @@ function sanitizeMarketTitle(raw: string): string {
     .replace(/^\d{1,2}\.\s*(?:und|bis)\s*\d{1,2}\.\s*[A-Za-zÄÖÜäöüß]+\s*\d{4}:\s*/i, "")
     .replace(/^\d{1,2}\.\s*[A-Za-zÄÖÜäöüß]+\s*\d{4}:\s*/i, "")
     .trim();
+}
+
+function parseDateTimeFromText(text: string): Date | null {
+  const normalized = String(text ?? "").replace(/\u00a0/g, " ").trim();
+  const fullMatch = normalized.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[^\d]+(\d{1,2})[:.](\d{2}))?/);
+  if (fullMatch) {
+    const [, dayRaw, monthRaw, yearRaw, hourRaw, minuteRaw] = fullMatch;
+    const day = Number(dayRaw);
+    const month = Number(monthRaw);
+    const year = Number(yearRaw);
+    const hour = Number(hourRaw ?? "19");
+    const minute = Number(minuteRaw ?? "00");
+    const date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const partialMatch = normalized.match(/(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?/);
+  if (!partialMatch) {
+    return null;
+  }
+
+  const day = Number(partialMatch[1]);
+  const month = Number(partialMatch[2]);
+  const yearRaw = partialMatch[3];
+  const now = new Date();
+  const year = yearRaw ? (yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw)) : now.getUTCFullYear();
+  let date = new Date(Date.UTC(year, month - 1, day, 19, 0, 0));
+  if (!yearRaw && date.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
+    date = new Date(Date.UTC(year + 1, month - 1, day, 19, 0, 0));
+  }
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+async function fetchGenericCalendarEvents(config: {
+  source: string;
+  url: string;
+  vibeLabel: string;
+  locationName: string;
+  categoryLabel: string;
+  categorySlug: string;
+  scope?: "daytime" | "nightlife" | "mixed";
+  selectors?: string[];
+}): Promise<PartyCard[]> {
+  try {
+    const response = await fetch(config.url, {
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`${config.source} fetch failed with status:`, response.status);
+      return [];
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const selectors = config.selectors ?? [
+      "article",
+      ".event",
+      ".veranstaltung",
+      ".calendar-entry",
+      "li",
+    ];
+
+    const candidates = new Set<string>();
+    for (const selector of selectors) {
+      $(selector)
+        .toArray()
+        .forEach((node) => {
+          const text = $(node).text().replace(/\s+/g, " ").trim();
+          if (text.length >= 24 && text.length <= 400) {
+            candidates.add(text);
+          }
+        });
+    }
+
+    const now = Date.now();
+    const events: PartyCard[] = [];
+    const seenIds = new Set<string>();
+
+    for (const candidate of Array.from(candidates).slice(0, 120)) {
+      const startsAtDate = parseDateTimeFromText(candidate);
+      if (!startsAtDate) continue;
+      if (startsAtDate.getTime() < now - 24 * 60 * 60 * 1000) continue;
+
+      const title = candidate
+        .replace(/^\d{1,2}\.\d{1,2}\.(\d{2,4})?\s*[|:-]?\s*/g, "")
+        .replace(/\b\d{1,2}[:.]\d{2}\b/g, "")
+        .trim()
+        .slice(0, 120);
+      if (!title || title.length < 4) continue;
+
+      const eventId = generateEventId(config.source, startsAtDate, title);
+      if (seenIds.has(eventId)) continue;
+      seenIds.add(eventId);
+
+      events.push({
+        id: eventId,
+        title,
+        description: `${config.locationName} – ${config.categoryLabel}`,
+        starts_at: startsAtDate.toISOString(),
+        ends_at: new Date(startsAtDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+        max_guests: 0,
+        contribution_cents: 0,
+        public_lat: null,
+        public_lng: null,
+        is_external: true,
+        external_link: config.url,
+        vibe_label: config.vibeLabel,
+        spots_left: 0,
+        location_name: config.locationName,
+        category_slug: config.categorySlug,
+        category_label: config.categoryLabel,
+        event_scope: config.scope ?? "daytime",
+        is_all_day: false,
+        audience_label: "Alle",
+        price_info: null,
+      } as PartyCard);
+    }
+
+    return events.slice(0, 40);
+  } catch (error) {
+    console.error(`Error fetching ${config.source} events:`, error);
+    return [];
+  }
 }
 
 const SCHLACHTHAUS_EVENT_PATTERN =
@@ -557,4 +689,52 @@ export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
     console.error("Error fetching Tuebingen flea market events:", error);
     return [];
   }
+}
+
+export async function fetchUniCalendarEvents(): Promise<PartyCard[]> {
+  return fetchGenericCalendarEvents({
+    source: "uni-tuebingen",
+    url: UNI_EVENTS_URL,
+    vibeLabel: "Uni Tübingen",
+    locationName: "Universität Tübingen",
+    categoryLabel: "Workshop",
+    categorySlug: "workshop",
+    scope: "daytime",
+  });
+}
+
+export async function fetchSudhausEvents(): Promise<PartyCard[]> {
+  return fetchGenericCalendarEvents({
+    source: "sudhaus",
+    url: SUDHAUS_URL,
+    vibeLabel: "Sudhaus",
+    locationName: "Sudhaus Tübingen",
+    categoryLabel: "Kultur",
+    categorySlug: "culture",
+    scope: "daytime",
+  });
+}
+
+export async function fetchClubVoltaireEvents(): Promise<PartyCard[]> {
+  return fetchGenericCalendarEvents({
+    source: "club-voltaire",
+    url: CLUB_VOLTAIRE_URL,
+    vibeLabel: "Club Voltaire",
+    locationName: "Club Voltaire Tübingen",
+    categoryLabel: "Kultur",
+    categorySlug: "culture",
+    scope: "daytime",
+  });
+}
+
+export async function fetchDaiEvents(): Promise<PartyCard[]> {
+  return fetchGenericCalendarEvents({
+    source: "dai",
+    url: DAI_URL,
+    vibeLabel: "d.a.i.",
+    locationName: "d.a.i. Tübingen",
+    categoryLabel: "Kultur",
+    categorySlug: "culture",
+    scope: "daytime",
+  });
 }

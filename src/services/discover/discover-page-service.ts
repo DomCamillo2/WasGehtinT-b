@@ -136,6 +136,7 @@ type DiscoverSearchParams = {
   date?: string;
   type?: string;
   weeks?: string;
+  liked?: string;
 };
 
 export type DiscoverPageData = {
@@ -201,6 +202,7 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
   ]);
 
   const { dbParties, externalParties, communityHangouts } = publicData;
+  const likedOnly = searchParams.liked === "1";
 
   const parties = [...dbParties, ...communityHangouts, ...externalParties];
   const canLoadMore = weeks < MAX_WEEKS;
@@ -241,7 +243,12 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
     upvoted_by_me: upvotedByMe.has(party.id),
   }));
 
-  const discoverEvents = partiesWithUpvotes.map(mapPartyCardToDiscoverEvent);
+  const scopedParties =
+    likedOnly && user
+      ? partiesWithUpvotes.filter((party) => party.upvoted_by_me === true)
+      : partiesWithUpvotes;
+
+  const discoverEvents = scopedParties.map(mapPartyCardToDiscoverEvent);
 
   const avatarFallback = String(user?.email?.[0] ?? "G").toUpperCase();
   const initialView =

@@ -1,6 +1,18 @@
 import type { StyleSpecification } from "maplibre-gl";
 
-export function createBaseMapStyle(): StyleSpecification {
+type MapTheme = "light" | "dark";
+
+export function createBaseMapStyle(theme: MapTheme = "light"): StyleSpecification {
+  const tiles =
+    theme === "dark"
+      ? ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"]
+      : ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
+
+  const attribution =
+    theme === "dark"
+      ? "&copy; OpenStreetMap Contributors &copy; CARTO"
+      : "&copy; OpenStreetMap Contributors";
+
   return {
     version: 8,
     projection: {
@@ -9,9 +21,9 @@ export function createBaseMapStyle(): StyleSpecification {
     sources: {
       openstreetmap: {
         type: "raster",
-        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        tiles,
         tileSize: 256,
-        attribution: "&copy; OpenStreetMap Contributors",
+        attribution,
       },
     },
     layers: [

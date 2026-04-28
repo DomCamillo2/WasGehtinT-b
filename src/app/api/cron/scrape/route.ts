@@ -11,11 +11,16 @@ export const runtime = "nodejs";
 
 const DEFAULT_VENUES = [
   "frau_holle_tuebingen",
+  "kuckuck_bar_tuebingen",
+  "queerspaceparties",
+  "luscht.tuebingen",
   "zahnis_tuebingen",
   "schwarzes_schaf_tuebingen",
   "fsk.tuebingen",
   "fachschaftmedizintuebingen",
   "fachschaftmewi",
+  "schoener_wohnen_tuebingen",
+  "schoener_leben_tuebingen",
 ];
 
 const CONFIGURED_VENUES =
@@ -36,18 +41,25 @@ const SCRAPE_COOLDOWN_MINUTES = (() => {
   return Math.floor(parsed);
 })();
 const MAX_VENUES_PER_RUN = (() => {
-  const parsed = Number(process.env.INSTAGRAM_MAX_VENUES_PER_RUN ?? String(VENUES.length));
+  const parsed = Number(process.env.INSTAGRAM_MAX_VENUES_PER_RUN ?? "2");
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return Math.max(VENUES.length, 1);
+    return 2;
   }
-  return Math.min(Math.floor(parsed), Math.max(VENUES.length, 1));
+  return Math.min(Math.floor(parsed), Math.max(VENUES.length, 1), 4);
 })();
 const MAX_POSTS_PER_VENUE = (() => {
-  const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "3");
+  const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "2");
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 3;
+    return 2;
   }
   return Math.min(Math.floor(parsed), 3);
+})();
+const MAX_GEMINI_CAPTIONS_PER_RUN = (() => {
+  const parsed = Number(process.env.INSTAGRAM_MAX_GEMINI_CAPTIONS_PER_RUN ?? "4");
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 4;
+  }
+  return Math.min(Math.floor(parsed), 12);
 })();
 const EVENT_HINT_REGEX = /(\d{1,2}\.\d{1,2}\.|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}:\d{2}\b|\buhr\b|\beinlass\b|\bstart\b|\bline\s*up\b|\btickets?\b|\bheute\b|\bmorgen\b|\bfreitag\b|\bsamstag\b|\bsonntag\b|\bmo\b|\bdi\b|\bmi\b|\bdo\b|\bfr\b|\bsa\b|\bso\b)/i;
 const INTERNAL_ADMIN_REGEX = /\bf[\s\-]?sitzung\b|\bfachschaftssitzung\b|\btagesordnung\b|\bto[\s\-]?punkt\b|\babstimmung\b|\bproto(?:koll)?\b|\bwahl(?:en)?\b|\bkandidatur\b|\bamtszeit\b/i;
@@ -420,6 +432,8 @@ async function handleCronScrape(request: Request) {
   let postErrors = 0;
   let parseFailures = 0;
   let skippedByCaptionHeuristic = 0;
+  let skippedByGeminiBudget = 0;
+  let geminiCaptionsUsed = 0;
   const venueErrors: string[] = [];
   const runVenues = pickVenuesForRun(VENUES, MAX_VENUES_PER_RUN);
 
@@ -458,14 +472,24 @@ async function handleCronScrape(request: Request) {
       // Single Gemini call for all new captions in this venue.
       let insertedForVenue = 0;
       if (newPosts.length > 0) {
-        const captions = newPosts.map((p) => p.caption);
+        const remainingGeminiBudget = Math.max(0, MAX_GEMINI_CAPTIONS_PER_RUN - geminiCaptionsUsed);
+        const postsForGemini = remainingGeminiBudget > 0
+          ? newPosts.slice(0, remainingGeminiBudget)
+          : [];
+        const postsForFallbackOnly = newPosts.slice(postsForGemini.length);
+        skippedByGeminiBudget += postsForFallbackOnly.length;
+
+        const captions = postsForGemini.map((p) => p.caption);
         let allParsed: Awaited<ReturnType<typeof parseEventsFromCaptions>> = [];
-        try {
-          allParsed = await parseEventsFromCaptions(captions);
-        } catch (error) {
-          parseFailures += 1;
-          const message = error instanceof Error ? error.message : String(error);
-          console.warn(`[cron/scrape] ${venue}: caption parse failed: ${message}`);
+        if (captions.length > 0) {
+          try {
+            allParsed = await parseEventsFromCaptions(captions);
+            geminiCaptionsUsed += captions.length;
+          } catch (error) {
+            parseFailures += 1;
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn(`[cron/scrape] ${venue}: caption parse failed: ${message}`);
+          }
         }
 
         // Fallback per-post if Gemini returned nothing.
@@ -473,15 +497,19 @@ async function handleCronScrape(request: Request) {
         if (allParsed.length > 0) {
           for (const event of allParsed) {
             // Best-effort: attribute event to the post whose caption contains the event date.
-            const matchedPost = newPosts.find((p) => p.caption.includes(event.date.slice(5).replace("-", ".")))
-              ?? newPosts[0];
+            const matchedPost = postsForGemini.find((p) => p.caption.includes(event.date.slice(5).replace("-", ".")))
+              ?? postsForGemini[0];
             if (matchedPost) {
               eventsToInsert.push({ post: matchedPost, event });
             }
           }
-        } else {
-          for (const post of newPosts) {
-            for (const event of parseEventsFromCaptionFallback(post.caption, venue)) {
+        }
+
+        if (allParsed.length === 0 || postsForFallbackOnly.length > 0) {
+          const fallbackPosts = allParsed.length === 0 ? newPosts : postsForFallbackOnly;
+          for (const post of fallbackPosts) {
+            const fallbackEvents = parseEventsFromCaptionFallback(post.caption, venue);
+            for (const event of fallbackEvents) {
               eventsToInsert.push({ post, event });
             }
           }
@@ -533,6 +561,9 @@ async function handleCronScrape(request: Request) {
     postErrors,
     parseFailures,
     skippedByCaptionHeuristic,
+    skippedByGeminiBudget,
+    geminiCaptionsUsed,
+    maxGeminiCaptionsPerRun: MAX_GEMINI_CAPTIONS_PER_RUN,
     venueErrors,
   });
 }

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -103,6 +103,16 @@ function getFallbackVenueKey(party: DiscoverEvent) {
   ) {
     return "schwarzes-schaf";
   }
+  if (location.includes("epplehaus")) return "epplehaus";
+  if (location.includes("blauer turm")) return "blauer-turm";
+  if (location.includes("top10")) return "top10";
+  if (location.includes("sudhaus")) return "sudhaus";
+  if (location.includes("uhlandstraße") || location.includes("uhlandstrasse") || location.includes("flohmarkt")) {
+    return "uhlandstrasse";
+  }
+  if (location.includes("marktplatz") || location.includes("rathaus") || location.includes("markt")) {
+    return "marktplatz";
+  }
 
   return null;
 }
@@ -167,6 +177,7 @@ export function DiscoverPremium({
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(initialUpvoteCounts);
   const [upvotedPartyIds, setUpvotedPartyIds] = useState<string[]>(initialUpvotedIds);
   const [visibleCount, setVisibleCount] = useState(LOAD_MORE_STEP);
+  const [isLoadingMoreWeeks, startLoadingMoreWeeks] = useTransition();
 
   useEffect(() => {
     try {
@@ -1043,11 +1054,16 @@ export function DiscoverPremium({
                 ) : (
                   <button
                     type="button"
-                    onClick={() => router.push(buildLoadMoreHref())}
+                    onClick={() => {
+                      startLoadingMoreWeeks(() => {
+                        router.replace(buildLoadMoreHref(), { scroll: false });
+                      });
+                    }}
+                    disabled={isLoadingMoreWeeks}
                     className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-full px-5 text-sm font-semibold text-white sm:h-10 sm:w-auto sm:px-4 sm:text-xs"
                     style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
                   >
-                    Mehr laden
+                    {isLoadingMoreWeeks ? "Lädt..." : "Mehr laden"}
                   </button>
                 )}
               </div>
