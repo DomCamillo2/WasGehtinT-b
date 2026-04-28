@@ -535,6 +535,51 @@ export function DiscoverPremium({
 
   return (
     <div className="relative space-y-4 pb-32 lg:space-y-6 lg:pb-20">
+      <div className="sticky top-2 z-20 flex items-center justify-end gap-2 px-1">
+        <ThemeToggle className="h-9 w-9 border-[color:var(--border-soft)] bg-[color:var(--surface-soft)] shadow-none" />
+        <button
+          type="button"
+          onClick={() => setShowFilterSheet(true)}
+          className="grid h-9 w-9 place-items-center rounded-2xl border"
+          style={{
+            borderColor: "var(--border-soft)",
+            backgroundColor: "var(--surface-soft)",
+            color: "var(--muted-foreground)",
+          }}
+          aria-label="Filter öffnen"
+        >
+          <Funnel size={15} />
+        </button>
+
+        {isAuthenticated ? (
+          <Link
+            href="/profile"
+            className="grid h-9 w-9 place-items-center rounded-2xl text-xs font-bold text-white"
+            style={{
+              background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
+            }}
+            aria-label="Profil öffnen"
+          >
+            {avatarFallback}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setAuthSheetReason("Profile und persoenliche Features werden spaeter freigeschaltet.");
+              setShowAuthSheet(true);
+            }}
+            className="grid h-9 w-9 place-items-center rounded-2xl text-xs font-bold text-white"
+            style={{
+              background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
+            }}
+            aria-label="Profil-Hinweis öffnen"
+          >
+            {avatarFallback}
+          </button>
+        )}
+      </div>
+
       <header className="surface-card relative overflow-hidden rounded-[28px] px-4 py-4 lg:px-7 lg:py-6">
         <div
           aria-hidden="true"
@@ -554,7 +599,7 @@ export function DiscoverPremium({
           }}
         />
         <div className="relative">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+          <div className="flex flex-col gap-3 lg:gap-8">
             <div className="min-w-0 max-w-[18rem] sm:max-w-[24rem] lg:max-w-[34rem]">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--accent-strong)]">
                 {"WasGehtT\u00fcb"}
@@ -617,50 +662,6 @@ export function DiscoverPremium({
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 lg:justify-end lg:self-start">
-              <ThemeToggle className="h-10 w-10 shadow-[0_12px_28px_-22px_var(--shadow-color)]" />
-              <button
-                type="button"
-                onClick={() => setShowFilterSheet(true)}
-                className="grid h-10 w-10 place-items-center rounded-2xl border shadow-[0_10px_25px_-18px_var(--shadow-color)]"
-                style={{
-                  borderColor: "var(--border-soft)",
-                  backgroundColor: "var(--surface-soft)",
-                  color: "var(--foreground)",
-                }}
-                aria-label="Filter öffnen"
-              >
-                <Funnel size={16} />
-              </button>
-
-              {isAuthenticated ? (
-                <Link
-                  href="/profile"
-                  className="grid h-10 w-10 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
-                  style={{
-                    background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
-                  }}
-                  aria-label="Profil öffnen"
-                >
-                  {avatarFallback}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthSheetReason("Profile und persoenliche Features werden spaeter freigeschaltet.");
-                    setShowAuthSheet(true);
-                  }}
-                  className="grid h-10 w-10 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
-                  style={{
-                    background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
-                  }}
-                  aria-label="Profil-Hinweis öffnen"
-                >
-                  {avatarFallback}
-                </button>
-              )}
-            </div>
           </div>
 
         </div>
