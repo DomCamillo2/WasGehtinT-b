@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
   CalendarDays,
@@ -142,6 +142,7 @@ export function DiscoverPremium({
   initialCalendarDate,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const { showToast } = useToast();
   const [filter, setFilter] = useState<FilterKey>(initialFilter);
   const [view, setView] = useState<ViewKey>(initialView);
@@ -226,6 +227,19 @@ export function DiscoverPremium({
       setCalendarMonthDate(todayKey);
     }
   }, [calendarMonthDate, selectedCalendarDate, todayKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || pathname !== "/discover") {
+      return;
+    }
+
+    const nextHref = buildDiscoverHref();
+    const currentHref = `${window.location.pathname}${window.location.search}`;
+
+    if (currentHref !== nextHref) {
+      router.replace(nextHref, { scroll: false });
+    }
+  }, [currentWeeks, filter, pathname, router, selectedCalendarDate, view]);
 
   const sortedParties = useMemo(() => {
     return [...parties].sort((left, right) => {
@@ -413,9 +427,8 @@ export function DiscoverPremium({
     { key: "map" as const, label: "Karte", icon: MapIcon },
   ];
 
-  function buildLoadMoreHref() {
+  function buildDiscoverHref(targetWeeks = currentWeeks) {
     const params = new URLSearchParams();
-    const nextWeeks = Math.min(24, currentWeeks + 4);
 
     if (view !== "list") {
       params.set("view", view);
@@ -429,9 +442,14 @@ export function DiscoverPremium({
       params.set("date", selectedCalendarDate);
     }
 
-    params.set("weeks", String(nextWeeks));
+    params.set("weeks", String(targetWeeks));
 
     return `/discover?${params.toString()}`;
+  }
+
+  function buildLoadMoreHref() {
+    const nextWeeks = Math.min(24, currentWeeks + 4);
+    return buildDiscoverHref(nextWeeks);
   }
 
   function resetToAllView() {
@@ -750,9 +768,24 @@ export function DiscoverPremium({
             }}
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full" style={{ backgroundColor: "var(--nav-border)" }} />
-            <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
-              Profilfunktionen folgen spaeter
-            </h2>
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
+                Profilfunktionen folgen spaeter
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowAuthSheet(false)}
+                className="grid h-9 w-9 place-items-center rounded-full border"
+                style={{
+                  borderColor: "var(--border-soft)",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--muted-foreground)",
+                }}
+                aria-label="Hinweis schließen"
+              >
+                <X size={16} />
+              </button>
+            </div>
             <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
               {authSheetReason}
             </p>

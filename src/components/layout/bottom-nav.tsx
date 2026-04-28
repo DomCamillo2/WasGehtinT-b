@@ -32,6 +32,7 @@ export function BottomNav() {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isFooterVisible, setIsFooterVisible] = useState(false);
   const [submitNotice, setSubmitNotice] = useState<string | null>(null);
+  const [comingSoonHref, setComingSoonHref] = useState<string | null>(null);
   const hangoutFormRef = useRef<HTMLFormElement>(null);
   const partyFormRef = useRef<HTMLFormElement>(null);
   const [hangoutState, hangoutFormAction, isHangoutPending] = useActionState(
@@ -102,6 +103,48 @@ export function BottomNav() {
 
   return (
     <>
+      {comingSoonHref ? (
+        <div
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]"
+          onClick={() => setComingSoonHref(null)}
+        >
+          <div
+            className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-[28px] border shadow-[0_-20px_60px_rgba(15,23,42,0.28)]"
+            style={{ borderColor: "var(--border-soft)", backgroundColor: "var(--surface-elevated)" }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="p-4">
+              <div className="mb-2 flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-semibold text-[color:var(--foreground)]">Kommt bald</h3>
+                  <p className="mt-1 text-sm text-[color:var(--muted-foreground)]">
+                    {comingSoonHref === "/chat"
+                      ? "Chat wird gerade vorbereitet. Bald kannst du direkt mit Veranstaltern und Leuten schreiben."
+                      : "Anfragen wird gerade vorbereitet. Bald kannst du z. B. Join-Requests und Zusagen hier verwalten."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setComingSoonHref(null)}
+                  className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border"
+                  style={{ borderColor: "var(--border-soft)", color: "var(--muted-foreground)" }}
+                  aria-label="Hinweis schließen"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setComingSoonHref(null)}
+                className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-xl bg-zinc-900 text-sm font-semibold text-white"
+              >
+                Verstanden
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isComposerOpen ? (
         <div
           className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]"
@@ -330,14 +373,15 @@ export function BottomNav() {
                       <span className="mt-1">{item.label}</span>
                     </button>
                   ) : isComingSoon ? (
-                    <span
-                      aria-disabled="true"
-                      className="flex h-14 w-full cursor-not-allowed flex-col items-center justify-center rounded-xl text-[11px] font-semibold text-zinc-400"
+                    <button
+                      type="button"
+                      onClick={() => setComingSoonHref(item.href)}
+                      className="flex h-14 w-full flex-col items-center justify-center rounded-xl text-[11px] font-semibold text-zinc-400 transition hover:text-zinc-500"
                     >
                       <Icon size={18} strokeWidth={2.2} />
                       <span className="mt-1">{item.label}</span>
-                      <span className="text-[9px] font-medium">Coming soon feature</span>
-                    </span>
+                      <span className="text-[9px] font-medium">Kommt bald</span>
+                    </button>
                   ) : (
                     <Link
                       href={item.href}

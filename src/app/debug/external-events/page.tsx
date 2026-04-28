@@ -58,7 +58,7 @@ export default async function ExternalEventsDebugPage({
           </Link>
           <Link
             className="rounded-lg bg-zinc-200 px-3 py-1.5 text-zinc-900"
-            href="/discover?view=list&type=all&date=all"
+            href={debugPageData.openDiscoverHref}
           >
             Open Discover
           </Link>

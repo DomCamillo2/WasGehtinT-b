@@ -16,6 +16,7 @@ export type ExternalEventsDebugPageData = {
   schlachthausCount: number;
   filteredCount: number;
   quickDate: string;
+  openDiscoverHref: string;
   availableVibes: string[];
   items: ExternalEventDebugItem[];
 };
@@ -77,13 +78,20 @@ export async function loadExternalEventsDebugPageData(params: {
     return true;
   });
 
+  const quickDate = items[0]?.berlinDateKey ?? "all";
+  const openDiscoverHref =
+    selectedDate !== "all"
+      ? `/discover?view=calendar&date=${selectedDate}`
+      : "/discover?view=list";
+
   return {
     selectedDate,
     selectedVibe,
     totalCount: items.length,
     schlachthausCount: items.filter((event) => event.vibeLabel.toLowerCase().includes("schlachthaus")).length,
     filteredCount: filteredItems.length,
-    quickDate: "2026-03-27",
+    quickDate,
+    openDiscoverHref,
     availableVibes,
     items: filteredItems,
   };
