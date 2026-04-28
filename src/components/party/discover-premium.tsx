@@ -233,13 +233,35 @@ export function DiscoverPremium({
       return;
     }
 
-    const nextHref = buildDiscoverHref();
+    const params = new URLSearchParams(window.location.search);
+
+    if (view !== "list") {
+      params.set("view", view);
+    } else {
+      params.delete("view");
+    }
+
+    if (filter !== "all") {
+      params.set("type", filter);
+    } else {
+      params.delete("type");
+    }
+
+    if (view === "calendar" && selectedCalendarDate) {
+      params.set("date", selectedCalendarDate);
+    } else {
+      params.delete("date");
+    }
+
+    // Important: preserve `weeks` from the current URL so "Mehr laden" navigation
+    // isn't immediately overwritten by this sync effect.
+    const nextHref = `/discover?${params.toString()}`;
     const currentHref = `${window.location.pathname}${window.location.search}`;
 
     if (currentHref !== nextHref) {
       router.replace(nextHref, { scroll: false });
     }
-  }, [currentWeeks, filter, pathname, router, selectedCalendarDate, view]);
+  }, [filter, pathname, router, selectedCalendarDate, view]);
 
   const sortedParties = useMemo(() => {
     return [...parties].sort((left, right) => {
@@ -997,7 +1019,7 @@ export function DiscoverPremium({
 
           {filteredParties.length && (hasMoreVisibleParties || canLoadMore) ? (
             <div className="surface-card rounded-[28px] p-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div>
                   <p className="font-semibold" style={{ color: "var(--foreground)" }}>
                     {hasMoreVisibleParties ? "Mehr Events anzeigen" : "Weitere Wochen ansehen"}
@@ -1012,7 +1034,7 @@ export function DiscoverPremium({
                   <button
                     type="button"
                     onClick={() => setVisibleCount((current) => current + LOAD_MORE_STEP)}
-                    className="inline-flex shrink-0 items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
+                    className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-full px-5 text-sm font-semibold text-white sm:h-10 sm:w-auto sm:px-4 sm:text-xs"
                     style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
                   >
                     Mehr laden
@@ -1021,7 +1043,7 @@ export function DiscoverPremium({
                   <button
                     type="button"
                     onClick={() => router.push(buildLoadMoreHref())}
-                    className="inline-flex shrink-0 items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
+                    className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-full px-5 text-sm font-semibold text-white sm:h-10 sm:w-auto sm:px-4 sm:text-xs"
                     style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent))" }}
                   >
                     Mehr laden
