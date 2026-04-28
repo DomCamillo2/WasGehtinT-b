@@ -13,6 +13,7 @@ import {
   fetchSudhausEvents,
   fetchClubVoltaireEvents,
   fetchDaiEvents,
+  fetchRedditEvents,
 } from "@/lib/scrapers/official-venues";
 
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
@@ -426,6 +427,7 @@ const getCachedExternalEvents = unstable_cache(
       sudhausEvents,
       clubVoltaireEvents,
       daiEvents,
+      redditEvents,
     ] = await Promise.all([
       fetchKuckuckEvents(),
       fetchFsrvvClubhausEvents(),
@@ -438,6 +440,7 @@ const getCachedExternalEvents = unstable_cache(
       fetchSudhausEvents(),
       fetchClubVoltaireEvents(),
       fetchDaiEvents(),
+      fetchRedditEvents(),
     ]);
 
     const allEvents = [
@@ -452,6 +455,7 @@ const getCachedExternalEvents = unstable_cache(
       ...sudhausEvents,
       ...clubVoltaireEvents,
       ...daiEvents,
+      ...redditEvents,
     ]
       .filter((event) => !isCancelledOrOutageEvent(event))
       .filter((event) => {
@@ -482,7 +486,7 @@ const getCachedExternalEvents = unstable_cache(
       (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
     );
   },
-  ["external-events-v4"],
+  ["external-events-v5"],
   { revalidate: 60 * 5, tags: ["external-events"] },
 );
 

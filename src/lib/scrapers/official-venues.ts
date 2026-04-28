@@ -19,6 +19,10 @@ const UNI_EVENTS_URL = "https://uni-tuebingen.de/universitaet/aktuelles-und-publ
 const SUDHAUS_URL = "https://www.sudhaus-tuebingen.de/programm/alle.html";
 const CLUB_VOLTAIRE_URL = "https://club-voltaire.net/kalender/";
 const DAI_URL = "https://www.dai-tuebingen.de/veranstaltungen/";
+const REDDIT_SUBREDDITS = (process.env.EXTERNAL_EVENTS_REDDIT_SUBREDDITS ?? "tuebingen")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter((value) => value.length > 0);
 
 /**
  * Generate a stable ID for an external event
@@ -183,6 +187,58 @@ function parseDateTimeFromText(text: string): Date | null {
     date = new Date(Date.UTC(year + 1, month - 1, day, 19, 0, 0));
   }
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function buildBerlinIsoDateTime(year: number, month: number, day: number, hour = 19, minute = 0): Date | null {
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  const hh = String(hour).padStart(2, "0");
+  const min = String(minute).padStart(2, "0");
+  const date = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00+02:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseRedditEventDate(text: string, createdUtcSeconds: number): Date | null {
+  const normalized = String(text ?? "").replace(/\u00a0/g, " ").trim().toLowerCase();
+  const now = new Date();
+
+  const absoluteDate = normalized.match(/(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?/);
+  if (absoluteDate) {
+    const day = Number(absoluteDate[1]);
+    const month = Number(absoluteDate[2]);
+    const yearRaw = absoluteDate[3];
+    const year = yearRaw ? (yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw)) : now.getFullYear();
+    let parsed = buildBerlinIsoDateTime(year, month, day, 19, 0);
+    if (!parsed) {
+      return null;
+    }
+    if (!yearRaw && parsed.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
+      parsed = buildBerlinIsoDateTime(year + 1, month, day, 19, 0);
+    }
+    return parsed;
+  }
+
+  const createdAt = new Date(createdUtcSeconds * 1000);
+  if (Number.isNaN(createdAt.getTime())) {
+    return null;
+  }
+
+  if (/\bmorgen\b/.test(normalized)) {
+    return new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+  }
+  if (/\bheute\b/.test(normalized)) {
+    return createdAt;
+  }
+
+  return null;
+}
+
+function isLikelyRedditEvent(text: string): boolean {
+  const normalized = String(text ?? "").toLowerCase();
+  const eventPattern = /\b(event|party|rave|konzert|konzertabend|lesung|workshop|ausstellung|theater|vortrag|flohmarkt|kino|veranstaltung|treffen)\b/;
+  const timePattern = /(\d{1,2}\.\d{1,2}(\.\d{2,4})?|\b\d{1,2}[:.]\d{2}\b|\bheute\b|\bmorgen\b|\buhr\b)/;
+  const excludePattern = /\bwohnung|wg-?zimmer|verkaufe|suche job|arbeitsplatz|praktikum|wohnungssuche\b/;
+  return eventPattern.test(normalized) && timePattern.test(normalized) && !excludePattern.test(normalized);
 }
 
 async function fetchGenericCalendarEvents(config: {
@@ -737,4 +793,97 @@ export async function fetchDaiEvents(): Promise<PartyCard[]> {
     categorySlug: "culture",
     scope: "daytime",
   });
+}
+
+export async function fetchRedditEvents(): Promise<PartyCard[]> {
+  const now = Date.now();
+  const maxPostAgeMs = 30 * 24 * 60 * 60 * 1000;
+  const events: PartyCard[] = [];
+  const seenIds = new Set<string>();
+
+  for (const subreddit of REDDIT_SUBREDDITS) {
+    const url = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/new.json?limit=60`;
+    try {
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: {
+          "User-Agent": "wasgehttueb-events-bot/1.0",
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`reddit ${subreddit} fetch failed with status:`, response.status);
+        continue;
+      }
+
+      const payload = await response.json() as {
+        data?: { children?: Array<{ data?: Record<string, unknown> }> };
+      };
+      const children = payload.data?.children ?? [];
+
+      for (const child of children) {
+        const post = child.data ?? {};
+        const title = String(post.title ?? "").trim();
+        const selftext = String(post.selftext ?? "").trim();
+        const permalink = String(post.permalink ?? "").trim();
+        const createdUtc = Number(post.created_utc ?? 0);
+        const isSelf = Boolean(post.is_self ?? false);
+        const over18 = Boolean(post.over_18 ?? false);
+        const removed = String(post.removed_by_category ?? "").trim().length > 0;
+
+        if (!isSelf || over18 || removed || !title || !createdUtc) {
+          continue;
+        }
+
+        const postedAtMs = createdUtc * 1000;
+        if (!Number.isFinite(postedAtMs) || now - postedAtMs > maxPostAgeMs) {
+          continue;
+        }
+
+        const haystack = `${title}\n${selftext}`.slice(0, 2000);
+        if (!isLikelyRedditEvent(haystack)) {
+          continue;
+        }
+
+        const startsAtDate = parseRedditEventDate(haystack, createdUtc);
+        if (!startsAtDate || startsAtDate.getTime() < now - 24 * 60 * 60 * 1000) {
+          continue;
+        }
+
+        const eventId = generateEventId(`reddit-${subreddit}`, startsAtDate, title);
+        if (seenIds.has(eventId)) {
+          continue;
+        }
+        seenIds.add(eventId);
+
+        events.push({
+          id: eventId,
+          title: title.slice(0, 140),
+          description: selftext.slice(0, 320) || `Event-Hinweis aus r/${subreddit}`,
+          starts_at: startsAtDate.toISOString(),
+          ends_at: new Date(startsAtDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+          max_guests: 0,
+          contribution_cents: 0,
+          public_lat: null,
+          public_lng: null,
+          is_external: true,
+          external_link: permalink ? `https://www.reddit.com${permalink}` : `https://www.reddit.com/r/${subreddit}/new/`,
+          vibe_label: `Reddit r/${subreddit}`,
+          spots_left: 0,
+          location_name: "Tübingen",
+          category_slug: "community",
+          category_label: "Community",
+          event_scope: "daytime",
+          is_all_day: false,
+          audience_label: "Alle",
+          price_info: null,
+        } as PartyCard);
+      }
+    } catch (error) {
+      console.error(`Error fetching reddit events from r/${subreddit}:`, error);
+    }
+  }
+
+  return events.slice(0, 30);
 }
