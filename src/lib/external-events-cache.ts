@@ -3,6 +3,13 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const OFFICIAL_SCRAPER_SOURCE = "official-scraper";
 
+export type ExternalEventsSyncResult = {
+  upserted: number;
+  usedBaseFallback: boolean;
+  deletedStale: boolean;
+  deletedExpired: boolean;
+};
+
 function buildBaseRow(event: PartyCard, scrapedAt: string) {
   return {
     id: event.id,
@@ -43,10 +50,11 @@ function isUnknownColumnError(message: string) {
   );
 }
 
-export async function syncExternalEventsToCache(events: PartyCard[]) {
+export async function syncExternalEventsToCache(events: PartyCard[]): Promise<ExternalEventsSyncResult> {
   const supabase = getSupabaseAdmin();
   const scrapedAt = new Date().toISOString();
   const nowIso = new Date().toISOString();
+  let usedBaseFallback = false;
 
   const extendedRows = events.map((event) => buildExtendedRow(event, scrapedAt));
   const baseRows = events.map((event) => buildBaseRow(event, scrapedAt));
@@ -61,6 +69,7 @@ export async function syncExternalEventsToCache(events: PartyCard[]) {
         throw new Error(`Upsert external events failed: ${extendedUpsert.error.message}`);
       }
 
+      usedBaseFallback = true;
       const baseUpsert = await supabase
         .from("external_events_cache")
         .upsert(baseRows, { onConflict: "id" });
@@ -91,5 +100,10 @@ export async function syncExternalEventsToCache(events: PartyCard[]) {
     throw new Error(`Deleting expired external events failed: ${expiredDeleteError.message}`);
   }
 
-  return { upserted: extendedRows.length };
+  return {
+    upserted: extendedRows.length,
+    usedBaseFallback,
+    deletedStale: true,
+    deletedExpired: true,
+  };
 }

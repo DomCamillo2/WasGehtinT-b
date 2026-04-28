@@ -18,6 +18,19 @@ const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-
 const CLUBHAUS_LAT = 48.5243852;
 const CLUBHAUS_LNG = 9.0605991;
 
+function logExternalSourceWarning(source: string, message: string, details?: unknown): void {
+  if (details === undefined) {
+    console.warn(`[external-events:${source}] ${message}`);
+    return;
+  }
+
+  console.warn(`[external-events:${source}] ${message}`, details);
+}
+
+function logExternalSourceFailure(source: string, error: unknown): void {
+  console.error(`[external-events:${source}] Fetch failed:`, error);
+}
+
 type ParsedEvent = {
   dateKey: string;
   startsAt: string;
@@ -198,6 +211,11 @@ async function fetchKuckuckEvents(): Promise<PartyCard[]> {
     });
 
     if (!response.ok) {
+      logExternalSourceWarning("kuckuck", "Non-OK response from source.", {
+        status: response.status,
+        statusText: response.statusText,
+        url: KUCKUCK_PROGRAM_URL,
+      });
       return [];
     }
 
@@ -226,7 +244,8 @@ async function fetchKuckuckEvents(): Promise<PartyCard[]> {
       location_name: "Kuckuck",
       music_genre: event.musicGenre,
     }));
-  } catch {
+  } catch (error) {
+    logExternalSourceFailure("kuckuck", error);
     return [];
   }
 }
@@ -259,6 +278,11 @@ async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
     });
 
     if (!response.ok) {
+      logExternalSourceWarning("clubhaus", "Non-OK response from source.", {
+        status: response.status,
+        statusText: response.statusText,
+        url: FSRVV_CLUBHAUS_URL,
+      });
       return [];
     }
 
@@ -311,6 +335,13 @@ async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
       }
     }
 
+    if (!parsedEvents.length) {
+      logExternalSourceWarning(
+        "clubhaus",
+        "No parsable events found in primary table or fallback text.",
+      );
+    }
+
     return parsedEvents
       .map((event) => {
         const startsAt = parseClubhausDate(event.day, event.month, event.year);
@@ -342,7 +373,8 @@ async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
         } as PartyCard;
       })
       .filter((event): event is PartyCard => Boolean(event));
-  } catch {
+  } catch (error) {
+    logExternalSourceFailure("clubhaus", error);
     return [];
   }
 }

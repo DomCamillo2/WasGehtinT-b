@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "Was geht in Tuebingen heute? Partys, Clubs und Events",
+  title: "Was geht in Tuebingen heute? Clubs, Studentenpartys und Events",
   description:
-    "Finde aktuelle Studentenpartys, Clubs, Community-Treffen und Tagesevents in Tuebingen. Mit Uhrzeiten, Orten, Kartenpunkten und Links zu Veranstaltern.",
+    "Clubs, Studentenpartys, Community-Treffen und Tagesevents in Tuebingen - gesammelt an einem Ort. Mit Uhrzeiten, Karten, Detailseiten und Links zu Veranstaltern.",
   keywords: [
     "Was geht in Tuebingen heute",
     "Tuebingen Events",
@@ -24,18 +24,18 @@ export const metadata: Metadata = {
     canonical: "/discover",
   },
   openGraph: {
-    title: "Was geht in Tuebingen heute? Partys, Clubs und Events",
+    title: "Was geht in Tuebingen heute? Clubs, Studentenpartys und Events",
     description:
-      "Alle wichtigen Partys, Clubs, Community-Treffen und Tagesevents in Tuebingen auf einen Blick.",
+      "Alle wichtigen Events in Tuebingen an einem Ort: Clubs, Studentenpartys, Community-Treffen und Tagesevents.",
     url: absoluteUrl("/discover"),
     type: "website",
     siteName: SITE_NAME,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Was geht in Tuebingen heute? Partys, Clubs und Events",
+    title: "Was geht in Tuebingen heute? Clubs, Studentenpartys und Events",
     description:
-      "Alle wichtigen Partys, Clubs, Community-Treffen und Tagesevents in Tuebingen auf einen Blick.",
+      "Alle wichtigen Events in Tuebingen an einem Ort: Clubs, Studentenpartys, Community-Treffen und Tagesevents.",
   },
 };
 

@@ -2,6 +2,22 @@
 
 Dieses Dokument ist ein verbindliches Architektur-Regelwerk für zukünftige Änderungen und KI-generierten Code. Die produktive Next.js-App und dieses versionierte Regelwerk liegen in `web/`. Behandle dieses Dokument als harte System-Constraints, nicht als lose Empfehlung.
 
+## Aktueller Produktfokus
+
+Stand jetzt liegt der Fokus auf der External-Events-Pipeline:
+
+- Events automatisch aus Quellen sammeln
+- Events sauber normalisieren und speichern
+- Discover- und Event-UI/UX für diesen Flow optimieren
+
+Nicht im aktuellen Prioritäts-Scope sind unreleased Nebenpfade wie Chat und Payments.
+
+Das bedeutet für Refactorings und neue Änderungen:
+
+- Priorisiere Discover, Event-Detailseiten, Scraper, Cache-Sync und Debug-/Prüfpfade für External Events.
+- Behandle Architektur-Lecks in Chat-, Payments- oder Request-Flows nur nachrangig, solange sie nicht auf den Event-Flow zurückwirken.
+- Vermeide es, Event-bezogene Refactorings mit unreleased Nebenfeatures zu vermischen.
+
 ## Zielbild
 
 Nutze durchgängig ein Anti-Corruption-Layer zwischen UI und Datenquelle.

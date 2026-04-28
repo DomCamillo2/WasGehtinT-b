@@ -460,7 +460,7 @@ export function DiscoverPremium({
                 className="mt-2 text-sm leading-snug lg:text-[0.98rem]"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                {"Partys, Clubs & Events – immer aktuell."}
+                {"Clubs, Studentenpartys und Events - gesammelt an einem Ort."}
               </p>
               {/* SEO text — hidden visually, readable by crawlers and screen readers */}
               <p className="sr-only">
@@ -468,6 +468,25 @@ export function DiscoverPremium({
                 Tagesevents in Tuebingen. Hier findest du kommende Events mit Zeiten, Orten,
                 Kartenpunkten und weiterfuehrenden Links zu Veranstaltern und Locations.
               </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  "Aus lokalen Quellen gesammelt",
+                  "Karte, Kalender und Detailseiten",
+                  "Fuer Tuebingen statt fuer ganz Deutschland",
+                ].map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold"
+                    style={{
+                      borderColor: "var(--border-soft)",
+                      backgroundColor: "color-mix(in srgb, var(--surface-card) 82%, transparent)",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
               <div
                 className="mt-3 inline-flex items-center gap-1 rounded-[18px] border p-1"
                 style={{
@@ -536,14 +555,14 @@ export function DiscoverPremium({
                 <button
                   type="button"
                   onClick={() => {
-                    setAuthSheetReason("Login ist aktuell deaktiviert. Coming soon feature.");
+                    setAuthSheetReason("Profile und persoenliche Features werden spaeter freigeschaltet.");
                     setShowAuthSheet(true);
                   }}
                   className="grid h-11 w-11 place-items-center rounded-2xl text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.9)]"
                   style={{
                     background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
                   }}
-                  aria-label="Coming soon Hinweis öffnen"
+                  aria-label="Profil-Hinweis öffnen"
                 >
                   {avatarFallback}
                 </button>
@@ -679,7 +698,7 @@ export function DiscoverPremium({
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full" style={{ backgroundColor: "var(--nav-border)" }} />
             <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
-              Coming soon feature
+              Profilfunktionen folgen spaeter
             </h2>
             <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
               {authSheetReason}
@@ -694,7 +713,7 @@ export function DiscoverPremium({
                   color: "var(--muted-foreground)",
                 }}
               >
-                Login (Coming soon feature)
+                Login spaeter
               </span>
               <span
                 aria-disabled="true"
@@ -705,7 +724,7 @@ export function DiscoverPremium({
                   color: "var(--muted-foreground)",
                 }}
               >
-                Kontoerstellung folgt
+                Konto spaeter
               </span>
             </div>
           </div>

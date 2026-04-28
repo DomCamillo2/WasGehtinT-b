@@ -39,23 +39,48 @@ export async function GET(request: Request) {
     );
   }
 
-  revalidateTag("external-events", "max");
-  const events = await fetchExternalEvents();
-  const syncResult = await syncExternalEventsToCache(events);
-  revalidatePath("/discover");
+  try {
+    revalidateTag("external-events", "max");
+    const events = await fetchExternalEvents();
+    const syncResult = await syncExternalEventsToCache(events);
+    revalidatePath("/discover");
 
-  return Response.json({
-    ok: true,
-    refreshedAt: new Date().toISOString(),
-    count: events.length,
-    upserted: syncResult.upserted,
-    durationMs: Date.now() - startedAt,
-  }, {
-    status: 200,
-    headers: {
-      "Cache-Control": "no-store",
-    },
-  });
+    if (syncResult.usedBaseFallback) {
+      console.warn(
+        "[external-events-refresh] Sync completed with base-row fallback because extended columns were unavailable.",
+      );
+    }
+
+    return Response.json({
+      ok: true,
+      refreshedAt: new Date().toISOString(),
+      count: events.length,
+      upserted: syncResult.upserted,
+      usedBaseFallback: syncResult.usedBaseFallback,
+      durationMs: Date.now() - startedAt,
+    }, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("[external-events-refresh] Refresh failed:", error);
+
+    return Response.json(
+      {
+        ok: false,
+        error: "refresh_failed",
+        durationMs: Date.now() - startedAt,
+      },
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  }
 }
 
 export async function POST(request: Request) {

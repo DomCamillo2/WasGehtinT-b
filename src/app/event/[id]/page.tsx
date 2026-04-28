@@ -3,51 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { EventSchema } from "@/components/seo/event-schema";
-import { formatDateTime } from "@/lib/format";
 import { SITE_NAME, absoluteUrl } from "@/lib/site-config";
 import { loadExternalEventPageData } from "@/services/events/external-event-page-service";
-
-function formatFullDateTime(input: string) {
-  const parsed = new Date(input);
-  if (Number.isNaN(parsed.getTime())) {
-    return "Datum offen";
-  }
-
-  return new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    dateStyle: "full",
-    timeStyle: "short",
-  }).format(parsed);
-}
-
-function formatCoordinates(lat: number | null, lng: number | null) {
-  if (lat == null || lng == null) {
-    return null;
-  }
-
-  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-}
-
-function truncateDescription(text: string, maxLength = 150) {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxLength) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, maxLength - 1).trimEnd()}...`;
-}
-
-function getEventKindLabel(kind: "external" | "party" | "community") {
-  if (kind === "party") {
-    return "Party";
-  }
-
-  if (kind === "community") {
-    return "Community Event";
-  }
-
-  return "Externes Event";
-}
 
 export async function generateMetadata({
   params,
@@ -67,30 +24,25 @@ export async function generateMetadata({
     };
   }
 
-  const clubName = event.locationName?.trim() || event.vibeLabel.trim() || "Tuebingen";
-  const kindLabel = getEventKindLabel(event.kind);
-  const description = event.description?.trim()
-    ? truncateDescription(event.description)
-    : truncateDescription(`${event.title} in Tuebingen als ${kindLabel} am ${formatDateTime(event.startsAt)}.`);
   const canonicalUrl = absoluteUrl(`/event/${event.id}`);
-  const seoTitle = `${event.title} im ${clubName} | ${SITE_NAME}`;
+  const seoTitle = `${event.title} im ${event.clubName} | ${SITE_NAME}`;
 
   return {
     title: seoTitle,
-    description,
+    description: event.seoDescription,
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
       title: seoTitle,
-      description,
+      description: event.seoDescription,
       url: canonicalUrl,
       type: "article",
     },
     twitter: {
       card: "summary",
       title: seoTitle,
-      description,
+      description: event.seoDescription,
     },
   };
 }
@@ -107,26 +59,16 @@ export default async function ExternalEventPage({
     notFound();
   }
 
-  const clubName = event.locationName?.trim() || event.vibeLabel.trim() || "Tuebingen";
-  const kindLabel = getEventKindLabel(event.kind);
-  const mapsLink =
-    event.publicLat != null && event.publicLng != null
-      ? `https://www.google.com/maps/search/?api=1&query=${event.publicLat},${event.publicLng}`
-      : null;
-  const schemaDescription =
-    event.description?.trim() ||
-    `${event.title} im ${clubName} am ${formatDateTime(event.startsAt)} in Tuebingen.`;
-
   return (
     <AppShell mainClassName="space-y-5">
       <EventSchema
         name={event.title}
         startDate={event.startsAt}
         endDate={event.endsAt}
-        location={clubName}
-        description={schemaDescription}
+        location={event.clubName}
+        description={event.schemaDescription}
         url={absoluteUrl(`/event/${event.id}`)}
-        organizerName={event.sourceBadge?.trim() || clubName}
+        organizerName={event.sourceBadge?.trim() || event.clubName}
         externalLink={event.externalLink}
         priceInfo={event.priceInfo}
         musicGenre={event.musicGenre}
@@ -157,13 +99,13 @@ export default async function ExternalEventPage({
             className="text-xs font-semibold uppercase tracking-[0.18em]"
             style={{ color: "var(--muted-foreground)" }}
           >
-            {kindLabel}
+            {event.kindLabel}
           </p>
           <h1 className="mt-3 text-3xl font-black leading-tight" style={{ color: "var(--foreground)" }}>
             {event.title}
           </h1>
           <p className="mt-3 text-sm" style={{ color: "var(--muted-foreground)" }}>
-            {clubName} · {formatDateTime(event.startsAt)} Uhr
+            {event.clubName} · {event.heroDateLabel}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -177,9 +119,9 @@ export default async function ExternalEventPage({
                 Zum Veranstalter
               </a>
             ) : null}
-            {mapsLink ? (
+            {event.mapsLink ? (
               <a
-                href={mapsLink}
+                href={event.mapsLink}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold"
@@ -216,7 +158,7 @@ export default async function ExternalEventPage({
               Start
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {formatFullDateTime(event.startsAt)}
+              {event.startDateLabel}
             </p>
           </div>
 
@@ -228,7 +170,7 @@ export default async function ExternalEventPage({
               Ende
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {formatFullDateTime(event.endsAt)}
+              {event.endDateLabel}
             </p>
           </div>
 
@@ -240,7 +182,7 @@ export default async function ExternalEventPage({
               Ort
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {event.locationName ?? "Ort wird noch ergaenzt"}
+              {event.displayLocationName}
             </p>
           </div>
 
@@ -252,7 +194,7 @@ export default async function ExternalEventPage({
               Kategorie
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {event.musicGenre ?? event.categoryLabel ?? event.vibeLabel}
+              {event.displayCategory}
             </p>
           </div>
         </div>
@@ -285,7 +227,7 @@ export default async function ExternalEventPage({
           </div>
         ) : null}
 
-        {formatCoordinates(event.publicLat, event.publicLng) ? (
+        {event.coordinatesLabel ? (
           <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
             <p
               className="text-xs font-semibold uppercase tracking-[0.14em]"
@@ -294,7 +236,7 @@ export default async function ExternalEventPage({
               Koordinaten
             </p>
             <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-              {formatCoordinates(event.publicLat, event.publicLng)}
+              {event.coordinatesLabel}
             </p>
           </div>
         ) : null}

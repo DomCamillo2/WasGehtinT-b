@@ -593,38 +593,6 @@ export function EventCard({
                     Host-Profil
                   </Link>
                 ) : null}
-
-                <button
-                  type="button"
-                  disabled
-                  onClick={(event) => {
-                    event.stopPropagation();
-                  }}
-                  className="inline-flex cursor-not-allowed rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
-                  style={{
-                    borderColor: "var(--border-soft)",
-                    backgroundColor: "var(--surface-soft)",
-                    color: "var(--muted-foreground)",
-                  }}
-                >
-                  Anfragen (Coming soon feature)
-                </button>
-
-                <button
-                  type="button"
-                  disabled
-                  onClick={(event) => {
-                    event.stopPropagation();
-                  }}
-                  className="inline-flex cursor-not-allowed rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
-                  style={{
-                    borderColor: "var(--border-soft)",
-                    backgroundColor: "var(--surface-soft)",
-                    color: "var(--muted-foreground)",
-                  }}
-                >
-                  Chatten (Coming soon feature)
-                </button>
               </div>
             ) : null}
           </div>
