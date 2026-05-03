@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(npx vercel *)",
+      "Bash(npx tsc *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/apify-client/package.json'\\); console.log\\('optionalDeps:', JSON.stringify\\(pkg.optionalDependencies\\)\\); console.log\\('deps proxy:', pkg.dependencies?.['proxy-agent'] ?? 'not in deps'\\);\")"
+    ]
+  }
+}

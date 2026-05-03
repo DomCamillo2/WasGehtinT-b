@@ -1,0 +1,33 @@
+import { redirect } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
+
+export default async function Home() {
+  if (!hasSupabaseEnv()) {
+    const missing = getMissingSupabaseEnv();
+
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6 sm:py-8">
+        <div className="mb-5 text-center sm:mb-6">
+          <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500">WasGehtTüb</p>
+          <h1 className="mt-2 text-[1.85rem] font-bold leading-tight tracking-tight text-zinc-900 sm:text-3xl">Setup erforderlich</h1>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+            Trage die fehlenden Variablen in `.env.local` ein und starte den Dev-Server neu.
+          </p>
+        </div>
+
+        <Card className="space-y-2">
+          <p className="text-sm font-semibold text-zinc-900">Fehlende Supabase-Variablen</p>
+          {missing.map((item) => (
+            <p key={item} className="text-sm text-red-700">
+              - {item}
+            </p>
+          ))}
+        </Card>
+      </div>
+    );
+  }
+
+  // Public-first growth flow: discovery is the default entrypoint.
+  redirect("/discover");
+}

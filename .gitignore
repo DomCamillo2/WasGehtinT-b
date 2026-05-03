@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+**/supabase/env
+
+# Next.js (web/)
+web/.next/
+web/out/
+web/build/
+web/*.tsbuildinfo
+web/next-env.d.ts
+
+# Vercel
+.vercel/
+web/.vercel/
+
+# Debug / OS
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.DS_Store
+*.pem
+
+# Testing
+coverage/
+web/coverage/
+
+# Local / editor scratch
+.codex-temp
+.claude/settings.local.json
+
+# Cron / local secrets (never commit)
+.cron_secret_tmp
+**/.cron_secret_tmp

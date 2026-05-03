@@ -1,0 +1,259 @@
+import Link from "next/link";
+import { updateProfileAction } from "@/app/actions/profile";
+import { AppShell } from "@/components/layout/app-shell";
+import { ScreenHeader } from "@/components/layout/screen-header";
+import { Card } from "@/components/ui/card";
+import { getCopy } from "@/lib/i18n";
+import { loadProfilePageData } from "@/services/profile/profile-page-service";
+
+type SearchParams = Promise<{ saved?: string; error?: string }>;
+
+function safeDateTimeLabel(input: string): string {
+  const parsed = new Date(input);
+  if (Number.isNaN(parsed.getTime())) {
+    return "Datum offen";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(parsed);
+}
+
+function reviewStatusLabel(value: string | null): string {
+  const status = String(value ?? "").toLowerCase();
+  if (status === "pending") return "Im Admin-Review";
+  if (status === "approved") return "Freigegeben";
+  if (status === "rejected") return "Abgelehnt";
+  return "Unbekannt";
+}
+
+function reviewStatusClassName(value: string | null): string {
+  const status = String(value ?? "").toLowerCase();
+  if (status === "pending") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (status === "approved") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "rejected") return "border-rose-200 bg-rose-50 text-rose-700";
+  return "border-zinc-200 bg-zinc-100 text-zinc-600";
+}
+
+function publishStatusLabel(value: string | null): string {
+  const status = String(value ?? "").toLowerCase();
+  if (status === "published") return "Veröffentlicht";
+  if (status === "draft") return "Entwurf";
+  if (status === "cancelled") return "Abgelehnt/Beendet";
+  if (status === "closed") return "Geschlossen";
+  return "Unbekannt";
+}
+
+function getInfoBanner(params: { saved?: string; error?: string }) {
+  if (params.saved === "1") {
+    return { type: "success" as const, text: "Profil gespeichert." };
+  }
+
+  if (params.error === "display_name") {
+    return { type: "error" as const, text: "Bitte gib einen Anzeigenamen mit mindestens 2 Zeichen ein." };
+  }
+
+  if (params.error === "age") {
+    return { type: "error" as const, text: "Alter muss zwischen 16 und 99 liegen." };
+  }
+
+  if (params.error === "avatar") {
+    return { type: "error" as const, text: "Avatar konnte nicht hochgeladen werden (JPG/PNG/WEBP, max. 3MB)." };
+  }
+
+  if (params.error === "save") {
+    return { type: "error" as const, text: "Profil konnte nicht gespeichert werden. Bitte erneut versuchen." };
+  }
+
+  return null;
+}
+
+export default async function ProfilePage({ searchParams }: { searchParams: SearchParams }) {
+  const t = getCopy("de").profile;
+  const [params, profilePageData] = await Promise.all([searchParams, loadProfilePageData()]);
+
+  if (!profilePageData) {
+    return null;
+  }
+  const { profile, submissions, userEmail, userAvatarFallback, userDisplayFallback } = profilePageData;
+
+  const banner = getInfoBanner(params);
+
+  return (
+    <AppShell>
+      <ScreenHeader title="Mein Profil" subtitle="Verwalte Profildaten und Sichtbarkeit." />
+
+      <Card className="space-y-4 p-4">
+        <div className="flex items-center gap-3">
+          {profile.avatarUrl ? (
+            <img
+              src={profile.avatarUrl}
+              alt="Profilbild"
+              className="h-14 w-14 rounded-full border border-zinc-200 object-cover"
+            />
+          ) : (
+            <div className="grid h-14 w-14 place-items-center rounded-full border border-zinc-200 bg-zinc-100 text-base font-bold text-zinc-700">
+              {userAvatarFallback}
+            </div>
+          )}
+          <div>
+            <p className="text-sm font-semibold text-zinc-900">{profile.displayName ?? userDisplayFallback ?? t.noName}</p>
+            <p className="text-xs text-zinc-500">{userEmail}</p>
+          </div>
+        </div>
+
+        {banner ? (
+          <p
+            className={`rounded-xl px-3 py-2 text-sm ${
+              banner.type === "success"
+                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border border-rose-200 bg-rose-50 text-rose-700"
+            }`}
+          >
+            {banner.text}
+          </p>
+        ) : null}
+
+        <form action={updateProfileAction} className="space-y-3">
+          <input
+            name="displayName"
+            type="text"
+            defaultValue={profile.displayName ?? ""}
+            placeholder="Anzeigename"
+            required
+            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 outline-none focus:border-zinc-400"
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              name="gender"
+              defaultValue={profile.gender ?? ""}
+              className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-sm text-zinc-900 outline-none focus:border-zinc-400"
+            >
+              <option value="">Geschlecht (optional)</option>
+              <option value="female">weiblich</option>
+              <option value="male">männlich</option>
+              <option value="diverse">divers</option>
+            </select>
+
+            <input
+              name="age"
+              type="number"
+              min={16}
+              max={99}
+              defaultValue={profile.age ?? ""}
+              placeholder="Alter"
+              className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 outline-none focus:border-zinc-400"
+            />
+          </div>
+
+          <input
+            name="studyProgram"
+            type="text"
+            defaultValue={profile.studyProgram ?? ""}
+            placeholder="Studiengang (optional)"
+            className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 outline-none focus:border-zinc-400"
+          />
+
+          <div className="space-y-1">
+            <label htmlFor="profileVisibility" className="text-xs font-medium text-zinc-600">
+              Profilsichtbarkeit
+            </label>
+            <select
+              id="profileVisibility"
+              name="profileVisibility"
+              defaultValue={profile.profileVisibility ?? "members"}
+              className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-sm text-zinc-900 outline-none focus:border-zinc-400"
+            >
+              <option value="public">Öffentlich innerhalb der Plattform</option>
+              <option value="members">Nur für eingeloggte Studis</option>
+              <option value="hidden">Profilbild und Details verbergen</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="avatar" className="text-xs font-medium text-zinc-600">
+              Profilbild aktualisieren
+            </label>
+            <input
+              id="avatar"
+              name="avatar"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="block w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-zinc-700 hover:file:bg-zinc-200"
+            />
+            <p className="text-[11px] text-zinc-500">JPG/PNG/WEBP, max. 3MB.</p>
+          </div>
+
+          <button
+            type="submit"
+            className="h-12 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-sm font-semibold text-white"
+          >
+            Profil speichern
+          </button>
+        </form>
+      </Card>
+
+      <Card className="mt-3 p-4">
+        <p className="text-xs text-zinc-600">
+          Deine Daten bleiben auf WasGehtTüb. Mehr Infos findest du in den rechtlichen Seiten.
+        </p>
+        <div className="mt-2 flex gap-3 text-xs">
+          <Link href="/datenschutz" className="text-zinc-700 underline decoration-zinc-300 underline-offset-2">
+            Datenschutz
+          </Link>
+          <Link href="/nutzungsbedingungen" className="text-zinc-700 underline decoration-zinc-300 underline-offset-2">
+            AGB
+          </Link>
+        </div>
+      </Card>
+
+      <Card className="mt-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Feedback oder Feature Request</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Teile Bugs, Ideen oder Verbesserungswünsche direkt mit dem Team.
+            </p>
+          </div>
+          <Link
+            href="/feedback"
+            className="inline-flex h-10 items-center rounded-xl bg-zinc-900 px-4 text-xs font-semibold text-white"
+          >
+            Senden
+          </Link>
+        </div>
+      </Card>
+
+      <Card className="mt-3 space-y-3 p-4">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">Meine Club-Event Einreichungen</h2>
+          <p className="text-xs text-zinc-500">Hier siehst du den Admin-Review und den Veröffentlichungsstatus.</p>
+        </div>
+
+        {submissions.length ? (
+          submissions.map((submission) => (
+            <div key={submission.id} className="rounded-xl border border-zinc-200 bg-white p-3">
+              <p className="text-sm font-semibold text-zinc-900">{submission.title}</p>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                Start: {safeDateTimeLabel(submission.startsAt)}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span
+                  className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${reviewStatusClassName(
+                    submission.reviewStatus,
+                  )}`}
+                >
+                  Review: {reviewStatusLabel(submission.reviewStatus)}
+                </span>
+                <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                  Status: {publishStatusLabel(submission.status)}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-xs text-zinc-500">Noch keine Club-Events eingereicht.</p>
+        )}
+      </Card>
+    </AppShell>
+  );
+}
