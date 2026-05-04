@@ -16,6 +16,23 @@ type PexelsResponse = {
   }>;
 };
 
+function normalizePexelsImageUrl(input: string | null | undefined): string | null {
+  if (!input) return null;
+  try {
+    const url = new URL(input);
+    if (url.hostname !== "images.pexels.com") return input;
+    // Prefer deterministic 16:9 crops and compressed payloads for stable card rendering.
+    url.searchParams.set("auto", "compress");
+    url.searchParams.set("cs", "tinysrgb");
+    url.searchParams.set("fit", "crop");
+    url.searchParams.set("w", "1600");
+    url.searchParams.set("h", "900");
+    return url.toString();
+  } catch {
+    return input;
+  }
+}
+
 function compact(value: string | null | undefined): string {
   return (value ?? "").trim().replace(/\s+/g, " ");
 }
@@ -56,7 +73,8 @@ async function fetchPexelsLandscapeImage(query: string): Promise<string | null> 
 
   const data = (await response.json()) as PexelsResponse;
   const first = data.photos?.[0];
-  return first?.src?.landscape ?? first?.src?.large2x ?? first?.src?.large ?? first?.src?.original ?? null;
+  const best = first?.src?.original ?? first?.src?.large2x ?? first?.src?.large ?? first?.src?.landscape ?? null;
+  return normalizePexelsImageUrl(best);
 }
 
 const fetchPexelsLandscapeImageCached = unstable_cache(

@@ -67,7 +67,7 @@ export default async function DiscoverPage({
   return (
     <AppShell
       theme="new"
-      shellClassName="overflow-visible"
+      shellClassName="overflow-visible !max-w-none"
       showFooter={false}
       showBottomNav={false}
       mainFlush
