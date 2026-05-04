@@ -1,0 +1,22 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Frau Holle Icon">
+  <rect x="8" y="8" width="144" height="144" fill="#111111"/>
+  <rect x="25" y="25" width="110" height="110" fill="none" stroke="#ffffff" stroke-width="3"/>
+
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M58 58 C57 40, 68 30, 82 31 C95 31, 106 42, 104 58" stroke-width="3.2"/>
+    <path d="M74 30 C74 23, 80 17, 87 17 C95 17, 101 24, 101 33" stroke-width="2.8"/>
+    <path d="M58 62 C58 49, 68 40, 83 40 C98 40, 108 49, 108 62 C108 71, 102 76, 96 83" stroke-width="3.4"/>
+    <path d="M58 63 C52 67, 49 75, 50 85 C51 95, 57 104, 67 108" stroke-width="3"/>
+    <path d="M96 84 C102 90, 106 98, 106 108" stroke-width="3"/>
+    <path d="M68 109 C70 117, 76 123, 84 123 C92 123, 99 117, 101 109" stroke-width="3"/>
+    <circle cx="69" cy="84" r="9" stroke-width="2.8"/>
+    <circle cx="92" cy="84" r="9" stroke-width="2.8"/>
+    <path d="M78 84 H83" stroke-width="2.5"/>
+    <path d="M57 84 H53" stroke-width="2.5"/>
+    <path d="M101 84 H105" stroke-width="2.5"/>
+    <path d="M71 98 C76 101, 85 101, 90 98" stroke-width="2.7"/>
+    <path d="M73 123 C72 131, 67 136, 59 137" stroke-width="2.8"/>
+    <path d="M95 123 C96 131, 101 136, 109 137" stroke-width="2.8"/>
+    <path d="M59 137 H109" stroke-width="2.8"/>
+  </g>
+</svg>

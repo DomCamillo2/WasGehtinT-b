@@ -1,0 +1,44 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "external-events:sync": "node scripts/sync-external-events-to-supabase.mjs",
+    "cronjob:setup": "node scripts/setup-cronjob-org.mjs",
+    "supabase:test": "node --env-file=.env.local scripts/test-supabase-api-connection.mjs",
+    "env:pull": "vercel env pull .env.local --environment=development",
+    "env:push": "node scripts/sync-vercel-env.mjs"
+  },
+  "dependencies": {
+    "@google/genai": "^1.49.0",
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.99.3",
+    "@vercel/analytics": "^2.0.1",
+    "apify-client": "^2.22.3",
+    "cheerio": "^1.2.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.5.0",
+    "maplibre-gl": "^5.21.0",
+    "next": "16.2.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "resend": "^6.9.4",
+    "stripe": "^20.4.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.1",
+    "pg": "^8.20.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
