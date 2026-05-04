@@ -18,7 +18,6 @@ import {
   MapPin,
   MoreHorizontal,
   Search,
-  SlidersHorizontal,
   User,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast-provider";
@@ -133,14 +132,6 @@ function formatEventTime(iso: string) {
 
 function venueLabel(event: DiscoverEvent) {
   return (event.locationName ?? event.vibeLabel ?? "Tübingen").trim();
-}
-
-function buildClassicDiscoverHref(): string {
-  if (typeof window === "undefined") return "/discover";
-  const params = new URLSearchParams(window.location.search);
-  params.delete("ui");
-  const q = params.toString();
-  return q ? `/discover?${q}` : "/discover";
 }
 
 function discoverEventToPartyCardForHero(e: DiscoverEvent): PartyCard {
@@ -978,13 +969,6 @@ export function DiscoverFeedV2({
                 <MapPin className="h-4 w-4" />
               </button>
             </div>
-            <Link
-              href={buildClassicDiscoverHref()}
-              className="hidden min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:flex sm:min-h-[44px] sm:min-w-[44px]"
-              aria-label="Klassische Discover-Ansicht mit erweiterten Filtern öffnen"
-            >
-              <SlidersHorizontal className="h-5 w-5" />
-            </Link>
           </div>
         </div>
 
