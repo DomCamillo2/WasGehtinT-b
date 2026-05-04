@@ -16,7 +16,6 @@ import {
   List,
   Loader2,
   MapPin,
-  MoreHorizontal,
   Search,
   User,
 } from "lucide-react";
@@ -183,7 +182,6 @@ export function DiscoverFeedV2({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const weeksSentinelRef = useRef<HTMLDivElement | null>(null);
   const [headerCompact, setHeaderCompact] = useState(false);
-  const [viewExtrasOpen, setViewExtrasOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
     const raw = searchParams.get("view");
@@ -878,17 +876,16 @@ export function DiscoverFeedV2({
               </button>
             ) : null}
           </div>
-          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
-            {/* Mobile: cards + list + overflow for Kalender/Karte (saves horizontal chrome). */}
+          <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
             <div
-              className="flex items-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 p-0.5 sm:hidden"
+              className="scrollbar-hide flex max-w-full shrink-0 items-center overflow-x-auto rounded-xl border border-[#2B2623] bg-[#1A1715]/90 p-0.5 sm:p-1"
               role="group"
               aria-label="Ansicht"
             >
               <button
                 type="button"
                 onClick={() => setViewMode("cards")}
-                className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 ${
+                className={`flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                   viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
                 }`}
                 aria-label="Kartenansicht"
@@ -899,46 +896,7 @@ export function DiscoverFeedV2({
               <button
                 type="button"
                 onClick={() => setViewMode("list")}
-                className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 ${
-                  viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
-                }`}
-                aria-label="Listenansicht"
-                aria-pressed={viewMode === "list"}
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewExtrasOpen(true)}
-                className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 ${
-                  viewMode === "calendar" || viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
-                }`}
-                aria-label="Weitere Ansichten: Kalender und Karte"
-                aria-expanded={viewExtrasOpen}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-            </div>
-            <div
-              className="hidden items-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 p-1 sm:flex"
-              role="group"
-              aria-label="Ansicht"
-            >
-              <button
-                type="button"
-                onClick={() => setViewMode("cards")}
-                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
-                  viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
-                }`}
-                aria-label="Kartenansicht"
-                aria-pressed={viewMode === "cards"}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                className={`flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                   viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
                 }`}
                 aria-label="Listenansicht"
@@ -949,7 +907,7 @@ export function DiscoverFeedV2({
               <button
                 type="button"
                 onClick={() => setViewMode("calendar")}
-                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                className={`flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                   viewMode === "calendar" ? viewModeToggleActive : viewModeToggleInactive
                 }`}
                 aria-label="Kalender"
@@ -960,7 +918,7 @@ export function DiscoverFeedV2({
               <button
                 type="button"
                 onClick={() => setViewMode("map")}
-                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                className={`flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                   viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
                 }`}
                 aria-label="Karte"
@@ -1249,68 +1207,6 @@ export function DiscoverFeedV2({
       >
         <Search className="h-5 w-5" aria-hidden="true" />
       </button>
-
-      {viewExtrasOpen ? (
-        <div
-          className="fixed inset-0 z-[60] sm:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="discover-view-extras-title"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
-            aria-label="Schließen"
-            onClick={() => setViewExtrasOpen(false)}
-          />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-[#2B2623] bg-[#141210] p-4 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#3a312b]" aria-hidden="true" />
-            <h2 id="discover-view-extras-title" className="text-base font-semibold text-[#f2ece6]">
-              Weitere Ansichten
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#a89b90]">
-              Kalender oder Karte für Übersicht — ohne die Schnellwahl oben zu überladen.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode("calendar");
-                setViewExtrasOpen(false);
-              }}
-              className={`mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors ${
-                viewMode === "calendar"
-                  ? "bg-[#ff7a18] text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
-                  : "border border-[#2B2623] bg-[#1A1715]/90 text-[#E9DFD6] hover:border-primary/40"
-              }`}
-            >
-              <CalendarDays className="h-5 w-5 shrink-0" aria-hidden="true" />
-              Kalender
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode("map");
-                setViewExtrasOpen(false);
-              }}
-              className={`mt-2 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors ${
-                viewMode === "map"
-                  ? "bg-[#ff7a18] text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
-                  : "border border-[#2B2623] bg-[#1A1715]/90 text-[#E9DFD6] hover:border-primary/40"
-              }`}
-            >
-              <MapPin className="h-5 w-5 shrink-0" aria-hidden="true" />
-              Karte
-            </button>
-            <button
-              type="button"
-              className="mt-3 w-full min-h-[44px] rounded-xl border border-[#2B2623] bg-transparent py-3 text-sm font-medium text-[#a89b90]"
-              onClick={() => setViewExtrasOpen(false)}
-            >
-              Schließen
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <DiscoverBottomNavV2
         activeTab={likedOnly ? "saved" : "discover"}
