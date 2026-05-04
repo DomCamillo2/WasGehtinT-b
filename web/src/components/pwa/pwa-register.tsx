@@ -7,9 +7,24 @@ export function PwaRegister() {
     if (!("serviceWorker" in navigator)) {
       return;
     }
-    navigator.serviceWorker.register("/sw.js").catch((error) => {
-      console.error("[pwa] Service worker registration failed:", error);
-    });
+
+    const bumpWorker = () => {
+      void navigator.serviceWorker.getRegistration().then((reg) => {
+        void reg?.update();
+      });
+    };
+
+    void navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        void reg.update();
+      })
+      .catch((error) => {
+        console.error("[pwa] Service worker registration failed:", error);
+      });
+
+    window.addEventListener("focus", bumpWorker);
+    return () => window.removeEventListener("focus", bumpWorker);
   }, []);
 
   return null;
