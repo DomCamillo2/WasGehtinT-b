@@ -1,20 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { Compass, Map, User, Zap } from "lucide-react";
+import { Bookmark, Compass, User, Zap } from "lucide-react";
 
-export type DiscoverV2NavTab = "discover" | "map";
+export type DiscoverV2NavTab = "discover" | "saved";
 
 type Props = {
   activeTab: DiscoverV2NavTab;
   onSelectDiscover: () => void;
-  onSelectMap: () => void;
+  onSelectSaved: () => void;
 };
 
 export function DiscoverBottomNavV2({
   activeTab,
   onSelectDiscover,
-  onSelectMap,
+  onSelectSaved,
 }: Props) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe pointer-events-none" aria-label="Hauptnavigation">
@@ -55,27 +55,27 @@ export function DiscoverBottomNavV2({
 
           <button
             type="button"
-            onClick={onSelectMap}
+            onClick={onSelectSaved}
             role="tab"
-            aria-selected={activeTab === "map"}
-            aria-label="Karte anzeigen"
+            aria-selected={activeTab === "saved"}
+            aria-label="Gemerkte Events"
             className={`relative flex flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl transition-all duration-200 ${
-              activeTab === "map" ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]" : "hover:bg-[#1d1713] active:bg-[#241d19]"
+              activeTab === "saved" ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]" : "hover:bg-[#1d1713] active:bg-[#241d19]"
             }`}
           >
-            <Map
-              className={`w-5 h-5 ${activeTab === "map" ? "text-[#2d1d10]" : "text-[#a89b90]"}`}
-              strokeWidth={activeTab === "map" ? 2.5 : 2}
+            <Bookmark
+              className={`w-5 h-5 ${activeTab === "saved" ? "fill-[#2d1d10] text-[#2d1d10]" : "fill-none text-[#a89b90]"}`}
+              strokeWidth={activeTab === "saved" ? 2.5 : 2}
               aria-hidden="true"
             />
             <span
               className={`text-[10px] font-medium mt-1 ${
-                activeTab === "map" ? "text-[#2d1d10]" : "text-[#a89b90]"
+                activeTab === "saved" ? "text-[#2d1d10]" : "text-[#a89b90]"
               }`}
             >
-              Karte
+              Gemerkt
             </span>
-            {activeTab === "map" ? (
+            {activeTab === "saved" ? (
               <span
                 className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#2d1d10]"
                 aria-hidden="true"

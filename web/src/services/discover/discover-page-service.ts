@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { unstable_cache } from "next/cache";
 import { getCommunityHangoutsForDiscover, getExternalEvents, getPublicParties } from "@/lib/data";
-import { enrichPartiesWithDiscoverHeroImages } from "@/lib/discover-event-images";
 import type { DiscoverFilterKey } from "@/lib/discover-filters";
 import { applyTrafficBasedUpvoteEstimates } from "@/lib/discover-traffic-upvotes";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
@@ -277,9 +276,8 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
   const modeledUpvotes = applyTrafficBasedUpvoteEstimates(parties, upvoteCountMap);
 
   const partiesWithHostData = [...enrichedDbParties, ...communityHangouts, ...externalParties];
-  const partiesWithHeroImages = await enrichPartiesWithDiscoverHeroImages(partiesWithHostData);
 
-  const partiesWithUpvotes = partiesWithHeroImages.map((party) => ({
+  const partiesWithUpvotes = partiesWithHostData.map((party) => ({
     ...party,
     upvote_count: modeledUpvotes.get(party.id) ?? upvoteCountMap.get(party.id) ?? 0,
     upvoted_by_me: upvotedByMe.has(party.id),

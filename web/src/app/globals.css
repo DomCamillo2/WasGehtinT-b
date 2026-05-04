@@ -551,6 +551,11 @@ html.discover-ui-new body::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html.discover-v2-scroll-enhanced {
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+  }
+
   .discover-ui-v2 .animate-float-1,
   .discover-ui-v2 .animate-float-2,
   .discover-ui-v2 .animate-float-3,
@@ -565,5 +570,79 @@ html.discover-ui-new body::before {
 
   .discover-ui-v2 .squishy:active {
     transform: none;
+  }
+
+  .discover-ui-v2 .discover-feed-scroll-item {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+}
+
+/* Discover v2: mobile scroll feel (reveal + snap + safe insets) */
+@media (max-width: 639px) {
+  html.discover-v2-scroll-enhanced {
+    scroll-padding-top: min(7.5rem, 28vh);
+    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    scroll-snap-type: y proximity;
+  }
+
+  /* Smooth for keyboard / fine pointer; touch keeps native inertia */
+  @media (hover: hover) and (pointer: fine) {
+    html.discover-v2-scroll-enhanced {
+      scroll-behavior: smooth;
+    }
+  }
+
+  .discover-ui-v2 .discover-feed-scroll-snap {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+    scroll-margin-top: 0.35rem;
+    scroll-margin-bottom: 0.5rem;
+  }
+
+  .discover-ui-v2 .discover-feed-scroll-item--card {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.985);
+    transition:
+      opacity 0.42s cubic-bezier(0.22, 1, 0.32, 1),
+      transform 0.5s cubic-bezier(0.22, 1, 0.32, 1);
+    will-change: opacity, transform;
+  }
+
+  .discover-ui-v2 .discover-feed-scroll-item--card.is-revealed {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    will-change: auto;
+  }
+
+  .discover-ui-v2 .discover-feed-scroll-item--list {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+    transition:
+      opacity 0.32s cubic-bezier(0.22, 1, 0.32, 1),
+      transform 0.38s cubic-bezier(0.22, 1, 0.32, 1);
+    will-change: opacity, transform;
+  }
+
+  .discover-ui-v2 .discover-feed-scroll-item--list.is-revealed {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    will-change: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .discover-ui-v2 .discover-feed-scroll-item {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+
+  .discover-ui-v2 .discover-feed-scroll-snap {
+    scroll-snap-align: unset;
+    scroll-margin: 0;
   }
 }

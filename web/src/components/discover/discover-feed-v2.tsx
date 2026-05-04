@@ -28,6 +28,7 @@ import {
 } from "@/lib/discover-filters";
 import { filterPartiesWithMapCoords } from "@/lib/discover-map-coords";
 import { asServiceError } from "@/services/service-error";
+import type { PartyCard } from "@/lib/types";
 import type { DiscoverViewMode } from "@/services/discover/discover-page-service";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { SITE_LOGO_SRC } from "@/lib/site-config";
@@ -36,6 +37,7 @@ import { DiscoverBottomNavV2 } from "./discover-bottom-nav-v2";
 import { DiscoverCalendarPanelV2 } from "./discover-calendar-panel-v2";
 import { DiscoverEventCardV2 } from "./discover-event-card-v2";
 import { DiscoverEventListItemV2 } from "./discover-event-list-item-v2";
+import { DiscoverFeedScrollItem } from "./discover-feed-scroll-item";
 
 const DiscoverMapLazy = dynamic(
   () => import("@/components/party/discover-map").then((m) => m.DiscoverMap),
@@ -122,6 +124,31 @@ function buildClassicDiscoverHref(): string {
   return q ? `/discover?${q}` : "/discover";
 }
 
+function discoverEventToPartyCardForHero(e: DiscoverEvent): PartyCard {
+  return {
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    starts_at: e.startsAt,
+    ends_at: e.endsAt,
+    max_guests: e.maxGuests,
+    contribution_cents: e.contributionCents,
+    public_lat: e.publicLat,
+    public_lng: e.publicLng,
+    is_external: e.isExternal,
+    external_link: e.externalLink,
+    vibe_label: e.vibeLabel,
+    spots_left: e.spotsLeft,
+    location_name: e.locationName,
+    music_genre: e.musicGenre,
+    category_slug: e.categorySlug,
+    category_label: e.categoryLabel,
+    event_scope: e.eventScope ?? undefined,
+    is_community: e.isCommunity,
+    hero_image_url: e.heroImageUrl,
+  };
+}
+
 export function DiscoverFeedV2({
   parties,
   avatarFallback,
@@ -147,6 +174,9 @@ export function DiscoverFeedV2({
     return initialView;
   });
   const [visibleCount, setVisibleCount] = useState(LOAD_MORE_STEP);
+  /** Pexels hero URLs loaded after first paint so discover SSR is not blocked. */
+  const [clientHeroUrls, setClientHeroUrls] = useState<Record<string, string>>({});
+  const heroImageRequestRef = useRef(new Set<string>());
 
   const todayKey = useMemo(() => berlinDayKeyFromIso(new Date().toISOString()), []);
 
@@ -239,6 +269,66 @@ export function DiscoverFeedV2({
   }, [parties]);
 
   useEffect(() => {
+    const missing = parties.filter(
+      (p) => !p.heroImageUrl && !clientHeroUrls[p.id] && !heroImageRequestRef.current.has(p.id),
+    );
+    const batch = missing.slice(0, 48);
+    if (!batch.length) return;
+
+    for (const p of batch) {
+      heroImageRequestRef.current.add(p.id);
+    }
+
+    const ac = new AbortController();
+    const releaseBatch = () => {
+      for (const p of batch) {
+        heroImageRequestRef.current.delete(p.id);
+      }
+    };
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/discover/hero-images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parties: batch.map(discoverEventToPartyCardForHero) }),
+          signal: ac.signal,
+        });
+        if (!res.ok) {
+          releaseBatch();
+          return;
+        }
+        const data = (await res.json()) as { ok?: boolean; heroes?: Record<string, string> };
+        const heroes = data.heroes;
+        if (!data.ok || !heroes) {
+          releaseBatch();
+          return;
+        }
+        setClientHeroUrls((prev) => {
+          const next = { ...prev };
+          let changed = false;
+          for (const [id, url] of Object.entries(heroes)) {
+            if (typeof url === "string" && url.length > 0 && next[id] !== url) {
+              next[id] = url;
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      } catch {
+        if (!ac.signal.aborted) {
+          releaseBatch();
+        }
+      }
+    })();
+
+    return () => {
+      ac.abort();
+      releaseBatch();
+    };
+  }, [parties, clientHeroUrls]);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(LOCAL_UPVOTED_EVENTS_KEY, JSON.stringify(upvotedPartyIds));
     } catch {
@@ -261,6 +351,13 @@ export function DiscoverFeedV2({
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.add("discover-v2-scroll-enhanced");
+    return () => {
+      document.documentElement.classList.remove("discover-v2-scroll-enhanced");
+    };
   }, []);
 
   useEffect(() => {
@@ -391,6 +488,32 @@ export function DiscoverFeedV2({
     }
     router.replace(`/discover?${params.toString()}`, { scroll: false });
   }, [likedOnly, router]);
+
+  const navigateBottomNavDiscover = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("ui", "new");
+    params.delete("liked");
+    params.delete("date");
+    params.delete("view");
+    router.replace(`/discover?${params.toString()}`, { scroll: false });
+    setViewMode("cards");
+    window.requestAnimationFrame(() => {
+      document.getElementById("events-feed-v2")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [router]);
+
+  const navigateBottomNavSaved = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("ui", "new");
+    params.set("liked", "1");
+    params.delete("date");
+    params.delete("view");
+    router.replace(`/discover?${params.toString()}`, { scroll: false });
+    setViewMode("cards");
+    window.requestAnimationFrame(() => {
+      document.getElementById("events-feed-v2")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [router]);
 
   /** Vollständiger Reset: lokaler State + URL (type, liked, date), Wochenfenster bleibt erhalten. */
   const resetDiscoverV2Filters = useCallback(() => {
@@ -642,7 +765,7 @@ export function DiscoverFeedV2({
         </div>
 
         <div
-          className="flex items-center gap-2.5 mt-4 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide"
+          className="flex snap-x snap-proximity scroll-pb-1 scroll-smooth items-center gap-2.5 mt-4 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 scrollbar-hide"
           role="tablist"
           aria-label="Kategorien"
         >
@@ -656,16 +779,16 @@ export function DiscoverFeedV2({
               }}
               role="tab"
               aria-selected={filter === item.id}
-              className={`flex min-h-[42px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 sm:min-h-[38px] ${
+              className={`snap-start shrink-0 flex min-h-[34px] items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
                 filter === item.id
-                  ? "bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_8px_24px_rgba(255,122,24,0.42)]"
+                  ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
                   : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
               }`}
             >
               <span>{item.label}</span>
               <span
-                className={`text-[11px] px-2 py-0.5 rounded-full leading-none tabular-nums ${
-                  filter === item.id ? "bg-[#2D1D10]/25 text-[#2D1D10]" : "bg-[#24201D] text-[#8C8178]"
+                className={`rounded-full px-1 py-0.5 text-[10px] leading-none tabular-nums sm:text-[11px] ${
+                  filter === item.id ? "bg-[#2D1D10]/20 text-[#2D1D10]" : "bg-[#24201D] text-[#8C8178]"
                 }`}
               >
                 {filterCounts[item.id]}
@@ -677,16 +800,16 @@ export function DiscoverFeedV2({
             onClick={() => toggleLikedFilter()}
             role="tab"
             aria-selected={likedOnly}
-            className={`flex min-h-[42px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 sm:min-h-[38px] ${
+            className={`snap-start shrink-0 flex min-h-[34px] items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
               likedOnly
-                ? "bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_8px_24px_rgba(255,122,24,0.42)]"
+                ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
                 : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
             }`}
           >
-            <Heart className={`w-3.5 h-3.5 shrink-0 ${likedOnly ? "fill-current" : ""}`} aria-hidden="true" />
+            <Heart className={`h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 ${likedOnly ? "fill-current" : ""}`} aria-hidden="true" />
             <span>Gespeichert</span>
             <span
-              className={`text-[11px] px-2 py-0.5 rounded-full leading-none tabular-nums ${likedOnly ? "bg-[#2D1D10]/25 text-[#2D1D10]" : "bg-[#24201D] text-[#8C8178]"}`}
+              className={`rounded-full px-1 py-0.5 text-[10px] leading-none tabular-nums sm:text-[11px] ${likedOnly ? "bg-[#2D1D10]/20 text-[#2D1D10]" : "bg-[#24201D] text-[#8C8178]"}`}
             >
               {savedCount}
             </span>
@@ -713,7 +836,7 @@ export function DiscoverFeedV2({
           viewMode === "map" || viewMode === "calendar"
             ? "space-y-3 px-4"
             : viewMode === "cards"
-              ? "space-y-4 px-0"
+              ? "space-y-3 px-0 sm:space-y-4"
               : "space-y-2 px-2.5"
         }
         role={viewMode === "map" || viewMode === "calendar" ? undefined : "feed"}
@@ -759,32 +882,35 @@ export function DiscoverFeedV2({
           )
         ) : visibleEvents.length > 0 ? (
           viewMode === "cards" ? (
-            visibleEvents.map((event) => (
-              <DiscoverEventCardV2
-                key={event.id}
-                event={event}
-                isHot={hotPartyIds.has(event.id)}
-                upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
-                upvotedByMe={upvotedPartyIds.includes(event.id)}
-                dateLabel={formatEventDate(event.startsAt)}
-                timeLabel={formatEventTime(event.startsAt)}
-                venueLabel={venueLabel(event)}
-                onUpvote={() => void handleUpvote(event.id)}
-              />
+            visibleEvents.map((event, index) => (
+              <DiscoverFeedScrollItem key={event.id} variant="card" scrollSnap>
+                <DiscoverEventCardV2
+                  event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
+                  imagePriority={index < 4}
+                  isHot={hotPartyIds.has(event.id)}
+                  upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
+                  upvotedByMe={upvotedPartyIds.includes(event.id)}
+                  dateLabel={formatEventDate(event.startsAt)}
+                  timeLabel={formatEventTime(event.startsAt)}
+                  venueLabel={venueLabel(event)}
+                  onUpvote={() => void handleUpvote(event.id)}
+                />
+              </DiscoverFeedScrollItem>
             ))
           ) : (
             visibleEvents.map((event) => (
-              <DiscoverEventListItemV2
-                key={event.id}
-                event={event}
-                isHot={hotPartyIds.has(event.id)}
-                upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
-                upvotedByMe={upvotedPartyIds.includes(event.id)}
-                dateLabel={formatEventDate(event.startsAt)}
-                timeLabel={formatEventTime(event.startsAt)}
-                venueLabel={venueLabel(event)}
-                onUpvote={() => void handleUpvote(event.id)}
-              />
+              <DiscoverFeedScrollItem key={event.id} variant="list">
+                <DiscoverEventListItemV2
+                  event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
+                  isHot={hotPartyIds.has(event.id)}
+                  upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
+                  upvotedByMe={upvotedPartyIds.includes(event.id)}
+                  dateLabel={formatEventDate(event.startsAt)}
+                  timeLabel={formatEventTime(event.startsAt)}
+                  venueLabel={venueLabel(event)}
+                  onUpvote={() => void handleUpvote(event.id)}
+                />
+              </DiscoverFeedScrollItem>
             ))
           )
         ) : (
@@ -832,14 +958,9 @@ export function DiscoverFeedV2({
       </main>
 
       <DiscoverBottomNavV2
-        activeTab={viewMode === "map" ? "map" : "discover"}
-        onSelectDiscover={() => {
-          setViewMode("cards");
-          window.requestAnimationFrame(() => {
-            document.getElementById("events-feed-v2")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          });
-        }}
-        onSelectMap={() => setViewMode("map")}
+        activeTab={likedOnly ? "saved" : "discover"}
+        onSelectDiscover={navigateBottomNavDiscover}
+        onSelectSaved={navigateBottomNavSaved}
       />
     </div>
   );

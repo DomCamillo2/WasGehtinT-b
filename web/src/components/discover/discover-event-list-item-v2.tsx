@@ -32,7 +32,7 @@ export function DiscoverEventListItemV2({
   const initial = (event.title?.trim().charAt(0) ?? "?").toUpperCase();
   const partnerLogo = resolveDiscoverVenuePartnerLogo(event);
   const hasHeroImage = typeof event.heroImageUrl === "string" && event.heroImageUrl.length > 0;
-  const mediaSrc = event.heroImageUrl ?? partnerLogo?.src ?? null;
+  const mediaSrc = event.heroImageUrl ?? null;
   const mediaAlt = hasHeroImage ? `Eventbild für ${event.title}` : "";
   const [mediaFailed, setMediaFailed] = useState(false);
   const showMedia = Boolean(mediaSrc && !mediaFailed);

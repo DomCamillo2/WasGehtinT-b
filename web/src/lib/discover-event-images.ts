@@ -3,7 +3,8 @@ import type { PartyCard } from "@/lib/types";
 
 const PEXELS_ENDPOINT = "https://api.pexels.com/v1/search";
 const IMAGE_REVALIDATE_SECONDS = 60 * 60 * 24 * 14; // 14 days
-const MAX_LOOKUPS_PER_PAGE = 16;
+/** Max distinct Pexels queries per request (deduped). API route may use a higher cap than legacy SSR. */
+export const MAX_DISCOVER_HERO_LOOKUPS_DEFAULT = 40;
 
 type PexelsResponse = {
   photos?: Array<{
@@ -21,12 +22,14 @@ function normalizePexelsImageUrl(input: string | null | undefined): string | nul
   try {
     const url = new URL(input);
     if (url.hostname !== "images.pexels.com") return input;
+    // Some feeds return http URLs; force https so Next/Image remote rules and browsers accept them consistently.
+    url.protocol = "https:";
     // Prefer deterministic 16:9 crops and compressed payloads for stable card rendering.
     url.searchParams.set("auto", "compress");
     url.searchParams.set("cs", "tinysrgb");
     url.searchParams.set("fit", "crop");
-    url.searchParams.set("w", "1600");
-    url.searchParams.set("h", "900");
+    url.searchParams.set("w", "960");
+    url.searchParams.set("h", "540");
     return url.toString();
   } catch {
     return input;
@@ -84,12 +87,18 @@ const fetchPexelsLandscapeImageCached = unstable_cache(
 );
 
 /**
- * Enriches discover parties with a hero image URL.
- * Uses Pexels (if PEXELS_API_KEY exists) and caches by normalized query.
+ * Resolves hero image URLs for parties (Pexels + unstable_cache by query).
+ * Does not mutate input; safe from route handlers after first paint.
  */
-export async function enrichPartiesWithDiscoverHeroImages(parties: PartyCard[]): Promise<PartyCard[]> {
-  if (!parties.length) return parties;
-  if (!process.env.PEXELS_API_KEY) return parties;
+export async function resolveDiscoverHeroImagesForParties(
+  parties: PartyCard[],
+  maxLookups: number = MAX_DISCOVER_HERO_LOOKUPS_DEFAULT,
+): Promise<Record<string, string | null>> {
+  const out: Record<string, string | null> = {};
+  if (!parties.length || !process.env.PEXELS_API_KEY) {
+    for (const p of parties) out[p.id] = p.hero_image_url ?? null;
+    return out;
+  }
 
   const queryByPartyId = new Map<string, string>();
   for (const party of parties) {
@@ -97,7 +106,7 @@ export async function enrichPartiesWithDiscoverHeroImages(parties: PartyCard[]):
   }
 
   const uniqueQueries = Array.from(new Set(Array.from(queryByPartyId.values()))).filter(Boolean);
-  const limitedQueries = uniqueQueries.slice(0, MAX_LOOKUPS_PER_PAGE);
+  const limitedQueries = uniqueQueries.slice(0, Math.max(0, maxLookups));
   const imageByQuery = new Map<string, string | null>();
 
   await Promise.all(
@@ -107,12 +116,22 @@ export async function enrichPartiesWithDiscoverHeroImages(parties: PartyCard[]):
     }),
   );
 
-  return parties.map((party) => {
+  for (const party of parties) {
     const query = queryByPartyId.get(party.id) ?? "";
     const hero = imageByQuery.get(query) ?? null;
-    return {
-      ...party,
-      hero_image_url: hero ?? party.hero_image_url ?? null,
-    };
-  });
+    out[party.id] = hero ?? party.hero_image_url ?? null;
+  }
+  return out;
+}
+
+/**
+ * @deprecated Prefer client `/api/discover/hero-images` + `resolveDiscoverHeroImagesForParties` so discover SSR is not blocked by Pexels.
+ */
+export async function enrichPartiesWithDiscoverHeroImages(parties: PartyCard[]): Promise<PartyCard[]> {
+  if (!parties.length) return parties;
+  const map = await resolveDiscoverHeroImagesForParties(parties, MAX_DISCOVER_HERO_LOOKUPS_DEFAULT);
+  return parties.map((party) => ({
+    ...party,
+    hero_image_url: map[party.id] ?? party.hero_image_url ?? null,
+  }));
 }
