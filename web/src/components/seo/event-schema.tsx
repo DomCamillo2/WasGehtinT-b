@@ -11,6 +11,11 @@ type Props = {
   externalLink?: string | null;
   priceInfo?: string | null;
   musicGenre?: string | null;
+  /** WGS84 — enables richer Google event rich results when set. */
+  latitude?: number | null;
+  longitude?: number | null;
+  /** Absolute image URL for this event (Open Graph / rich results). */
+  eventImageUrl?: string | null;
 };
 
 const SITE_IMAGE = `${SITE_URL}/Logo.png`;
@@ -56,6 +61,9 @@ export function EventSchema({
   externalLink,
   priceInfo,
   musicGenre,
+  latitude,
+  longitude,
+  eventImageUrl,
 }: Props) {
   const offerUrl = externalLink ?? url;
   const price = extractPrice(priceInfo);
@@ -71,6 +79,12 @@ export function EventSchema({
       : {}),
   };
 
+  const hasGeo =
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "Event",
@@ -78,12 +92,21 @@ export function EventSchema({
     startDate,
     endDate: endDate ?? startDate,
     description,
-    image: SITE_IMAGE,
+    image: eventImageUrl && eventImageUrl.startsWith("http") ? eventImageUrl : SITE_IMAGE,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     eventStatus: "https://schema.org/EventScheduled",
     location: {
       "@type": "Place",
       name: location,
+      ...(hasGeo
+        ? {
+            geo: {
+              "@type": "GeoCoordinates",
+              latitude,
+              longitude,
+            },
+          }
+        : {}),
       address: {
         "@type": "PostalAddress",
         addressLocality: "Tübingen",

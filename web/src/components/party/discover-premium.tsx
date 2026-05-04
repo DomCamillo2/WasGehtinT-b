@@ -328,10 +328,16 @@ export function DiscoverPremium({
           ? Array.from(new Set([...current, eventId]))
           : current.filter((id) => id !== eventId),
       );
-      setUpvoteCounts((current) => ({
-        ...current,
-        [eventId]: Math.max(0, Number(data.upvoteCount ?? 0)),
-      }));
+      // Keep optimistic count: API `upvoteCount` is raw DB rows; Discover uses modeled baselines on SSR.
+      if (data.upvoted !== nextUpvoted) {
+        setUpvotedPartyIds((current) =>
+          wasUpvoted ? Array.from(new Set([...current, eventId])) : current.filter((id) => id !== eventId),
+        );
+        setUpvoteCounts((current) => ({
+          ...current,
+          [eventId]: Math.max(0, previousCount),
+        }));
+      }
     } catch (error) {
       setUpvotedPartyIds((current) =>
         wasUpvoted ? Array.from(new Set([...current, eventId])) : current.filter((id) => id !== eventId),

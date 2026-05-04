@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
     ],
+    formats: ["image/avif", "image/webp"],
+    /** Smaller breakpoints first so typical phones (~390–430px) avoid oversized 640px buckets when possible. */
+    deviceSizes: [384, 420, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24,
   },
   outputFileTracingIncludes: {
     "/api/cron/scrape": [

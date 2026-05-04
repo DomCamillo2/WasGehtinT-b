@@ -79,6 +79,10 @@ export default function RootLayout({
     >
       <head>
         <ThemeInitScript />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://images.pexels.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://images.pexels.com" />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <ToastProvider>

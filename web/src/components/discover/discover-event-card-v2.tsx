@@ -118,8 +118,9 @@ export function DiscoverEventCardV2({
               src={mediaSrc}
               alt={mediaAlt}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, min(1200px, 100vw)"
+              sizes="(max-width: 767px) min(100vw, 448px), (max-width: 1279px) min(50vw, 720px), min(720px, 40vw)"
               priority={imagePriority}
+              quality={imagePriority ? 80 : 68}
               className={
                 hasHeroImage
                   ? "object-cover object-center saturate-125 contrast-110 brightness-95"
@@ -134,11 +135,8 @@ export function DiscoverEventCardV2({
           )}
         </div>
         <div
-          className="absolute inset-0 z-[2]"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(12,10,9,0.95) 0%, rgba(12,10,9,0.55) 45%, rgba(12,10,9,0.1) 100%)",
-          }}
+          className="absolute inset-0 z-[2] max-sm:bg-[linear-gradient(to_top,rgba(10,8,7,0.97)_0%,rgba(12,10,9,0.72)_38%,rgba(12,10,9,0.22)_72%,rgba(12,10,9,0.05)_100%)] sm:[background:linear-gradient(to_top,rgba(12,10,9,0.95)_0%,rgba(12,10,9,0.55)_45%,rgba(12,10,9,0.1)_100%)]"
+          aria-hidden="true"
         />
         <div
           className="absolute bottom-0 left-0 right-0 z-[2] max-sm:h-14 sm:h-[96px]"
@@ -159,7 +157,7 @@ export function DiscoverEventCardV2({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] px-3 pb-3 pt-1 sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="pointer-events-none flex min-w-0 flex-1 flex-col gap-2 sm:gap-2">
-              <h3 className="min-w-0 text-base font-semibold leading-snug tracking-tight text-white drop-shadow-sm line-clamp-2 sm:text-2xl sm:leading-snug">
+              <h3 className="min-w-0 text-base font-semibold leading-snug tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.85),0_2px_12px_rgba(0,0,0,0.45)] line-clamp-2 sm:text-2xl sm:leading-snug sm:drop-shadow-sm sm:[text-shadow:none]">
                 {event.title}
               </h3>
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">

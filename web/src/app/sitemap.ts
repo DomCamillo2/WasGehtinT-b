@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getCommunityHangoutsForDiscover, getExternalEvents, getPublicParties } from "@/lib/data";
 import { SITE_URL } from "@/lib/site-config";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
+import { listVenueSlugs } from "@/lib/venues-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "hourly",
       priority: 0.95,
     },
+    ...listVenueSlugs().map((slug) => ({
+      url: `${SITE_URL}/venues/${slug}`,
+      changeFrequency: "daily" as const,
+      priority: 0.75,
+    })),
     {
       url: `${SITE_URL}/feedback`,
       changeFrequency: "monthly",

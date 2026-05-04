@@ -605,7 +605,8 @@ html.discover-ui-new body::before {
   .discover-ui-v2 .discover-feed-scroll-snap {
     scroll-snap-align: start;
     scroll-snap-stop: normal;
-    scroll-margin-top: 0.35rem;
+    /* Keep card tops clear of the chrome + snap inset (header is non-sticky on xs). */
+    scroll-margin-top: max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.5rem));
     scroll-margin-bottom: 0.5rem;
   }
 

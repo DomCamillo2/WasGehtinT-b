@@ -1,13 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
   CalendarDays,
+  ChevronUp,
   Download,
   Flame,
   Heart,
@@ -15,12 +16,13 @@ import {
   List,
   Loader2,
   MapPin,
+  MoreHorizontal,
   Search,
   SlidersHorizontal,
   User,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast-provider";
-import { berlinDayKeyFromIso } from "@/lib/discover-calendar";
+import { berlinDayKeyFromIso, discoverFeedSectionForEvent } from "@/lib/discover-calendar";
 import {
   type DiscoverFilterKey,
   filterDiscoverEvents,
@@ -35,7 +37,6 @@ import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { SITE_LOGO_SRC } from "@/lib/site-config";
 import { togglePartyUpvote } from "@/services/events/upvotes-service";
 import { DiscoverBottomNavV2 } from "./discover-bottom-nav-v2";
-import { DiscoverCalendarPanelV2 } from "./discover-calendar-panel-v2";
 import { DiscoverEventCardV2 } from "./discover-event-card-v2";
 import { DiscoverEventListItemV2 } from "./discover-event-list-item-v2";
 import { DiscoverFeedScrollItem } from "./discover-feed-scroll-item";
@@ -43,6 +44,23 @@ import { DiscoverFeedScrollItem } from "./discover-feed-scroll-item";
 const DiscoverMapLazy = dynamic(
   () => import("@/components/party/discover-map").then((m) => m.DiscoverMap),
   { ssr: false },
+);
+
+const DiscoverCalendarPanelLazy = dynamic(
+  () => import("./discover-calendar-panel-v2").then((m) => ({ default: m.DiscoverCalendarPanelV2 })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex min-h-[14rem] items-center justify-center rounded-2xl border border-[#2a221d] bg-[#17120f]"
+        role="status"
+        aria-live="polite"
+        aria-label="Kalender wird geladen"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-primary/80" aria-hidden="true" />
+      </div>
+    ),
+  },
 );
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
@@ -174,6 +192,8 @@ export function DiscoverFeedV2({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const weeksSentinelRef = useRef<HTMLDivElement | null>(null);
   const [headerCompact, setHeaderCompact] = useState(false);
+  const [viewExtrasOpen, setViewExtrasOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
     const raw = searchParams.get("view");
@@ -244,7 +264,11 @@ export function DiscoverFeedV2({
   }, [searchQuery]);
 
   useEffect(() => {
-    const onScroll = () => setHeaderCompact(window.scrollY > 96);
+    const onScroll = () => {
+      const y = window.scrollY;
+      setHeaderCompact(y > 96);
+      setShowScrollTop(y > 360);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -497,6 +521,40 @@ export function DiscoverFeedV2({
     [searchFiltered, visibleCount],
   );
 
+  /** Berlin week sections — reduces scroll fatigue vs one endless list (mobile UX). */
+  const discoverGroupedSections = useMemo(() => {
+    const order: string[] = [];
+    const map = new Map<string, { label: string; events: DiscoverEvent[] }>();
+    for (const event of visibleEvents) {
+      const { sectionKey, label } = discoverFeedSectionForEvent(event.startsAt, todayKey);
+      const bucket = map.get(sectionKey);
+      if (!bucket) {
+        map.set(sectionKey, { label, events: [event] });
+        order.push(sectionKey);
+      } else {
+        bucket.events.push(event);
+      }
+    }
+    return order.map((key) => {
+      const b = map.get(key)!;
+      return { sectionKey: key, label: b.label, events: b.events };
+    });
+  }, [visibleEvents, todayKey]);
+
+  /** First four cards in the feed (across week sections) get image priority for LCP. */
+  const discoverGroupedWithCardPriority = useMemo(() => {
+    let idx = 0;
+    return discoverGroupedSections.map((section) => ({
+      sectionKey: section.sectionKey,
+      label: section.label,
+      events: section.events.map((event) => {
+        const imagePriority = idx < 4;
+        idx += 1;
+        return { event, imagePriority };
+      }),
+    }));
+  }, [discoverGroupedSections]);
+
   const hasMoreVisible = searchFiltered.length > visibleCount;
 
   useEffect(() => {
@@ -636,7 +694,16 @@ export function DiscoverFeedV2({
 
       try {
         const result = await togglePartyUpvote(eventId, nextUpvoted);
-        setUpvoteCounts((c) => ({ ...c, [eventId]: Math.max(0, result.upvoteCount) }));
+        // Do not replace the displayed count with `result.upvoteCount`: that value is the raw
+        // `event_upvotes` row count. Discover SSR applies traffic-based baselines (see
+        // `applyTrafficBasedUpvoteEstimates`), so overwriting would collapse e.g. "78 dabei" → "2 dabei".
+        // Optimistic (+1 / -1) above already matches the user's action on that baseline.
+        if (result.upvoted !== nextUpvoted) {
+          setUpvotedPartyIds((c) =>
+            nextUpvoted ? c.filter((id) => id !== eventId) : Array.from(new Set([...c, eventId])),
+          );
+          setUpvoteCounts((c) => ({ ...c, [eventId]: previousCount }));
+        }
       } catch (error) {
         setUpvotedPartyIds((c) =>
           nextUpvoted ? c.filter((id) => id !== eventId) : Array.from(new Set([...c, eventId])),
@@ -708,16 +775,16 @@ export function DiscoverFeedV2({
       </a>
 
       <header
-        className={`discover-header-glass sticky top-0 z-40 px-4 backdrop-blur-md backdrop-saturate-150 motion-safe:transition-[padding] motion-safe:duration-200 ${
-          headerCompact ? "pb-2" : "pb-4"
+        className={`discover-header-glass relative z-40 border-b border-[#2a2623]/85 bg-[#0f0b08]/97 px-3 shadow-[0_12px_32px_-22px_rgba(0,0,0,0.55)] backdrop-blur-md backdrop-saturate-150 motion-safe:transition-[padding] motion-safe:duration-200 sm:sticky sm:top-0 sm:px-4 ${
+          headerCompact ? "pb-2 sm:pb-2" : "pb-3 sm:pb-4"
         }`}
         style={{
-          paddingTop: "max(12px, env(safe-area-inset-top, 0px))",
-          background:
-            "linear-gradient(to bottom, rgba(15,11,8,0.72), rgba(15,11,8,0.4), rgba(15,11,8,0))",
+          paddingTop: "max(8px, env(safe-area-inset-top, 0px))",
         }}
       >
-        <div className={`flex items-center justify-between motion-safe:transition-[margin] motion-safe:duration-200 ${headerCompact ? "mb-2" : "mb-4"}`}>
+        <div
+          className={`flex items-center justify-between motion-safe:transition-[margin] motion-safe:duration-200 ${headerCompact ? "mb-2 sm:mb-2" : "mb-2.5 sm:mb-4"}`}
+        >
           <div className="min-w-0">
             <h1 className="sr-only">WasGehtTüb – Events entdecken</h1>
             <div aria-hidden="true" className="flex items-center gap-2">
@@ -726,8 +793,8 @@ export function DiscoverFeedV2({
                 alt=""
                 width={120}
                 height={120}
-                className={`object-contain motion-safe:transition-[width,height] motion-safe:duration-200 ${
-                  headerCompact ? "h-9 w-9 sm:h-12 sm:w-12" : "h-11 w-11 sm:h-14 sm:w-14"
+                className={`object-contain motion-safe:transition-[width,height] motion-safe:duration-200 max-sm:h-9 max-sm:w-9 ${
+                  headerCompact ? "h-9 w-9 sm:h-12 sm:w-12" : "h-10 w-10 sm:h-14 sm:w-14"
                 }`}
                 priority
               />
@@ -743,7 +810,7 @@ export function DiscoverFeedV2({
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {!installDismissed && !isStandaloneDisplay ? (
               <button
                 type="button"
@@ -752,7 +819,7 @@ export function DiscoverFeedV2({
                   event.preventDefault();
                   dismissInstallHint();
                 }}
-                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-3 text-xs font-semibold text-[#E9DFD6] transition-colors hover:bg-[#221d1a]"
+                className="relative inline-flex min-h-[40px] min-w-[40px] items-center justify-center gap-1 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-2.5 text-xs font-semibold text-[#E9DFD6] transition-colors hover:bg-[#221d1a] sm:min-h-[44px] sm:min-w-[44px] sm:gap-1.5 sm:px-3"
                 aria-label="App installieren"
                 title="App installieren (Rechtsklick/Langdruck zum Ausblenden)"
               >
@@ -769,14 +836,14 @@ export function DiscoverFeedV2({
                   message: "Push-Updates sind noch in Arbeit — nutze „Ich bin dabei!“, damit du Events schnell wiederfindest.",
                 })
               }
-              className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-[#1A1715]/90 hover:bg-[#221d1a] transition-colors border border-[#2B2623]"
+              className="relative flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 transition-colors hover:bg-[#221d1a] sm:min-h-[44px] sm:min-w-[44px]"
               aria-label="Infos zu Benachrichtigungen"
             >
               <Bell className="w-5 h-5 text-[#A69A91]" aria-hidden="true" />
             </button>
             <Link
               href={isAuthenticated ? "/profile" : "/auth"}
-              className="relative min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="relative flex min-h-[40px] min-w-[40px] items-center justify-center sm:min-h-[44px] sm:min-w-[44px]"
               aria-label={isAuthenticated ? "Profil" : "Anmelden"}
             >
               {isAuthenticated ? (
@@ -798,9 +865,9 @@ export function DiscoverFeedV2({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex-1 min-w-[min(100%,12rem)] flex items-center gap-3 px-4 py-3 bg-[#141210]/90 border border-[#2A2521] rounded-xl transition-all duration-200 focus-within:bg-[#1b1714] focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20">
-            <Search className="w-4 h-4 text-[#8C8178] flex-shrink-0" aria-hidden="true" />
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-[#2A2521] bg-[#141210]/90 px-3 py-2.5 transition-all duration-200 focus-within:bg-[#1b1714] focus-within:ring-2 focus-within:ring-primary/20 focus-within:ring-offset-0 focus-within:ring-offset-[#0f0b08] sm:gap-3 sm:px-4 sm:py-3">
+            <Search className="h-4 w-4 flex-shrink-0 text-[#8C8178]" aria-hidden="true" />
             <input
               ref={searchInputRef}
               type="search"
@@ -809,89 +876,135 @@ export function DiscoverFeedV2({
               placeholder="Events oder Locations suchen…"
               aria-label="Events suchen"
               id="discover-v2-search"
-              className="flex-1 bg-transparent text-sm text-[#E9DFD6] placeholder:text-[#6F655D] focus:outline-none min-w-0"
+              className="min-w-0 flex-1 bg-transparent text-sm text-[#E9DFD6] placeholder:text-[#6F655D] focus:outline-none"
             />
             {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="text-[#8C8178] hover:text-[#E9DFD6] text-xs shrink-0"
+                className="shrink-0 text-xs text-[#8C8178] hover:text-[#E9DFD6]"
               >
                 Leeren
               </button>
             ) : null}
           </div>
-          <div className="flex items-center bg-[#1A1715]/90 border border-[#2B2623] rounded-xl p-1" role="group" aria-label="Ansicht">
-            <button
-              type="button"
-              onClick={() => setViewMode("cards")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
-                viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
-              }`}
-              aria-label="Kartenansicht"
-              aria-pressed={viewMode === "cards"}
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+            {/* Mobile: cards + list + overflow for Kalender/Karte (saves horizontal chrome). */}
+            <div
+              className="flex items-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 p-0.5 sm:hidden"
+              role="group"
+              aria-label="Ansicht"
             >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
-                viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
-              }`}
-              aria-label="Listenansicht"
-              aria-pressed={viewMode === "list"}
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 ${
+                  viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
+                }`}
+                aria-label="Kartenansicht"
+                aria-pressed={viewMode === "cards"}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 ${
+                  viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
+                }`}
+                aria-label="Listenansicht"
+                aria-pressed={viewMode === "list"}
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewExtrasOpen(true)}
+                className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 ${
+                  viewMode === "calendar" || viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
+                }`}
+                aria-label="Weitere Ansichten: Kalender und Karte"
+                aria-expanded={viewExtrasOpen}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </div>
+            <div
+              className="hidden items-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 p-1 sm:flex"
+              role="group"
+              aria-label="Ansicht"
             >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("calendar")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
-                viewMode === "calendar" ? viewModeToggleActive : viewModeToggleInactive
-              }`}
-              aria-label="Kalender"
-              aria-pressed={viewMode === "calendar"}
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                  viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
+                }`}
+                aria-label="Kartenansicht"
+                aria-pressed={viewMode === "cards"}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                  viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
+                }`}
+                aria-label="Listenansicht"
+                aria-pressed={viewMode === "list"}
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                  viewMode === "calendar" ? viewModeToggleActive : viewModeToggleInactive
+                }`}
+                aria-label="Kalender"
+                aria-pressed={viewMode === "calendar"}
+              >
+                <CalendarDays className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("map")}
+                className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                  viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
+                }`}
+                aria-label="Karte"
+                aria-pressed={viewMode === "map"}
+              >
+                <MapPin className="h-4 w-4" />
+              </button>
+            </div>
+            <Link
+              href={buildClassicDiscoverHref()}
+              className="hidden min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:flex sm:min-h-[44px] sm:min-w-[44px]"
+              aria-label="Klassische Discover-Ansicht mit erweiterten Filtern öffnen"
             >
-              <CalendarDays className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("map")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
-                viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
-              }`}
-              aria-label="Karte"
-              aria-pressed={viewMode === "map"}
-            >
-              <MapPin className="w-4 h-4" />
-            </button>
+              <SlidersHorizontal className="h-5 w-5" />
+            </Link>
           </div>
-          <button
-            type="button"
-            onClick={() => setFilterSheetOpen(true)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:hidden"
-            aria-label="Mehr Filter und klassische Ansicht"
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-          </button>
-          <Link
-            href={buildClassicDiscoverHref()}
-            className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:flex"
-            aria-label="Klassische Discover-Ansicht mit erweiterten Filtern öffnen"
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-          </Link>
         </div>
 
         <div
-          className={`flex snap-x snap-proximity scroll-pb-1 scroll-smooth items-center gap-2.5 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 scrollbar-hide motion-safe:transition-[margin] motion-safe:duration-200 ${
-            headerCompact ? "mt-2" : "mt-4"
+          className={`scrollbar-hide flex snap-x snap-proximity scroll-smooth items-center gap-2 overflow-x-auto overscroll-x-contain scroll-pb-1 pb-2 pt-1 motion-safe:transition-[margin] motion-safe:duration-200 ${
+            headerCompact ? "mt-2 sm:mt-2" : "mt-2.5 sm:mt-4"
           }`}
           role="tablist"
           aria-label="Kategorien"
         >
-          {filterItems.map((item, i) => (
+          <button
+            type="button"
+            onClick={() => setFilterSheetOpen(true)}
+            className="snap-start flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-colors hover:border-primary/40 hover:text-primary sm:hidden"
+            aria-label="Mehr Filter und klassische Ansicht"
+          >
+            <SlidersHorizontal className="h-5 w-5" />
+          </button>
+          {filterItems.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -901,7 +1014,7 @@ export function DiscoverFeedV2({
               }}
               role="tab"
               aria-selected={filter === item.id}
-              className={`snap-start shrink-0 flex min-h-[44px] items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
+              className={`snap-start flex min-h-[40px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 max-sm:py-1.5 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
                 filter === item.id
                   ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
                   : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
@@ -922,7 +1035,7 @@ export function DiscoverFeedV2({
             onClick={() => toggleLikedFilter()}
             role="tab"
             aria-selected={likedOnly}
-            className={`snap-start shrink-0 flex min-h-[44px] items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
+            className={`snap-start flex min-h-[40px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 max-sm:py-1.5 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
               likedOnly
                 ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
                 : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
@@ -958,8 +1071,8 @@ export function DiscoverFeedV2({
           viewMode === "map" || viewMode === "calendar"
             ? "space-y-3 px-4"
             : viewMode === "cards"
-              ? "px-0"
-              : "px-2.5"
+              ? "px-0 pt-3 max-sm:pt-5"
+              : "px-2.5 pt-2 max-sm:pt-4"
         }
         role={viewMode === "map" || viewMode === "calendar" ? undefined : "feed"}
         aria-label={
@@ -967,7 +1080,7 @@ export function DiscoverFeedV2({
         }
       >
         {viewMode === "calendar" ? (
-          <DiscoverCalendarPanelV2
+          <DiscoverCalendarPanelLazy
             events={searchFiltered}
             todayKey={todayKey}
             selectedDate={calendarDate}
@@ -1005,37 +1118,55 @@ export function DiscoverFeedV2({
         ) : visibleEvents.length > 0 ? (
           viewMode === "cards" ? (
             <div className="grid min-w-0 grid-cols-1 gap-4 max-sm:px-3 md:grid-cols-2 md:gap-4 md:px-0 md:max-w-[min(100%,80rem)] md:mx-auto">
-              {visibleEvents.map((event, index) => (
-                <DiscoverFeedScrollItem key={event.id} variant="card" scrollSnap>
-                  <DiscoverEventCardV2
-                    event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
-                    imagePriority={index < 4}
-                    isHot={hotPartyIds.has(event.id)}
-                    upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
-                    upvotedByMe={upvotedPartyIds.includes(event.id)}
-                    dateLabel={formatEventDate(event.startsAt)}
-                    timeLabel={formatEventTime(event.startsAt)}
-                    venueLabel={venueLabel(event)}
-                    onUpvote={() => void handleUpvote(event.id)}
-                  />
-                </DiscoverFeedScrollItem>
+              {discoverGroupedWithCardPriority.map((section) => (
+                <Fragment key={section.sectionKey}>
+                  <div className="col-span-full px-0 pt-1 md:col-span-2">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-[#8C8178] sm:text-sm sm:normal-case sm:tracking-normal sm:text-[#c9bfb6]">
+                      {section.label}
+                    </h2>
+                  </div>
+                  {section.events.map(({ event, imagePriority }) => (
+                    <DiscoverFeedScrollItem key={event.id} variant="card" scrollSnap>
+                      <DiscoverEventCardV2
+                        event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
+                        imagePriority={imagePriority}
+                        isHot={hotPartyIds.has(event.id)}
+                        upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
+                        upvotedByMe={upvotedPartyIds.includes(event.id)}
+                        dateLabel={formatEventDate(event.startsAt)}
+                        timeLabel={formatEventTime(event.startsAt)}
+                        venueLabel={venueLabel(event)}
+                        onUpvote={() => void handleUpvote(event.id)}
+                      />
+                    </DiscoverFeedScrollItem>
+                  ))}
+                </Fragment>
               ))}
             </div>
           ) : (
             <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 md:gap-3 md:max-w-[min(100%,80rem)] md:mx-auto">
-              {visibleEvents.map((event) => (
-                <DiscoverFeedScrollItem key={event.id} variant="list">
-                  <DiscoverEventListItemV2
-                    event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
-                    isHot={hotPartyIds.has(event.id)}
-                    upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
-                    upvotedByMe={upvotedPartyIds.includes(event.id)}
-                    dateLabel={formatEventDate(event.startsAt)}
-                    timeLabel={formatEventTime(event.startsAt)}
-                    venueLabel={venueLabel(event)}
-                    onUpvote={() => void handleUpvote(event.id)}
-                  />
-                </DiscoverFeedScrollItem>
+              {discoverGroupedSections.map((section) => (
+                <Fragment key={section.sectionKey}>
+                  <div className="col-span-full px-1 pt-1 md:col-span-2 md:px-0">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-[#8C8178] sm:text-sm sm:normal-case sm:tracking-normal sm:text-[#c9bfb6]">
+                      {section.label}
+                    </h2>
+                  </div>
+                  {section.events.map((event) => (
+                    <DiscoverFeedScrollItem key={event.id} variant="list">
+                      <DiscoverEventListItemV2
+                        event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
+                        isHot={hotPartyIds.has(event.id)}
+                        upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
+                        upvotedByMe={upvotedPartyIds.includes(event.id)}
+                        dateLabel={formatEventDate(event.startsAt)}
+                        timeLabel={formatEventTime(event.startsAt)}
+                        venueLabel={venueLabel(event)}
+                        onUpvote={() => void handleUpvote(event.id)}
+                      />
+                    </DiscoverFeedScrollItem>
+                  ))}
+                </Fragment>
               ))}
             </div>
           )
@@ -1119,6 +1250,17 @@ export function DiscoverFeedV2({
       </main>
       </div>
 
+      {showScrollTop ? (
+        <button
+          type="button"
+          className="fixed bottom-[7.25rem] left-4 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/95 text-[#E9DFD6] shadow-lg backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:hidden"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Nach oben scrollen"
+        >
+          <ChevronUp className="h-5 w-5" aria-hidden="true" />
+        </button>
+      ) : null}
+
       <button
         type="button"
         className="fixed bottom-[7.25rem] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/95 text-[#E9DFD6] shadow-lg backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:hidden"
@@ -1160,6 +1302,68 @@ export function DiscoverFeedV2({
               type="button"
               className="mt-3 w-full min-h-[44px] rounded-xl border border-[#2B2623] bg-[#1A1715]/90 py-3 text-sm font-medium text-[#E9DFD6]"
               onClick={() => setFilterSheetOpen(false)}
+            >
+              Schließen
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {viewExtrasOpen ? (
+        <div
+          className="fixed inset-0 z-[60] sm:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="discover-view-extras-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
+            aria-label="Schließen"
+            onClick={() => setViewExtrasOpen(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-[#2B2623] bg-[#141210] p-4 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#3a312b]" aria-hidden="true" />
+            <h2 id="discover-view-extras-title" className="text-base font-semibold text-[#f2ece6]">
+              Weitere Ansichten
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#a89b90]">
+              Kalender oder Karte für Übersicht — ohne die Schnellwahl oben zu überladen.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode("calendar");
+                setViewExtrasOpen(false);
+              }}
+              className={`mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors ${
+                viewMode === "calendar"
+                  ? "bg-[#ff7a18] text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
+                  : "border border-[#2B2623] bg-[#1A1715]/90 text-[#E9DFD6] hover:border-primary/40"
+              }`}
+            >
+              <CalendarDays className="h-5 w-5 shrink-0" aria-hidden="true" />
+              Kalender
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode("map");
+                setViewExtrasOpen(false);
+              }}
+              className={`mt-2 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors ${
+                viewMode === "map"
+                  ? "bg-[#ff7a18] text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
+                  : "border border-[#2B2623] bg-[#1A1715]/90 text-[#E9DFD6] hover:border-primary/40"
+              }`}
+            >
+              <MapPin className="h-5 w-5 shrink-0" aria-hidden="true" />
+              Karte
+            </button>
+            <button
+              type="button"
+              className="mt-3 w-full min-h-[44px] rounded-xl border border-[#2B2623] bg-transparent py-3 text-sm font-medium text-[#a89b90]"
+              onClick={() => setViewExtrasOpen(false)}
             >
               Schließen
             </button>

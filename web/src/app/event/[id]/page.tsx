@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { CalendarDays, Clock3, ExternalLink, MapPin, Tag } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { EventSchema } from "@/components/seo/event-schema";
-import { SITE_NAME, absoluteUrl } from "@/lib/site-config";
+import { buildEventDetailMetadata } from "@/lib/event-seo-metadata";
+import { absoluteUrl } from "@/lib/site-config";
+import { resolveVenueSlugFromSource } from "@/lib/venues-catalog";
 import { loadExternalEventPageData } from "@/services/events/external-event-page-service";
 
 export async function generateMetadata({
@@ -25,27 +27,7 @@ export async function generateMetadata({
     };
   }
 
-  const canonicalUrl = absoluteUrl(`/event/${event.id}`);
-  const seoTitle = `${event.title} im ${event.clubName} | ${SITE_NAME}`;
-
-  return {
-    title: seoTitle,
-    description: event.seoDescription,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title: seoTitle,
-      description: event.seoDescription,
-      url: canonicalUrl,
-      type: "article",
-    },
-    twitter: {
-      card: "summary",
-      title: seoTitle,
-      description: event.seoDescription,
-    },
-  };
+  return buildEventDetailMetadata(event);
 }
 
 export default async function ExternalEventPage({
@@ -60,6 +42,13 @@ export default async function ExternalEventPage({
     notFound();
   }
 
+  const venueSlug = resolveVenueSlugFromSource({
+    location_name: event.locationName,
+    vibe_label: event.vibeLabel,
+    title: event.title,
+    external_link: event.externalLink,
+  });
+
   return (
     <AppShell theme="new" mainClassName="space-y-4">
       <EventSchema
@@ -73,15 +62,27 @@ export default async function ExternalEventPage({
         externalLink={event.externalLink}
         priceInfo={event.priceInfo}
         musicGenre={event.musicGenre}
+        latitude={event.publicLat}
+        longitude={event.publicLng}
       />
 
       <div className="space-y-3">
-        <Link
-          href="/discover"
-          className="inline-flex min-h-[38px] items-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-xs font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
-        >
-          Zurück zu Discover
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/discover"
+            className="inline-flex min-h-[38px] items-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-xs font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
+          >
+            Zurück zu Discover
+          </Link>
+          {venueSlug ? (
+            <Link
+              href={`/venues/${venueSlug}`}
+              className="inline-flex min-h-[38px] items-center rounded-full border border-[#ff7a18]/35 bg-[#1A1715]/90 px-4 py-2 text-xs font-semibold text-[#ff9a3f] transition-colors hover:border-[#ff7a18]/60 hover:text-white"
+            >
+              Weitere Termine: {event.clubName}
+            </Link>
+          ) : null}
+        </div>
 
         <section className="overflow-hidden rounded-[1.2rem] border border-[#2B2623] bg-[radial-gradient(120%_120%_at_90%_10%,rgba(255,122,24,0.2),transparent_45%),linear-gradient(180deg,#171310_0%,#120f0d_100%)] px-5 py-6 shadow-[0_14px_40px_-28px_rgba(255,122,24,0.55)]">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A69A91]">
