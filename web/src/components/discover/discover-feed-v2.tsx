@@ -197,6 +197,8 @@ export function DiscoverFeedV2({
   );
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installDismissed, setInstallDismissed] = useState(false);
+  /** Hide install CTA when already running as installed PWA (Chrome / Android / iOS standalone). */
+  const [isStandaloneDisplay, setIsStandaloneDisplay] = useState(false);
   const [weeksNavPending, setWeeksNavPending] = useState(false);
 
   const likedOnly = searchParams.get("liked") === "1";
@@ -378,7 +380,26 @@ export function DiscoverFeedV2({
       setInstallPromptEvent(event as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    const onAppInstalled = () => {
+      setInstallPromptEvent(null);
+    };
+    window.addEventListener("appinstalled", onAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(display-mode: standalone)");
+    const syncStandalone = () => {
+      const nav = window.navigator as Navigator & { standalone?: boolean };
+      setIsStandaloneDisplay(mq.matches === true || nav.standalone === true);
+    };
+    syncStandalone();
+    mq.addEventListener("change", syncStandalone);
+    return () => mq.removeEventListener("change", syncStandalone);
   }, []);
 
   useEffect(() => {
@@ -637,20 +658,36 @@ export function DiscoverFeedV2({
   }
 
   async function handleInstallApp() {
-    if (installPromptEvent) {
-      await installPromptEvent.prompt();
-      const choice = await installPromptEvent.userChoice;
-      if (choice.outcome === "accepted") {
+    const deferred = installPromptEvent;
+    if (deferred) {
+      try {
+        await deferred.prompt();
+        await deferred.userChoice;
+      } catch {
+        showToast({
+          variant: "info",
+          title: "App installieren",
+          message:
+            "Nutze das Browser-Menü (⋮ oder ☰) → „App installieren“ / „Installieren“. In Chromium oft auch das Computersymbol in der Adresszeile.",
+        });
+      } finally {
+        // Deferred prompt is one-shot; always clear so we never call prompt() twice on the same event.
         setInstallPromptEvent(null);
-        return;
       }
+      return;
     }
+
+    const isIOS =
+      typeof navigator !== "undefined" &&
+      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
     showToast({
       variant: "info",
       title: "App installieren",
-      message:
-        "Browser-Menü öffnen und „App installieren“ bzw. „Zum Startbildschirm“ wählen. In iOS Safari: Teilen → Zum Home-Bildschirm.",
+      message: isIOS
+        ? "Safari: Teilen (□↑) → „Zum Home-Bildschirm“. Dort kannst du Name und Icon anpassen."
+        : "Menü öffnen (⋮ oder ☰) → „App installieren“ oder „Als App installieren“. Oder in der Adresszeile auf das Install-Symbol tippen, sobald der Browser es anbietet.",
     });
   }
 
@@ -707,7 +744,7 @@ export function DiscoverFeedV2({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {!installDismissed ? (
+            {!installDismissed && !isStandaloneDisplay ? (
               <button
                 type="button"
                 onClick={() => void handleInstallApp()}
@@ -967,7 +1004,7 @@ export function DiscoverFeedV2({
           )
         ) : visibleEvents.length > 0 ? (
           viewMode === "cards" ? (
-            <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 md:max-w-[min(100%,80rem)] md:mx-auto">
+            <div className="grid min-w-0 grid-cols-1 gap-4 max-sm:px-3 md:grid-cols-2 md:gap-4 md:px-0 md:max-w-[min(100%,80rem)] md:mx-auto">
               {visibleEvents.map((event, index) => (
                 <DiscoverFeedScrollItem key={event.id} variant="card" scrollSnap>
                   <DiscoverEventCardV2

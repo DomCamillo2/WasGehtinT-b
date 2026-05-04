@@ -1,4 +1,4 @@
-/* bump this comment when shipping worker/UI updates so browsers fetch sw.js again */
+/* v3 — PWA manifest / install flow updates; bump so clients refetch sw.js */
 self.addEventListener("install", () => {
   self.skipWaiting();
 });

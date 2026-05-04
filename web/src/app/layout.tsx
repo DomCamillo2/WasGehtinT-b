@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/favicon-tight.png", type: "image/png" }],
     shortcut: [{ url: "/favicon-tight.png" }],
-    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/wasgeht-mark.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
   openGraph: {

@@ -1,8 +1,9 @@
 {
+  "id": "/",
   "name": "WasGehtTüb",
   "short_name": "WasGehtTüb",
   "description": "Dein Event-Radar für Tübingen: Clubs, Tagesevents und Community-Treffen.",
-  "start_url": "/discover",
+  "start_url": "/discover?utm_source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -11,7 +12,7 @@
   "icons": [
     {
       "src": "/favicon-tight.png",
-      "sizes": "512x512",
+      "sizes": "192x192 512x512",
       "type": "image/png",
       "purpose": "any"
     },
@@ -19,7 +20,7 @@
       "src": "/wasgeht-mark.png",
       "sizes": "1024x1024",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     }
   ]
 }
