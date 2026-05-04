@@ -62,6 +62,7 @@ export function DiscoverBottomNavV2({
             role="tab"
             aria-selected={activeTab === "saved"}
             aria-label="Gemerkte Events"
+            title="Gemerkt / Merkliste"
             className={`relative flex flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl transition-all duration-200 ${
               activeTab === "saved" ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]" : "hover:bg-[#1d1713] active:bg-[#241d19]"
             }`}

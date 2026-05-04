@@ -1,3 +1,4 @@
+/* bump this comment when shipping worker/UI updates so browsers fetch sw.js again */
 self.addEventListener("install", () => {
   self.skipWaiting();
 });

@@ -10,7 +10,8 @@ import { createPartyAction, type CreatePartyActionState } from "@/app/actions/pa
 
 const NAV = [
   { href: "/discover", label: "Entdecken", icon: Compass },
-  { href: "/plus", label: "Karte hinzufügen", icon: CirclePlus },
+  /** Avoid truncated UI reading as „Karte“ on narrow widths (`Karte hinzufügen`). */
+  { href: "/plus", label: "Posten", icon: CirclePlus },
   { href: "/discover?liked=1", label: "Gemerkt", icon: Flame },
 ];
 
