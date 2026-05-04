@@ -156,7 +156,7 @@ export function DiscoverEventCardV2({
 
         {/* Mock layout: links Titel → Venue → Social, rechts Datum-Pille + CTA */}
         <div className="absolute inset-x-0 bottom-0 z-[3] p-4">
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <Link
                 href={event.detailHref}
@@ -172,7 +172,7 @@ export function DiscoverEventCardV2({
                     src={partnerLogo.src}
                     alt=""
                     size="md"
-                    className="border border-stone-600/60 bg-stone-950/85 shadow-sm"
+                    className="border border-stone-300/40 shadow-sm"
                   />
                 ) : (
                   <span className="h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden="true" />
@@ -182,8 +182,8 @@ export function DiscoverEventCardV2({
               <InterestStack count={upvoteCount} hostAvatarUrl={event.hostAvatarUrl} />
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-2.5">
-              <div className="flex items-center gap-2 rounded-full border border-stone-600/50 bg-stone-950/90 px-3.5 py-2">
+            <div className="flex w-full shrink-0 items-center justify-between gap-2.5 sm:w-auto sm:flex-col sm:items-end sm:justify-start">
+              <div className="flex items-center gap-2 rounded-full border border-stone-600/50 bg-stone-950/90 px-3 py-1.5 sm:px-3.5 sm:py-2">
                 <time className="text-sm font-semibold tabular-nums text-stone-100" dateTime={event.startsAt}>
                   {dateLabel}
                 </time>
@@ -207,7 +207,7 @@ export function DiscoverEventCardV2({
                 onTouchEnd={() => setCtaPressed(false)}
                 aria-pressed={upvotedByMe}
                 aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-                className={`relative min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-full transition-all duration-200 flex items-center gap-2 shadow-md ${
+                className={`relative min-h-[44px] px-4 py-2.5 text-sm font-semibold rounded-full transition-all duration-200 flex items-center gap-2 shadow-md sm:px-5 ${
                   upvotedByMe
                     ? "wg-cta-confirmed bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_10px_24px_-14px_rgba(255,122,24,0.95)]"
                     : "wg-cta-attention bg-[#1A1715]/92 text-[#E9DFD6] border border-[#2B2623] hover:border-[#3A312B] hover:text-white"

@@ -91,7 +91,7 @@ export function DiscoverEventListItemV2({
                 src={partnerLogo.src}
                 alt=""
                 size="sm"
-                className="border border-[#3A312B] bg-[#171310]"
+                className="border border-[#5a4a3f]/50"
               />
             ) : (
               <MapPin className="h-3.5 w-3.5 shrink-0 text-[#756a61]" aria-hidden="true" />

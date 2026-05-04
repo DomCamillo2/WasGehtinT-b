@@ -492,25 +492,25 @@ export function DiscoverFeedV2({
             "linear-gradient(to bottom, rgba(15,11,8,0.72), rgba(15,11,8,0.4), rgba(15,11,8,0))",
         }}
       >
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <div className="min-w-0">
             <h1 className="sr-only">WasGehtTüb – Events entdecken</h1>
-            <div aria-hidden="true" className="flex items-center gap-2.5">
+            <div aria-hidden="true" className="flex items-center gap-2">
               <Image
                 src={SITE_LOGO_SRC}
                 alt=""
                 width={120}
                 height={120}
-                className="h-12 w-12 object-contain sm:h-14 sm:w-14"
+                className="h-11 w-11 object-contain sm:h-14 sm:w-14"
                 priority
               />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold tracking-wide text-[#f2ece6]">WasGehtTüb</p>
-                <p className="truncate text-[11px] text-[#a89b90]">Clubs, Tagesevents, Community</p>
+                <p className="hidden truncate text-[11px] text-[#a89b90] sm:block">Clubs, Tagesevents, Community</p>
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             {!installDismissed ? (
               <button
                 type="button"
@@ -519,12 +519,12 @@ export function DiscoverFeedV2({
                   event.preventDefault();
                   dismissInstallHint();
                 }}
-                className="relative inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-3 text-xs font-semibold text-[#E9DFD6] transition-colors hover:bg-[#221d1a]"
+                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-3 text-xs font-semibold text-[#E9DFD6] transition-colors hover:bg-[#221d1a]"
                 aria-label="App installieren"
                 title="App installieren (Rechtsklick/Langdruck zum Ausblenden)"
               >
                 <Download className="h-4 w-4 text-[#ff9a3f]" aria-hidden="true" />
-                App
+                <span className="hidden sm:inline">App</span>
               </button>
             ) : null}
             <button
@@ -634,7 +634,7 @@ export function DiscoverFeedV2({
           </div>
           <Link
             href={buildClassicDiscoverHref()}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-[#1A1715]/90 border border-[#2B2623] rounded-xl text-[#8C8178] hover:text-primary hover:border-primary/40 transition-all duration-200"
+            className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:flex"
             aria-label="Klassische Discover-Ansicht mit erweiterten Filtern öffnen"
           >
             <SlidersHorizontal className="w-5 h-5" />
@@ -656,7 +656,7 @@ export function DiscoverFeedV2({
               }}
               role="tab"
               aria-selected={filter === item.id}
-              className={`flex min-h-[38px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 ${
+              className={`flex min-h-[42px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 sm:min-h-[38px] ${
                 filter === item.id
                   ? "bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_8px_24px_rgba(255,122,24,0.42)]"
                   : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
@@ -677,7 +677,7 @@ export function DiscoverFeedV2({
             onClick={() => toggleLikedFilter()}
             role="tab"
             aria-selected={likedOnly}
-            className={`flex min-h-[38px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 ${
+            className={`flex min-h-[42px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 sm:min-h-[38px] ${
               likedOnly
                 ? "bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_8px_24px_rgba(255,122,24,0.42)]"
                 : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"

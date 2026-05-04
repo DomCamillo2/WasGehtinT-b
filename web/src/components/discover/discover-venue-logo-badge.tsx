@@ -8,13 +8,13 @@ type Props = {
   className?: string;
 };
 
-const px: Record<NonNullable<Props["size"]>, number> = { sm: 20, md: 24 };
+const px: Record<NonNullable<Props["size"]>, number> = { sm: 24, md: 30 };
 
 export function DiscoverVenueLogoBadge({ src, alt = "", size = "sm", className }: Props) {
   const dim = px[size];
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md ${className ?? ""}`}
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className ?? ""}`}
       style={{ width: dim, height: dim }}
       aria-hidden={!alt}
     >
@@ -23,7 +23,7 @@ export function DiscoverVenueLogoBadge({ src, alt = "", size = "sm", className }
         alt={alt}
         width={dim}
         height={dim}
-        className="max-h-full max-w-full object-contain p-0.5"
+        className="h-full w-full object-cover"
         sizes={`${dim}px`}
         unoptimized
       />

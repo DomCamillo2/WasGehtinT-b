@@ -28,19 +28,20 @@ const SCHAF_CYAN = "#0e7490";
 const DEFAULT_MARKER = "#18181b";
 
 const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = [
-  { match: /kuckuck/i, src: "/logos/venues/kuckuck.svg", alt: "Kuckuck Logo" },
-  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.svg", alt: "Schlachthaus Logo" },
-  { match: /clubhaus/i, src: "/logos/venues/clubhaus.svg", alt: "Clubhaus Logo" },
+  { match: /kuckuck/i, src: "/logos/venues/kuckuck.png", alt: "Kuckuck Logo" },
+  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
+  { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
   {
     match: /frau\s*holle|frauholle|frau_holle_tuebingen|holle\s*t(?:ue|u)bingen|haaggasse\s*15\/?2/i,
-    src: "/logos/venues/frau-holle.svg",
+    src: "/logos/venues/frauholle.jpg",
     alt: "Frau Holle Icon",
   },
   {
     match: /schwarzes\s*schaf|schwarzes[-_.\s]*schaf|schwarzesschaf\.tuebingen|schwarzes_schaf_tuebingen|schwarzesschaf_tuebingen/i,
-    src: "/logos/venues/schwarzes-schaf.svg",
+    src: "/logos/venues/schwarzes-schaf.jpg",
     alt: "Schwarzes Schaf Icon",
   },
+  { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
 ];
 
 function resolveMarkerTheme(party: DiscoverEvent, accentMarkers = false) {
@@ -63,12 +64,16 @@ function resolveMarkerTheme(party: DiscoverEvent, accentMarkers = false) {
         return { background: CLUBHAUS_BLUE, foreground: "#ffffff", glyph: "C", venue: "Clubhaus", iconSrc: matcher.src, iconAlt: matcher.alt };
       }
 
-      if (matcher.src.includes("frau-holle")) {
+      if (matcher.src.includes("frauholle")) {
         return { background: HOLLE_ROSE, foreground: "#ffffff", glyph: "H", venue: "Frau Holle", iconSrc: matcher.src, iconAlt: matcher.alt };
       }
 
       if (matcher.src.includes("schwarzes-schaf")) {
         return { background: SCHAF_CYAN, foreground: "#ffffff", glyph: "SS", venue: "Schwarzes Schaf", iconSrc: matcher.src, iconAlt: matcher.alt };
+      }
+
+      if (matcher.src.includes("epplehaus")) {
+        return { background: "#15803d", foreground: "#ffffff", glyph: "E", venue: "Epplehaus", iconSrc: matcher.src, iconAlt: matcher.alt };
       }
     }
   }
