@@ -3,6 +3,10 @@ import { unstable_cache } from "next/cache";
 import { getCommunityHangoutsForDiscover, getExternalEvents, getPublicParties } from "@/lib/data";
 import type { DiscoverFilterKey } from "@/lib/discover-filters";
 import { applyTrafficBasedUpvoteEstimates } from "@/lib/discover-traffic-upvotes";
+import {
+  MAX_DISCOVER_HERO_LOOKUPS_DEFAULT,
+  resolveDiscoverHeroImagesForParties,
+} from "@/lib/discover-event-images";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
@@ -288,7 +292,22 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
       ? partiesWithUpvotes.filter((party) => party.upvoted_by_me === true)
       : partiesWithUpvotes;
 
-  const discoverEvents = scopedParties.map(mapPartyCardToDiscoverEvent);
+  /** Stock heroes (Pexels) on the server so cards paint with images without relying on client `/api/discover/hero-images`. */
+  let partiesWithHeroes = scopedParties;
+  try {
+    const heroById = await resolveDiscoverHeroImagesForParties(
+      scopedParties,
+      MAX_DISCOVER_HERO_LOOKUPS_DEFAULT,
+    );
+    partiesWithHeroes = scopedParties.map((party) => ({
+      ...party,
+      hero_image_url: heroById[party.id] ?? party.hero_image_url ?? null,
+    }));
+  } catch {
+    partiesWithHeroes = scopedParties;
+  }
+
+  const discoverEvents = partiesWithHeroes.map(mapPartyCardToDiscoverEvent);
 
   const avatarFallback = String(user?.email?.[0] ?? "G").toUpperCase();
   const initialView: DiscoverViewMode =
