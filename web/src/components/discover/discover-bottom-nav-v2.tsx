@@ -21,9 +21,9 @@ export function DiscoverBottomNavV2({
       className="fixed bottom-0 left-0 right-0 z-50 pb-safe pointer-events-none lg:bottom-6 lg:flex lg:justify-center lg:pb-6"
       aria-label="Hauptnavigation"
     >
-      <div className="mx-4 mb-4 w-full max-w-md pointer-events-auto sm:mx-auto lg:max-w-xl lg:mx-0 lg:mb-0 lg:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:rounded-2xl lg:overflow-hidden">
+      <div className="box-border w-full max-w-[min(100%,28rem)] px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-events-auto sm:mx-auto sm:max-w-md lg:max-w-xl lg:mx-auto lg:mb-0 lg:pb-6 lg:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:rounded-2xl lg:overflow-hidden">
         <div
-          className="flex items-center justify-around rounded-2xl border border-[#2a221d]/75 bg-[#17120f]/65 px-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md backdrop-saturate-150"
+          className="flex w-full min-w-0 items-stretch justify-between gap-0.5 rounded-2xl border border-[#2a221d]/75 bg-[#17120f]/65 px-1 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md backdrop-saturate-150 sm:justify-around sm:gap-0 sm:px-2"
           role="tablist"
         >
           <button
@@ -32,17 +32,17 @@ export function DiscoverBottomNavV2({
             role="tab"
             aria-selected={activeTab === "discover"}
             aria-label="Events entdecken"
-            className={`relative flex flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl transition-all duration-200 ${
+            className={`relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 rounded-xl transition-all duration-200 sm:min-h-[56px] sm:min-w-[56px] sm:flex-none sm:px-3 sm:py-2 ${
               activeTab === "discover" ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]" : "hover:bg-[#1d1713] active:bg-[#241d19]"
             }`}
           >
             <Compass
-              className={`w-5 h-5 ${activeTab === "discover" ? "text-[#2d1d10]" : "text-[#a89b90]"}`}
+              className={`h-5 w-5 shrink-0 ${activeTab === "discover" ? "text-[#2d1d10]" : "text-[#a89b90]"}`}
               strokeWidth={activeTab === "discover" ? 2.5 : 2}
               aria-hidden="true"
             />
             <span
-              className={`text-[10px] font-medium mt-1 ${
+              className={`mt-0.5 max-w-full truncate text-center text-[9px] font-medium leading-tight sm:mt-1 sm:text-[10px] ${
                 activeTab === "discover" ? "text-[#2d1d10]" : "text-[#a89b90]"
               }`}
             >
@@ -63,17 +63,17 @@ export function DiscoverBottomNavV2({
             aria-selected={activeTab === "saved"}
             aria-label="Gemerkte Events"
             title="Gemerkt / Merkliste"
-            className={`relative flex flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl transition-all duration-200 ${
+            className={`relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 rounded-xl transition-all duration-200 sm:min-h-[56px] sm:min-w-[56px] sm:flex-none sm:px-3 sm:py-2 ${
               activeTab === "saved" ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]" : "hover:bg-[#1d1713] active:bg-[#241d19]"
             }`}
           >
             <Bookmark
-              className={`w-5 h-5 ${activeTab === "saved" ? "fill-[#2d1d10] text-[#2d1d10]" : "fill-none text-[#a89b90]"}`}
+              className={`h-5 w-5 shrink-0 ${activeTab === "saved" ? "fill-[#2d1d10] text-[#2d1d10]" : "fill-none text-[#a89b90]"}`}
               strokeWidth={activeTab === "saved" ? 2.5 : 2}
               aria-hidden="true"
             />
             <span
-              className={`text-[10px] font-medium mt-1 ${
+              className={`mt-0.5 max-w-full truncate text-center text-[9px] font-medium leading-tight sm:mt-1 sm:text-[10px] ${
                 activeTab === "saved" ? "text-[#2d1d10]" : "text-[#a89b90]"
               }`}
             >
@@ -89,25 +89,30 @@ export function DiscoverBottomNavV2({
 
           <Link
             href="/spontan"
-            className="relative flex flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl transition-all duration-200 hover:bg-[#1d1713] active:bg-[#241d19] text-[#a89b90]"
+            className="relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 rounded-xl transition-all duration-200 hover:bg-[#1d1713] active:bg-[#241d19] text-[#a89b90] sm:min-h-[56px] sm:min-w-[56px] sm:flex-none sm:px-3 sm:py-2"
             aria-label="Spontane Events"
           >
-            <Zap className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
-            <span className="text-[10px] font-medium mt-1">Spontan</span>
+            <Zap className="w-5 h-5 shrink-0" strokeWidth={2} aria-hidden="true" />
+            <span className="mt-0.5 max-w-full truncate text-center text-[9px] font-medium leading-tight sm:mt-1 sm:text-[10px]">
+              Spontan
+            </span>
           </Link>
 
           <button
             type="button"
             disabled
             title="Profil kommt bald"
-            className="relative flex cursor-not-allowed flex-col items-center justify-center min-w-[64px] min-h-[56px] px-3 py-2 rounded-xl text-[#6f655d] opacity-70"
+            className="relative flex min-h-[52px] min-w-0 flex-1 cursor-not-allowed flex-col items-center justify-center px-1 py-1.5 rounded-xl text-[#6f655d] opacity-70 sm:min-h-[56px] sm:min-w-[56px] sm:flex-none sm:px-3 sm:py-2"
             aria-label="Profil (kommt bald)"
             aria-disabled="true"
           >
-            <User className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
-            <span className="text-[10px] font-medium mt-1">Profil</span>
-            <span className="mt-0.5 rounded-full border border-[#3a312b] bg-[#1a1715] px-1.5 py-0.5 text-[9px] leading-none text-[#8c8178]">
-              Coming soon
+            <User className="w-5 h-5 shrink-0" strokeWidth={2} aria-hidden="true" />
+            <span className="mt-0.5 max-w-full truncate text-center text-[9px] font-medium leading-tight sm:mt-1 sm:text-[10px]">
+              Profil
+            </span>
+            <span className="mt-0.5 max-w-[min(100%,5rem)] truncate rounded-full border border-[#3a312b] bg-[#1a1715] px-1 py-0.5 text-[8px] leading-tight text-[#8c8178] sm:max-w-none sm:px-1.5 sm:text-[9px]">
+              <span className="sm:hidden">Bald</span>
+              <span className="hidden sm:inline">Coming soon</span>
             </span>
           </button>
         </div>
