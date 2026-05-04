@@ -14,7 +14,7 @@ export default async function ChatPage({ searchParams }: { searchParams: SearchP
   const { currentUserId, threads, activeThreadId, messages } = await loadChatPageData(params);
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Chat" subtitle="Nur nach erfolgreichem Match." />
 
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">

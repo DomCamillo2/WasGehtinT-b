@@ -20,7 +20,7 @@ export function DiscoverBottomNavV2({
     <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe pointer-events-none" aria-label="Hauptnavigation">
       <div className="mx-4 mb-4 sm:mx-auto sm:max-w-md pointer-events-auto">
         <div
-          className="flex items-center justify-around px-2 py-1 rounded-2xl border backdrop-blur-2xl bg-[#17120f]/94 border-[#2a221d] shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+          className="flex items-center justify-around rounded-2xl border border-[#2a221d]/75 bg-[#17120f]/65 px-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md backdrop-saturate-150"
           role="tablist"
         >
           <button

@@ -164,7 +164,7 @@ export function SpontanFeed({ items }: Props) {
                 <p className="mt-1 text-sm text-[color:var(--text-muted)]">Wo: {item.locationText}</p>
               ) : null}
               {item.meetupAt ? (
-                <p className="mt-0.5 text-sm text-[color:var(--text-muted)]">
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-[color:var(--text-main)]">
                   Wann: {formatMeetupOrFallback(item.meetupAt)}
                 </p>
               ) : null}
@@ -174,9 +174,9 @@ export function SpontanFeed({ items }: Props) {
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   type="button"
-                  className="inline-flex h-9 items-center gap-1 rounded-xl bg-[color:var(--accent)] px-3 text-xs font-semibold text-[color:var(--accent-dark-text)]"
+                  className="wg-cta-attention inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[color:var(--accent)] px-5 text-sm font-semibold text-[color:var(--accent-dark-text)]"
                 >
-                  <Users size={14} />
+                  <Users size={18} />
                   Ich bin dabei!
                 </motion.button>
                 <a

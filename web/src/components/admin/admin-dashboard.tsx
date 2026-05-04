@@ -375,7 +375,7 @@ export function AdminDashboard(props: AdminDashboardProps) {
   } = props;
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Admin" subtitle="Freigaben fuer neue Event-Einreichungen." />
 
       {!adminConfig.valid ? (

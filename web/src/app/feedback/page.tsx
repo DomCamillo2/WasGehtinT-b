@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 
 export default function FeedbackPage() {
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader
         title="Feedback"
         subtitle="Schick uns Bugs, Lob oder neue Feature-Ideen direkt ins Admin-Panel."

@@ -11,7 +11,7 @@ export default async function RequestsPage() {
   const { requests } = await loadRequestsPageData();
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Meine Anfragen" subtitle="Status für deine Gruppenanfragen." />
 
       <div className="space-y-3">

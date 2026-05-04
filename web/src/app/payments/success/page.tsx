@@ -19,7 +19,7 @@ export default async function PaymentSuccessPage({
   }
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Zahlung" subtitle="Beitrag und Service-Gebühr" />
       <Card className="space-y-3">
         <h2 className="text-lg font-semibold text-zinc-900">Zahlung erfolgreich</h2>

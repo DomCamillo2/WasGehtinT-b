@@ -142,13 +142,15 @@ type DiscoverSearchParams = {
   liked?: string;
 };
 
+export type DiscoverViewMode = "cards" | "list" | "calendar" | "map";
+
 export type DiscoverPageData = {
   parties: DiscoverEvent[];
   avatarFallback: string;
   isAuthenticated: boolean;
   canLoadMore: boolean;
   currentWeeks: number;
-  initialView: "calendar" | "list" | "map";
+  initialView: DiscoverViewMode;
   initialFilter: DiscoverFilterKey;
   initialCalendarDate: string;
 };
@@ -291,10 +293,13 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
   const discoverEvents = scopedParties.map(mapPartyCardToDiscoverEvent);
 
   const avatarFallback = String(user?.email?.[0] ?? "G").toUpperCase();
-  const initialView =
-    searchParams.view === "calendar" || searchParams.view === "map" || searchParams.view === "list"
+  const initialView: DiscoverViewMode =
+    searchParams.view === "calendar" ||
+    searchParams.view === "map" ||
+    searchParams.view === "list" ||
+    searchParams.view === "cards"
       ? searchParams.view
-      : "list";
+      : "cards";
   const initialFilter =
     searchParams.type === "community" ||
     searchParams.type === "top" ||

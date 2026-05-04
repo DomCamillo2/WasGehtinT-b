@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronRight, Flame } from "lucide-react";
+import { SITE_LOGO_SRC } from "@/lib/site-config";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { resolveDiscoverVenuePartnerLogo } from "@/lib/discover-venue-visual";
+import { DiscoverVenueLogoBadge } from "./discover-venue-logo-badge";
 
 type Props = {
   event: DiscoverEvent;
-  index: number;
   isHot: boolean;
   upvoteCount: number;
   upvotedByMe: boolean;
@@ -23,9 +24,7 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
   const n = Math.max(0, count);
   if (n <= 0) {
     return (
-      <p className="text-xs font-medium text-stone-400/90">
-        Noch keine Interessierten — merke dir das Event
-      </p>
+      <span className="text-xs font-medium text-stone-100/90 tabular-nums">0 dabei</span>
     );
   }
   const showOverflow = n > 3;
@@ -69,7 +68,6 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
 
 export function DiscoverEventCardV2({
   event,
-  index,
   isHot,
   upvoteCount,
   upvotedByMe,
@@ -96,12 +94,11 @@ export function DiscoverEventCardV2({
 
   return (
     <article
-      className="relative w-full overflow-hidden rounded-2xl group card-lift animate-slide-up"
-      style={{ animationDelay: `${index * 100}ms` }}
+      className="group relative w-full overflow-hidden rounded-none [content-visibility:auto] [contain-intrinsic-size:auto_15rem] card-lift"
       role="article"
       aria-label={`${event.title} in ${venueLabel}, ${dateLabel} ${timeLabel}`}
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl">
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-none">
         <div
           className="absolute inset-0 bg-gradient-to-br from-primary/25 via-muted to-secondary/20"
           aria-hidden="true"
@@ -142,7 +139,7 @@ export function DiscoverEventCardV2({
 
         {isHot ? (
           <div
-            className="absolute top-4 left-4 z-[3] flex items-center gap-1.5 px-3 py-1.5 bg-primary/95 text-primary-foreground text-xs font-medium rounded-full backdrop-blur-sm animate-glow-pulse"
+            className="absolute left-4 top-4 z-[3] flex items-center gap-1.5 rounded-full border border-[#ff9a3f]/90 bg-[#ff7a18]/95 px-3 py-1.5 text-xs font-medium text-[#2D1D10] shadow-[0_8px_20px_rgba(255,122,24,0.35)]"
             role="status"
             aria-label="Im Trend"
           >
@@ -150,6 +147,12 @@ export function DiscoverEventCardV2({
             <span>Im Trend</span>
           </div>
         ) : null}
+        <div
+          className="absolute right-4 top-4 z-[3] flex h-9 w-9 items-center justify-center rounded-full border border-[#2B2623] bg-[#17120f]/85 shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
+          aria-hidden="true"
+        >
+          <Image src={SITE_LOGO_SRC} alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain" />
+        </div>
 
         {/* Mock layout: links Titel → Venue → Social, rechts Datum-Pille + CTA */}
         <div className="absolute inset-x-0 bottom-0 z-[3] p-4">
@@ -163,20 +166,29 @@ export function DiscoverEventCardV2({
                   {event.title}
                 </h3>
               </Link>
-              <p className="text-xs font-medium text-stone-200/95 flex items-center gap-1.5">
-                <span className="h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+              <p className="flex min-w-0 items-center gap-2 text-xs font-medium text-stone-200/95">
+                {partnerLogo ? (
+                  <DiscoverVenueLogoBadge
+                    src={partnerLogo.src}
+                    alt=""
+                    size="md"
+                    className="border border-stone-600/60 bg-stone-950/85 shadow-sm"
+                  />
+                ) : (
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                )}
                 <span className="truncate">{venueLabel}</span>
               </p>
               <InterestStack count={upvoteCount} hostAvatarUrl={event.hostAvatarUrl} />
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-2">
-              <div className="flex items-center gap-1.5 rounded-full border border-stone-600/50 bg-stone-950/70 px-3 py-1.5 backdrop-blur-md">
-                <time className="text-[11px] font-medium text-stone-100" dateTime={event.startsAt}>
+            <div className="flex shrink-0 flex-col items-end gap-2.5">
+              <div className="flex items-center gap-2 rounded-full border border-stone-600/50 bg-stone-950/90 px-3.5 py-2">
+                <time className="text-sm font-semibold tabular-nums text-stone-100" dateTime={event.startsAt}>
                   {dateLabel}
                 </time>
                 <span className="h-0.5 w-0.5 rounded-full bg-stone-400" aria-hidden="true" />
-                <span className="text-[11px] font-medium text-stone-300">{timeLabel}</span>
+                <span className="text-sm font-semibold tabular-nums text-stone-200">{timeLabel}</span>
               </div>
               <button
                 type="button"
@@ -195,21 +207,21 @@ export function DiscoverEventCardV2({
                 onTouchEnd={() => setCtaPressed(false)}
                 aria-pressed={upvotedByMe}
                 aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-                className={`relative min-h-[38px] px-4 py-2 text-xs font-semibold rounded-full transition-all duration-200 flex items-center gap-1.5 shadow-md ${
+                className={`relative min-h-[44px] px-5 py-2.5 text-sm font-semibold rounded-full transition-all duration-200 flex items-center gap-2 shadow-md ${
                   upvotedByMe
-                    ? "bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_10px_24px_-14px_rgba(255,122,24,0.95)]"
-                    : "bg-[#1A1715]/92 text-[#E9DFD6] border border-[#2B2623] hover:border-[#3A312B] hover:text-white"
+                    ? "wg-cta-confirmed bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_10px_24px_-14px_rgba(255,122,24,0.95)]"
+                    : "wg-cta-attention bg-[#1A1715]/92 text-[#E9DFD6] border border-[#2B2623] hover:border-[#3A312B] hover:text-white"
                 } ${ctaPressed ? "scale-95" : "scale-100"}`}
               >
                 {upvotedByMe ? (
                   <>
-                    <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                    <Check className="w-4 h-4" aria-hidden="true" />
                     <span>Dabei!</span>
                   </>
                 ) : (
                   <>
                     <span>Ich bin dabei!</span>
-                    <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
                   </>
                 )}
               </button>

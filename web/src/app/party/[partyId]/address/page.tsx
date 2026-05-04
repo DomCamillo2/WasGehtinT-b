@@ -18,7 +18,7 @@ export default async function PartyAddressPage({
   }
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Adresse" subtitle="Nur nach erfolgreichem Match sichtbar" />
       <Card className="space-y-2">
         <h2 className="text-base font-semibold text-zinc-900">{data.partyTitle}</h2>

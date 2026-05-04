@@ -57,6 +57,7 @@ export default async function DiscoverPage({
     isAuthenticated,
     canLoadMore,
     currentWeeks,
+    initialView,
     initialFilter,
     initialCalendarDate,
   } = await loadDiscoverPageData(
@@ -78,6 +79,7 @@ export default async function DiscoverPage({
         isAuthenticated={isAuthenticated}
         canLoadMore={canLoadMore}
         currentWeeks={currentWeeks}
+        initialView={initialView}
         initialFilter={initialFilter}
         initialCalendarDate={initialCalendarDate}
       />

@@ -1,13 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
   CalendarDays,
+  Download,
   Flame,
   Heart,
   LayoutGrid,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/discover-filters";
 import { filterPartiesWithMapCoords } from "@/lib/discover-map-coords";
 import { asServiceError } from "@/services/service-error";
+import type { DiscoverViewMode } from "@/services/discover/discover-page-service";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { SITE_LOGO_SRC } from "@/lib/site-config";
 import { togglePartyUpvote } from "@/services/events/upvotes-service";
@@ -42,6 +44,12 @@ const DiscoverMapLazy = dynamic(
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
 const LOAD_MORE_STEP = 24;
+const INSTALL_DISMISSED_KEY = "wasgeht-install-dismissed-v1";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
 
 const BERLIN_DATE_SHORT = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
@@ -61,6 +69,7 @@ type Props = {
   isAuthenticated: boolean;
   canLoadMore: boolean;
   currentWeeks: number;
+  initialView: DiscoverViewMode;
   initialFilter: DiscoverFilterKey;
   initialCalendarDate?: string;
 };
@@ -69,6 +78,28 @@ function resolveSeedCalendarDate(urlDate: string | null, init: string | undefine
   if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) return urlDate;
   if (init && /^\d{4}-\d{2}-\d{2}$/.test(init)) return init;
   return today;
+}
+
+/** Mirrors server parsing in `discover-page-service` so URL and client state stay aligned. */
+function parseFilterFromDiscoverUrl(params: URLSearchParams): DiscoverFilterKey {
+  const t = params.get("type");
+  if (t === "community" || t === "top" || t === "clubs" || t === "daytime" || t === "all") {
+    return t;
+  }
+  return "all";
+}
+
+function parseViewFromDiscoverUrl(params: URLSearchParams): DiscoverViewMode {
+  const raw = params.get("view");
+  if (raw === "cards" || raw === "list" || raw === "calendar" || raw === "map") {
+    return raw;
+  }
+  return "cards";
+}
+
+function parseSearchFromDiscoverUrl(params: URLSearchParams): string {
+  const raw = params.get("q");
+  return typeof raw === "string" ? raw : "";
 }
 
 function formatEventDate(iso: string) {
@@ -97,16 +128,24 @@ export function DiscoverFeedV2({
   isAuthenticated,
   canLoadMore,
   currentWeeks,
+  initialView,
   initialFilter,
   initialCalendarDate,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const discoverUrlSignature = searchParams.toString();
   const { showToast } = useToast();
   const [filter, setFilter] = useState<DiscoverFilterKey>(initialFilter);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"cards" | "list" | "calendar" | "map">("cards");
+  const [searchQuery, setSearchQuery] = useState(() => parseSearchFromDiscoverUrl(searchParams));
+  const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
+    const raw = searchParams.get("view");
+    if (raw === "cards" || raw === "list" || raw === "calendar" || raw === "map") {
+      return raw;
+    }
+    return initialView;
+  });
   const [visibleCount, setVisibleCount] = useState(LOAD_MORE_STEP);
 
   const todayKey = useMemo(() => berlinDayKeyFromIso(new Date().toISOString()), []);
@@ -117,8 +156,39 @@ export function DiscoverFeedV2({
   const [calendarMonth, setCalendarMonth] = useState(() =>
     resolveSeedCalendarDate(searchParams.get("date"), initialCalendarDate, todayKey),
   );
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installDismissed, setInstallDismissed] = useState(false);
 
   const likedOnly = searchParams.get("liked") === "1";
+
+  /** When filter/view/liked in the URL change (history, deep link), reset “Mehr anzeigen” — not on date-only changes. */
+  const feedControlSignatureRef = useRef<string | null>(null);
+
+  /** Keep view, category filter, and calendar selection aligned with the URL (back/forward, shared links). */
+  useEffect(() => {
+    const params = new URLSearchParams(discoverUrlSignature);
+    const fromUrlView = parseViewFromDiscoverUrl(params);
+    const fromUrlFilter = parseFilterFromDiscoverUrl(params);
+    const likedKey = params.get("liked") === "1" ? "1" : "";
+    const q = parseSearchFromDiscoverUrl(params).trim().toLowerCase();
+    const controlSig = `${fromUrlFilter}|${fromUrlView}|${likedKey}|${q}`;
+    if (feedControlSignatureRef.current !== null && feedControlSignatureRef.current !== controlSig) {
+      setVisibleCount(LOAD_MORE_STEP);
+    }
+    feedControlSignatureRef.current = controlSig;
+
+    setViewMode((prev) => (prev === fromUrlView ? prev : fromUrlView));
+    setFilter((prev) => (prev === fromUrlFilter ? prev : fromUrlFilter));
+    const fromUrlSearch = parseSearchFromDiscoverUrl(params);
+    setSearchQuery((prev) => (prev === fromUrlSearch ? prev : fromUrlSearch));
+
+    const rawDate = params.get("date");
+    const validDate = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+    if (validDate) {
+      setCalendarDate((prev) => (prev === validDate ? prev : validDate));
+      setCalendarMonth((prev) => (prev === validDate ? prev : validDate));
+    }
+  }, [discoverUrlSignature]);
 
   /** Counts follow server; localStorage only drives Merkliste (upvotedPartyIds), not displayed totals. */
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(() => {
@@ -148,6 +218,26 @@ export function DiscoverFeedV2({
     }
   });
 
+  /** If the event list grows (same session) merge any saved IDs from storage that now exist in `parties`. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const known = new Set(parties.map((p) => p.id));
+    try {
+      const raw = window.localStorage.getItem(LOCAL_UPVOTED_EVENTS_KEY);
+      if (!raw) return;
+      const storedIds = JSON.parse(raw) as unknown;
+      if (!Array.isArray(storedIds)) return;
+      const valid = storedIds.filter((id): id is string => typeof id === "string" && known.has(id));
+      if (valid.length === 0) return;
+      setUpvotedPartyIds((prev) => {
+        const merged = Array.from(new Set([...prev, ...valid]));
+        return merged.length === prev.length ? prev : merged;
+      });
+    } catch {
+      /* ignore */
+    }
+  }, [parties]);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(LOCAL_UPVOTED_EVENTS_KEY, JSON.stringify(upvotedPartyIds));
@@ -157,9 +247,29 @@ export function DiscoverFeedV2({
   }, [upvotedPartyIds]);
 
   useEffect(() => {
+    try {
+      setInstallDismissed(window.localStorage.getItem(INSTALL_DISMISSED_KEY) === "1");
+    } catch {
+      setInstallDismissed(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined" || pathname !== "/discover") return;
     const params = new URLSearchParams(window.location.search);
     params.set("ui", "new");
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery.length > 0) params.set("q", trimmedQuery);
+    else params.delete("q");
     if (filter !== "all") params.set("type", filter);
     else params.delete("type");
     if (viewMode === "calendar") {
@@ -167,12 +277,17 @@ export function DiscoverFeedV2({
     } else {
       params.delete("date");
     }
+    if (viewMode === "cards") {
+      params.delete("view");
+    } else {
+      params.set("view", viewMode);
+    }
     const nextHref = `/discover?${params.toString()}`;
     const currentHref = `${window.location.pathname}${window.location.search}`;
     if (currentHref !== nextHref) {
       router.replace(nextHref, { scroll: false });
     }
-  }, [filter, viewMode, calendarDate, pathname, router]);
+  }, [filter, viewMode, calendarDate, pathname, router, searchQuery]);
 
   const sortedParties = useMemo(
     () => sortDiscoverByUpvotesThenDate(parties, upvoteCounts),
@@ -262,6 +377,10 @@ export function DiscoverFeedV2({
     { id: "community", label: "Community" },
   ];
 
+  const viewModeToggleActive =
+    "border border-[#ff9a3f] bg-[#ff7a18] text-[#2D1D10] shadow-[0_4px_14px_rgba(255,122,24,0.38)]";
+  const viewModeToggleInactive = "border border-transparent text-[#8C8178] hover:text-[#E9DFD6]";
+
   const toggleLikedFilter = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     params.set("ui", "new");
@@ -286,6 +405,7 @@ export function DiscoverFeedV2({
     params.delete("type");
     params.delete("liked");
     params.delete("date");
+    params.delete("q");
     const w = params.get("weeks");
     if (!w || !/^\d+$/.test(w)) {
       params.set("weeks", String(currentWeeks));
@@ -331,6 +451,33 @@ export function DiscoverFeedV2({
     return `/discover?${params.toString()}`;
   }
 
+  async function handleInstallApp() {
+    if (installPromptEvent) {
+      await installPromptEvent.prompt();
+      const choice = await installPromptEvent.userChoice;
+      if (choice.outcome === "accepted") {
+        setInstallPromptEvent(null);
+        return;
+      }
+    }
+
+    showToast({
+      variant: "info",
+      title: "App installieren",
+      message:
+        "Browser-Menü öffnen und „App installieren“ bzw. „Zum Startbildschirm“ wählen. In iOS Safari: Teilen → Zum Home-Bildschirm.",
+    });
+  }
+
+  function dismissInstallHint() {
+    setInstallDismissed(true);
+    try {
+      window.localStorage.setItem(INSTALL_DISMISSED_KEY, "1");
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <div className="min-h-screen pb-24">
       <a href="#events-feed-v2" className="skip-to-content">
@@ -338,16 +485,17 @@ export function DiscoverFeedV2({
       </a>
 
       <header
-        className="sticky top-0 z-40 px-4 pb-4 backdrop-blur-sm"
+        className="discover-header-glass sticky top-0 z-40 px-4 pb-4 backdrop-blur-md backdrop-saturate-150"
         style={{
           paddingTop: "max(12px, env(safe-area-inset-top, 0px))",
-          background: "linear-gradient(to bottom, rgba(15,11,8,0.98), rgba(15,11,8,0.92), rgba(15,11,8,0))",
+          background:
+            "linear-gradient(to bottom, rgba(15,11,8,0.72), rgba(15,11,8,0.4), rgba(15,11,8,0))",
         }}
       >
-        <div className="flex items-center justify-between mb-5">
-          <div className="animate-slide-up min-w-0" style={{ animationDelay: "0ms" }}>
+        <div className="mb-5 flex items-center justify-between">
+          <div className="min-w-0">
             <h1 className="sr-only">WasGehtTüb – Events entdecken</h1>
-            <div aria-hidden="true" className="flex items-center">
+            <div aria-hidden="true" className="flex items-center gap-2.5">
               <Image
                 src={SITE_LOGO_SRC}
                 alt=""
@@ -356,9 +504,29 @@ export function DiscoverFeedV2({
                 className="h-12 w-12 object-contain sm:h-14 sm:w-14"
                 priority
               />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold tracking-wide text-[#f2ece6]">WasGehtTüb</p>
+                <p className="truncate text-[11px] text-[#a89b90]">Clubs, Tagesevents, Community</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0 animate-slide-up" style={{ animationDelay: "50ms" }}>
+          <div className="flex shrink-0 items-center gap-3">
+            {!installDismissed ? (
+              <button
+                type="button"
+                onClick={() => void handleInstallApp()}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  dismissInstallHint();
+                }}
+                className="relative inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-3 text-xs font-semibold text-[#E9DFD6] transition-colors hover:bg-[#221d1a]"
+                aria-label="App installieren"
+                title="App installieren (Rechtsklick/Langdruck zum Ausblenden)"
+              >
+                <Download className="h-4 w-4 text-[#ff9a3f]" aria-hidden="true" />
+                App
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() =>
@@ -397,7 +565,7 @@ export function DiscoverFeedV2({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 animate-slide-up" style={{ animationDelay: "100ms" }}>
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex-1 min-w-[min(100%,12rem)] flex items-center gap-3 px-4 py-3 bg-[#141210]/90 border border-[#2A2521] rounded-xl transition-all duration-200 focus-within:bg-[#1b1714] focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20">
             <Search className="w-4 h-4 text-[#8C8178] flex-shrink-0" aria-hidden="true" />
             <input
@@ -422,8 +590,8 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("cards")}
-              className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 ${
-                viewMode === "cards" ? "bg-primary text-[#2D1D10]" : "text-[#8C8178] hover:text-[#E9DFD6]"
+              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Kartenansicht"
               aria-pressed={viewMode === "cards"}
@@ -433,8 +601,8 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 ${
-                viewMode === "list" ? "bg-primary text-[#2D1D10]" : "text-[#8C8178] hover:text-[#E9DFD6]"
+              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Listenansicht"
               aria-pressed={viewMode === "list"}
@@ -444,8 +612,8 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("calendar")}
-              className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 ${
-                viewMode === "calendar" ? "bg-primary text-[#2D1D10]" : "text-[#8C8178] hover:text-[#E9DFD6]"
+              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                viewMode === "calendar" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Kalender"
               aria-pressed={viewMode === "calendar"}
@@ -455,8 +623,8 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("map")}
-              className={`min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 ${
-                viewMode === "map" ? "bg-primary text-[#2D1D10]" : "text-[#8C8178] hover:text-[#E9DFD6]"
+              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+                viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Karte"
               aria-pressed={viewMode === "map"}
@@ -488,12 +656,11 @@ export function DiscoverFeedV2({
               }}
               role="tab"
               aria-selected={filter === item.id}
-              className={`flex items-center gap-2 px-4 py-2 min-h-[38px] text-sm font-medium whitespace-nowrap rounded-full transition-all duration-200 animate-slide-up ${
+              className={`flex min-h-[38px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 ${
                 filter === item.id
                   ? "bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_8px_24px_rgba(255,122,24,0.42)]"
                   : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
               }`}
-              style={{ animationDelay: `${150 + i * 30}ms` }}
             >
               <span>{item.label}</span>
               <span
@@ -510,12 +677,11 @@ export function DiscoverFeedV2({
             onClick={() => toggleLikedFilter()}
             role="tab"
             aria-selected={likedOnly}
-            className={`flex items-center gap-2 px-4 py-2 min-h-[38px] text-sm font-medium whitespace-nowrap rounded-full transition-all duration-200 animate-slide-up ${
+            className={`flex min-h-[38px] items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 ${
               likedOnly
                 ? "bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_8px_24px_rgba(255,122,24,0.42)]"
                 : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
             }`}
-            style={{ animationDelay: `${150 + filterItems.length * 30}ms` }}
           >
             <Heart className={`w-3.5 h-3.5 shrink-0 ${likedOnly ? "fill-current" : ""}`} aria-hidden="true" />
             <span>Gespeichert</span>
@@ -528,10 +694,10 @@ export function DiscoverFeedV2({
         </div>
 
         {viewMode === "cards" && hottestParty && topScore > 0 ? (
-        <div className="mt-2 animate-slide-up" style={{ animationDelay: "260ms" }}>
+        <div className="mt-2">
             <Link
               href={hottestParty.detailHref}
-              className="inline-flex items-center gap-2 px-4 py-2 min-h-[38px] rounded-full bg-primary text-[#2D1D10] text-sm font-semibold shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-[#ff9a3f] bg-[#ff7a18] px-4 py-2 text-sm font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.42)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a3f]/50"
               aria-label={`Im Trend: ${hottestParty.title}`}
             >
               <Flame className="w-4 h-4" aria-hidden="true" />
@@ -547,7 +713,7 @@ export function DiscoverFeedV2({
           viewMode === "map" || viewMode === "calendar"
             ? "space-y-3 px-4"
             : viewMode === "cards"
-              ? "space-y-4 px-4"
+              ? "space-y-4 px-0"
               : "space-y-2 px-2.5"
         }
         role={viewMode === "map" || viewMode === "calendar" ? undefined : "feed"}
@@ -593,11 +759,10 @@ export function DiscoverFeedV2({
           )
         ) : visibleEvents.length > 0 ? (
           viewMode === "cards" ? (
-            visibleEvents.map((event, index) => (
+            visibleEvents.map((event) => (
               <DiscoverEventCardV2
                 key={event.id}
                 event={event}
-                index={index}
                 isHot={hotPartyIds.has(event.id)}
                 upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
                 upvotedByMe={upvotedPartyIds.includes(event.id)}
@@ -608,11 +773,10 @@ export function DiscoverFeedV2({
               />
             ))
           ) : (
-            visibleEvents.map((event, index) => (
+            visibleEvents.map((event) => (
               <DiscoverEventListItemV2
                 key={event.id}
                 event={event}
-                index={index}
                 isHot={hotPartyIds.has(event.id)}
                 upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
                 upvotedByMe={upvotedPartyIds.includes(event.id)}

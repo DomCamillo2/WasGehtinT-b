@@ -23,7 +23,7 @@ export default async function HostPage() {
   const { dashboard, pendingRequests, vibes, isAdmin } = await loadHostPageData();
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Host" subtitle="Party erstellen und Anfragen verwalten." />
 
       <Link

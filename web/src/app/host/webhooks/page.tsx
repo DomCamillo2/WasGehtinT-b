@@ -71,7 +71,7 @@ export default async function HostWebhookEventsPage({
   const failedCount = events.filter((event) => event.processingError).length;
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Webhook Events" subtitle="Interne Stripe-Verarbeitung und Fehlerstatus" />
 
       <Card className="mb-3 grid grid-cols-2 gap-2 text-xs text-zinc-700">

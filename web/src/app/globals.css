@@ -345,6 +345,7 @@ html.discover-ui-new body::before {
   pointer-events: none;
   z-index: 5;
   opacity: 0.06;
+  contain: strict;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   mix-blend-mode: soft-light;
@@ -368,15 +369,18 @@ html.discover-ui-new body::before {
     0 2px 4px oklch(0 0 0 / 0.2);
 }
 
-.discover-ui-v2 .card-lift {
-  transition:
-    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.4s ease;
-}
+/* Hover lift only for fine pointers — avoids extra compositing work on touch scroll */
+@media (hover: hover) and (pointer: fine) {
+  .discover-ui-v2 .card-lift {
+    transition:
+      transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.22s ease;
+  }
 
-.discover-ui-v2 .card-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px -20px oklch(0 0 0 / 0.5);
+  .discover-ui-v2 .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px -18px oklch(0 0 0 / 0.45);
+  }
 }
 
 @keyframes discover-v2-float-blob-1 {
@@ -440,6 +444,41 @@ html.discover-ui-new body::before {
   }
 }
 
+.wg-cta-attention,
+.wg-cta-confirmed {
+  will-change: transform;
+}
+
+@keyframes wg-cta-attention {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(255, 122, 24, 0.2),
+      0 8px 20px -16px rgba(255, 122, 24, 0.45);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(255, 122, 24, 0.04),
+      0 12px 26px -14px rgba(255, 122, 24, 0.62);
+  }
+}
+
+@keyframes wg-cta-confirmed {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(255, 154, 63, 0.18),
+      0 10px 24px -14px rgba(255, 122, 24, 0.72);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(255, 154, 63, 0.05),
+      0 14px 30px -12px rgba(255, 122, 24, 0.9);
+  }
+}
+
 .discover-ui-v2 .animate-float-1 {
   animation: discover-v2-float-blob-1 20s ease-in-out infinite;
 }
@@ -482,12 +521,43 @@ html.discover-ui-new body::before {
   opacity: 0.45;
 }
 
+/* Keep expensive visual effects for desktop/fine pointers only. */
+@media (hover: hover) and (pointer: fine) {
+  .discover-ui-v2 .wg-cta-attention {
+    animation: wg-cta-attention 2s ease-in-out infinite;
+  }
+
+  .discover-ui-v2 .wg-cta-confirmed {
+    animation: wg-cta-confirmed 1.5s ease-in-out infinite;
+  }
+}
+
+/* Mobile/touch performance guardrails. */
+@media (hover: none), (pointer: coarse), (max-width: 820px) {
+  .discover-ui-v2 .noise-overlay {
+    display: none;
+  }
+
+  .discover-ui-v2 .discover-header-glass {
+    backdrop-filter: none !important;
+  }
+
+  .discover-ui-v2 .wg-cta-attention,
+  .discover-ui-v2 .wg-cta-confirmed,
+  .hot-card-glow,
+  .hot-card-glow::after {
+    animation: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .discover-ui-v2 .animate-float-1,
   .discover-ui-v2 .animate-float-2,
   .discover-ui-v2 .animate-float-3,
   .discover-ui-v2 .animate-slide-up,
-  .discover-ui-v2 .animate-glow-pulse {
+  .discover-ui-v2 .animate-glow-pulse,
+  .wg-cta-attention,
+  .wg-cta-confirmed {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

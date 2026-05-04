@@ -23,7 +23,7 @@ export function LegalPageShell({
   children,
 }: LegalPageShellProps) {
   return (
-    <AppShell mainClassName="px-4 pb-28 pt-5">
+    <AppShell theme="new" mainClassName="px-4 pb-28 pt-5">
       <div className="surface-card relative overflow-hidden rounded-[28px] px-5 py-6">
         <div
           aria-hidden="true"

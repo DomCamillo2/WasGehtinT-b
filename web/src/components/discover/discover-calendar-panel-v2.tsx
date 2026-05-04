@@ -54,11 +54,15 @@ export function DiscoverCalendarPanelV2({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border p-3 sm:p-4 backdrop-blur-sm bg-[#17120f]/92 border-[#2a221d]">
+      <div className="rounded-2xl border border-[#2a221d] bg-[#17120f] p-3 sm:p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={() => onMonthAnchorChange(shiftIsoMonth(monthAnchor || todayKey, -1))}
+            onClick={() => {
+              const next = shiftIsoMonth(monthAnchor || todayKey, -1);
+              onMonthAnchorChange(next);
+              onSelectedDateChange(next);
+            }}
             className="grid h-9 w-9 place-items-center rounded-lg bg-[#1d1713] border border-[#2a221d] text-[#f2ece6] hover:bg-[#241d19]"
             aria-label="Vorheriger Monat"
           >
@@ -67,7 +71,11 @@ export function DiscoverCalendarPanelV2({
           <p className="text-sm font-semibold capitalize text-[#f2ece6]">{grid.monthLabel}</p>
           <button
             type="button"
-            onClick={() => onMonthAnchorChange(shiftIsoMonth(monthAnchor || todayKey, 1))}
+            onClick={() => {
+              const next = shiftIsoMonth(monthAnchor || todayKey, 1);
+              onMonthAnchorChange(next);
+              onSelectedDateChange(next);
+            }}
             className="grid h-9 w-9 place-items-center rounded-lg bg-[#1d1713] border border-[#2a221d] text-[#f2ece6] hover:bg-[#241d19]"
             aria-label="Nächster Monat"
           >
@@ -94,7 +102,10 @@ export function DiscoverCalendarPanelV2({
               <button
                 key={cell.isoDate}
                 type="button"
-                onClick={() => onSelectedDateChange(cell.isoDate!)}
+                onClick={() => {
+                  onSelectedDateChange(cell.isoDate!);
+                  onMonthAnchorChange(cell.isoDate!);
+                }}
                 className={`relative h-9 rounded-lg text-xs font-semibold transition-colors ${
                   active
                     ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
@@ -132,11 +143,10 @@ export function DiscoverCalendarPanelV2({
 
         {dayEvents.length > 0 ? (
           <div className="space-y-2">
-            {dayEvents.map((event, index) => (
+            {dayEvents.map((event) => (
               <DiscoverEventListItemV2
                 key={event.id}
                 event={event}
-                index={index}
                 isHot={hotPartyIds.has(event.id)}
                 upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
                 upvotedByMe={upvotedPartyIds.includes(event.id)}

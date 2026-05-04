@@ -90,7 +90,7 @@ export default async function ExternalEventPage({
           <h1 className="mt-3 text-3xl font-black leading-tight text-[#F2ECE6]">
             {event.title}
           </h1>
-          <p className="mt-3 text-sm text-[#A69A91]">
+          <p className="mt-3 text-base font-medium text-[#A69A91]">
             {event.clubName} · {event.heroDateLabel}
           </p>
 
@@ -128,21 +128,21 @@ export default async function ExternalEventPage({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
-              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
               Start
             </p>
-            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
+            <p className="mt-2 text-base font-semibold tabular-nums leading-snug text-[#E9DFD6] sm:text-lg">
               {event.startDateLabel}
             </p>
           </div>
 
           <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
-              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+              <Clock3 className="h-4 w-4" aria-hidden="true" />
               Ende
             </p>
-            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
+            <p className="mt-2 text-base font-semibold tabular-nums leading-snug text-[#E9DFD6] sm:text-lg">
               {event.endDateLabel}
             </p>
           </div>

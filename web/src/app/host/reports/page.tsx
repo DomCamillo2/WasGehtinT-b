@@ -34,7 +34,7 @@ export default async function HostReportsPage({ searchParams }: { searchParams: 
   const reports = await loadHostReports(active);
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <ScreenHeader title="Content Reports" subtitle="Interne Moderations-Queue" />
 
       <Card className="mb-3 flex flex-wrap items-center gap-2 text-xs">

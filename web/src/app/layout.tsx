@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import { GoogleAnalyticsConsent } from "@/components/analytics/google-analytics-consent";
 import { CookieConsentBannerMount } from "@/components/layout/cookie-consent-banner-mount";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 import { SiteSchema } from "@/components/seo/site-schema";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site-config";
@@ -43,6 +44,7 @@ export const metadata: Metadata = {
     shortcut: [{ url: "/favicon-tight.png" }],
     apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
   },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
@@ -81,6 +83,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <ToastProvider>
           <SiteSchema />
+          <PwaRegister />
           <GoogleAnalyticsConsent />
           {children}
           <CookieConsentBannerMount />
