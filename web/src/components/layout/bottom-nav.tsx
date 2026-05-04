@@ -135,7 +135,7 @@ export function BottomNav() {
               <button
                 type="button"
                 onClick={() => setComingSoonHref(null)}
-                className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-xl bg-zinc-900 text-sm font-semibold text-white"
+                className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[color:var(--accent)] text-sm font-semibold text-[color:var(--accent-dark-text)]"
               >
                 Verstanden
               </button>
@@ -375,7 +375,7 @@ export function BottomNav() {
                     <button
                       type="button"
                       onClick={() => setComingSoonHref(item.href)}
-                      className="flex h-14 w-full flex-col items-center justify-center rounded-xl text-[11px] font-semibold text-zinc-400 transition hover:text-zinc-500"
+                      className="flex h-14 w-full flex-col items-center justify-center rounded-xl text-[11px] font-semibold text-[color:var(--muted-foreground)] transition hover:text-[color:var(--foreground)]"
                     >
                       <Icon size={18} strokeWidth={2.2} />
                       <span className="mt-1">{item.label}</span>

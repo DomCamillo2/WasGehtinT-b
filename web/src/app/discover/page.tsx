@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { DiscoverExperienceV2 } from "@/components/discover/discover-experience-v2";
 import { AppShell } from "@/components/layout/app-shell";
-import { DiscoverPremium } from "@/components/party/discover-premium";
 import { DiscoverSchema } from "@/components/seo/discover-schema";
 import { SITE_NAME, absoluteUrl } from "@/lib/site-config";
 import { loadDiscoverPageData } from "@/services/discover/discover-page-service";
@@ -49,18 +48,15 @@ export default async function DiscoverPage({
     type?: string;
     weeks?: string;
     liked?: string;
-    ui?: string;
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const isUiNew = resolvedSearchParams.ui === "new";
   const {
     parties,
     avatarFallback,
     isAuthenticated,
     canLoadMore,
     currentWeeks,
-    initialView,
     initialFilter,
     initialCalendarDate,
   } = await loadDiscoverPageData(
@@ -69,34 +65,22 @@ export default async function DiscoverPage({
 
   return (
     <AppShell
+      theme="new"
       shellClassName="overflow-visible"
-      showFooter={!isUiNew}
-      showBottomNav={!isUiNew}
-      mainFlush={isUiNew}
+      showFooter={false}
+      showBottomNav={false}
+      mainFlush
     >
       <DiscoverSchema events={parties} />
-      {isUiNew ? (
-        <DiscoverExperienceV2
-          parties={parties}
-          avatarFallback={avatarFallback}
-          isAuthenticated={isAuthenticated}
-          canLoadMore={canLoadMore}
-          currentWeeks={currentWeeks}
-          initialFilter={initialFilter}
-          initialCalendarDate={initialCalendarDate}
-        />
-      ) : (
-        <DiscoverPremium
-          parties={parties}
-          avatarFallback={avatarFallback}
-          isAuthenticated={isAuthenticated}
-          canLoadMore={canLoadMore}
-          currentWeeks={currentWeeks}
-          initialView={initialView}
-          initialFilter={initialFilter}
-          initialCalendarDate={initialCalendarDate}
-        />
-      )}
+      <DiscoverExperienceV2
+        parties={parties}
+        avatarFallback={avatarFallback}
+        isAuthenticated={isAuthenticated}
+        canLoadMore={canLoadMore}
+        currentWeeks={currentWeeks}
+        initialFilter={initialFilter}
+        initialCalendarDate={initialCalendarDate}
+      />
     </AppShell>
   );
 }

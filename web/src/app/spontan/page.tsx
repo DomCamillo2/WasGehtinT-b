@@ -48,7 +48,7 @@ export default async function SpontanPage() {
   const items = await loadSpontanFeedItems();
 
   return (
-    <AppShell>
+    <AppShell theme="new">
       <SpontanFeed items={items} />
     </AppShell>
   );

@@ -61,7 +61,7 @@ export default async function ExternalEventPage({
   }
 
   return (
-    <AppShell mainClassName="space-y-4">
+    <AppShell theme="new" mainClassName="space-y-4">
       <EventSchema
         name={event.title}
         startDate={event.startsAt}
@@ -80,7 +80,7 @@ export default async function ExternalEventPage({
           href="/discover"
           className="inline-flex min-h-[38px] items-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-xs font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
         >
-          Zurueck zu Discover
+          Zurück zu Discover
         </Link>
 
         <section className="overflow-hidden rounded-[1.2rem] border border-[#2B2623] bg-[radial-gradient(120%_120%_at_90%_10%,rgba(255,122,24,0.2),transparent_45%),linear-gradient(180deg,#171310_0%,#120f0d_100%)] px-5 py-6 shadow-[0_14px_40px_-28px_rgba(255,122,24,0.55)]">
@@ -114,7 +114,7 @@ export default async function ExternalEventPage({
                 className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-sm font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
               >
                 <MapPin className="h-4 w-4" aria-hidden="true" />
-                Auf Karte oeffnen
+                Auf Karte öffnen
               </a>
             ) : null}
           </div>

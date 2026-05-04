@@ -60,37 +60,37 @@ export function SpontanFeed({ items }: Props) {
 
   return (
     <div className="space-y-4 pb-24">
-      <Card className="space-y-3 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-        <h1 className="text-2xl font-black tracking-tight text-zinc-900">Spontan</h1>
-        <p className="text-xs text-zinc-500">
-          Einreichungen sind auch ohne Account moeglich und werden vor Anzeige vom Admin geprueft.
+      <Card className="space-y-3 border border-[color:var(--border-soft)] shadow-[var(--shadow-soft)]">
+        <h1 className="text-2xl font-black tracking-tight text-[color:var(--text-main)]">Spontan</h1>
+        <p className="text-xs text-[color:var(--text-muted)]">
+          Einreichungen sind auch ohne Account möglich und werden vor Anzeige vom Admin geprüft.
         </p>
         <form action={action} className="space-y-2">
           <input
             name="submitterName"
             maxLength={80}
             placeholder="Dein Name (bei Einreichung ohne Account)"
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+            className="h-11 w-full rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--bg-surface)] px-3 text-sm text-[color:var(--text-main)] outline-none placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--accent-strong)]"
           />
           <input
             name="title"
             required
             maxLength={120}
             placeholder="Worauf hast du spontan Bock?"
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+            className="h-11 w-full rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--bg-surface)] px-3 text-sm text-[color:var(--text-main)] outline-none placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--accent-strong)]"
           />
           <input
             name="locationText"
             required
             maxLength={160}
             placeholder="Wo? z. B. Neckarinsel"
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+            className="h-11 w-full rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--bg-surface)] px-3 text-sm text-[color:var(--text-main)] outline-none placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--accent-strong)]"
           />
           <input
             name="meetupAt"
             type="datetime-local"
             required
-            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+            className="h-11 w-full rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--bg-surface)] px-3 text-sm text-[color:var(--text-main)] outline-none focus:border-[color:var(--accent-strong)]"
           />
           <textarea
             name="description"
@@ -98,12 +98,12 @@ export function SpontanFeed({ items }: Props) {
             maxLength={600}
             rows={3}
             placeholder="Beschreibung: was geplant ist und was man mitbringen soll"
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            className="w-full rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--bg-surface)] px-3 py-2 text-sm text-[color:var(--text-main)] outline-none placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--accent-strong)]"
           />
           <div className="flex items-center gap-2">
             <select
               name="activityType"
-              className="h-11 flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-400"
+              className="h-11 flex-1 rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--bg-surface)] px-3 text-sm text-[color:var(--text-main)] outline-none focus:border-[color:var(--accent-strong)]"
               defaultValue="meetup"
             >
               <option value="sport">Sport</option>
@@ -119,10 +119,12 @@ export function SpontanFeed({ items }: Props) {
         </form>
 
         {state.error ? (
-          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+          <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            {state.error}
+          </p>
         ) : null}
         {state.success ? (
-          <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
             {state.success}
           </p>
         ) : null}
@@ -137,49 +139,49 @@ export function SpontanFeed({ items }: Props) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: index * 0.03 }}
-              className="rounded-2xl bg-white p-4 shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
+              className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--bg-surface)] p-4 shadow-[var(--shadow-soft)]"
             >
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-700">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[color:var(--bg-surface-2)] text-xs font-bold text-[color:var(--text-main)]">
                     {initials}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-zinc-900">{item.userDisplayName}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-sm font-semibold text-[color:var(--text-main)]">{item.userDisplayName}</p>
+                    <p className="text-xs text-[color:var(--text-muted)]">
                       {formatDateTimeOrFallback(item.createdAt, "gerade eben")}
                     </p>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--accent)]/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--accent-strong)]">
                   <Zap size={12} />
                   {mapActivityLabel(item.activityType)}
                 </span>
               </div>
 
-              <h2 className="text-base font-bold tracking-tight text-zinc-900">{item.title}</h2>
+              <h2 className="text-base font-bold tracking-tight text-[color:var(--text-main)]">{item.title}</h2>
               {item.locationText ? (
-                <p className="mt-1 text-sm text-zinc-600">Wo: {item.locationText}</p>
+                <p className="mt-1 text-sm text-[color:var(--text-muted)]">Wo: {item.locationText}</p>
               ) : null}
               {item.meetupAt ? (
-                <p className="mt-0.5 text-sm text-zinc-600">
+                <p className="mt-0.5 text-sm text-[color:var(--text-muted)]">
                   Wann: {formatMeetupOrFallback(item.meetupAt)}
                 </p>
               ) : null}
-              <p className="mt-1 text-sm text-zinc-700">{item.description}</p>
+              <p className="mt-1 text-sm text-[color:var(--text-main)]/90">{item.description}</p>
 
               <div className="mt-3 flex items-center gap-3">
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   type="button"
-                  className="inline-flex h-9 items-center gap-1 rounded-xl bg-zinc-900 px-3 text-xs font-semibold text-white"
+                  className="inline-flex h-9 items-center gap-1 rounded-xl bg-[color:var(--accent)] px-3 text-xs font-semibold text-[color:var(--accent-dark-text)]"
                 >
                   <Users size={14} />
                   Ich bin dabei!
                 </motion.button>
                 <a
                   href={`/melden?type=spontan&id=${item.id}`}
-                  className="text-xs font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700"
+                  className="text-xs font-medium text-[color:var(--text-muted)] underline decoration-[color:var(--border-soft)] underline-offset-2 hover:text-[color:var(--text-main)]"
                 >
                   Beitrag melden
                 </a>
@@ -189,8 +191,8 @@ export function SpontanFeed({ items }: Props) {
         })}
 
         {!items.length ? (
-          <Card className="text-sm text-zinc-500">
-            Noch keine spontanen Beitraege. Sei der erste.
+          <Card className="border border-[color:var(--border-soft)] text-sm text-[color:var(--text-muted)]">
+            Noch keine spontanen Beiträge. Sei der Erste.
           </Card>
         ) : null}
       </div>
