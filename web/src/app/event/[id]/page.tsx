@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CalendarDays, Clock3, ExternalLink, MapPin, Tag } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { EventSchema } from "@/components/seo/event-schema";
 import { SITE_NAME, absoluteUrl } from "@/lib/site-config";
@@ -60,7 +61,7 @@ export default async function ExternalEventPage({
   }
 
   return (
-    <AppShell mainClassName="space-y-5">
+    <AppShell mainClassName="space-y-4">
       <EventSchema
         name={event.title}
         startDate={event.startsAt}
@@ -77,34 +78,19 @@ export default async function ExternalEventPage({
       <div className="space-y-3">
         <Link
           href="/discover"
-          className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold"
-          style={{
-            borderColor: "var(--nav-border)",
-            backgroundColor: "var(--surface-elevated)",
-            color: "var(--foreground)",
-          }}
+          className="inline-flex min-h-[38px] items-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-xs font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
         >
           Zurueck zu Discover
         </Link>
 
-        <section
-          className="rounded-[2rem] border px-5 py-6 shadow-[0_10px_30px_rgba(20,24,40,0.08)]"
-          style={{
-            borderColor: "var(--nav-border)",
-            background:
-              "linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 78%, #f59e0b 22%), var(--surface-elevated))",
-          }}
-        >
-          <p
-            className="text-xs font-semibold uppercase tracking-[0.18em]"
-            style={{ color: "var(--muted-foreground)" }}
-          >
+        <section className="overflow-hidden rounded-[1.2rem] border border-[#2B2623] bg-[radial-gradient(120%_120%_at_90%_10%,rgba(255,122,24,0.2),transparent_45%),linear-gradient(180deg,#171310_0%,#120f0d_100%)] px-5 py-6 shadow-[0_14px_40px_-28px_rgba(255,122,24,0.55)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A69A91]">
             {event.kindLabel}
           </p>
-          <h1 className="mt-3 text-3xl font-black leading-tight" style={{ color: "var(--foreground)" }}>
+          <h1 className="mt-3 text-3xl font-black leading-tight text-[#F2ECE6]">
             {event.title}
           </h1>
-          <p className="mt-3 text-sm" style={{ color: "var(--muted-foreground)" }}>
+          <p className="mt-3 text-sm text-[#A69A91]">
             {event.clubName} · {event.heroDateLabel}
           </p>
 
@@ -114,8 +100,9 @@ export default async function ExternalEventPage({
                 href={event.externalLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white"
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-[#ff7a18] px-4 py-2 text-sm font-semibold text-[#2D1D10] shadow-[0_10px_26px_-18px_rgba(255,122,24,0.95)] transition-opacity hover:opacity-90"
               >
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Zum Veranstalter
               </a>
             ) : null}
@@ -124,13 +111,9 @@ export default async function ExternalEventPage({
                 href={event.mapsLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold"
-                style={{
-                  borderColor: "var(--nav-border)",
-                  backgroundColor: "var(--surface-elevated)",
-                  color: "var(--foreground)",
-                }}
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-sm font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
               >
+                <MapPin className="h-4 w-4" aria-hidden="true" />
                 Auf Karte oeffnen
               </a>
             ) : null}
@@ -138,104 +121,81 @@ export default async function ExternalEventPage({
         </section>
       </div>
 
-      <section
-        className="grid gap-3 rounded-[1.75rem] border p-5"
-        style={{
-          borderColor: "var(--nav-border)",
-          backgroundColor: "var(--surface-elevated)",
-        }}
-      >
-        <h2 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>
+      <section className="grid gap-3 rounded-[1.1rem] border border-[#2B2623] bg-[#151210]/92 p-4 sm:p-5">
+        <h2 className="text-lg font-bold text-[#F2ECE6]">
           Event-Details
         </h2>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
               Start
             </p>
-            <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
               {event.startDateLabel}
             </p>
           </div>
 
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
               Ende
             </p>
-            <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
               {event.endDateLabel}
             </p>
           </div>
 
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+              <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
               Ort
             </p>
-            <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
               {event.displayLocationName}
             </p>
           </div>
 
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+              <Tag className="h-3.5 w-3.5" aria-hidden="true" />
               Kategorie
             </p>
-            <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
               {event.displayCategory}
             </p>
           </div>
         </div>
 
         {event.priceInfo ? (
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
               Preis
             </p>
-            <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
               {event.priceInfo}
             </p>
           </div>
         ) : null}
 
         {event.description ? (
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
               Beschreibung
             </p>
-            <p className="mt-2 text-sm leading-6" style={{ color: "var(--foreground)" }}>
+            <p className="mt-2 text-sm leading-6 text-[#E9DFD6]">
               {event.description}
             </p>
           </div>
         ) : null}
 
         {event.coordinatesLabel ? (
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface-soft)" }}>
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.14em]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
               Koordinaten
             </p>
-            <p className="mt-2 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
               {event.coordinatesLabel}
             </p>
           </div>

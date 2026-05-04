@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -18,6 +19,13 @@ import {
 import { EventCard } from "@/components/EventCard";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useToast } from "@/components/ui/toast-provider";
+import {
+  type DiscoverFilterKey,
+  filterDiscoverEvents,
+  sortDiscoverByUpvotesThenDate,
+} from "@/lib/discover-filters";
+import { berlinDayKeyFromIso, buildCalendarMonthGrid, shiftIsoMonth } from "@/lib/discover-calendar";
+import { SITE_LOGO_SRC } from "@/lib/site-config";
 import { asServiceError } from "@/services/service-error";
 import { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { togglePartyUpvote } from "@/services/events/upvotes-service";
@@ -37,27 +45,16 @@ const DiscoverMap = dynamic(
   },
 );
 
-type FilterKey = "all" | "community" | "clubs" | "daytime";
 type ViewKey = "calendar" | "list" | "map";
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
 const LOAD_MORE_STEP = 12;
-
-const BERLIN_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
-  timeZone: "Europe/Berlin",
-});
 
 const BERLIN_CALENDAR_HEADING_FORMATTER = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
   weekday: "long",
   day: "2-digit",
   month: "long",
-});
-
-const BERLIN_MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("de-DE", {
-  timeZone: "Europe/Berlin",
-  month: "long",
-  year: "numeric",
 });
 
 const BERLIN_DAY_CHIP_FORMATTER = new Intl.DateTimeFormat("de-DE", {
@@ -74,13 +71,9 @@ type Props = {
   canLoadMore: boolean;
   currentWeeks: number;
   initialView: ViewKey;
-  initialFilter: FilterKey;
+  initialFilter: DiscoverFilterKey;
   initialCalendarDate: string;
 };
-
-function toDateKeyBerlin(iso: string) {
-  return BERLIN_DAY_KEY_FORMATTER.format(new Date(iso));
-}
 
 function getFallbackVenueKey(party: DiscoverEvent) {
   const location = `${party.locationName ?? ""} ${party.vibeLabel} ${party.title}`.toLowerCase();
@@ -124,23 +117,6 @@ function hasMapCoordinates(party: DiscoverEvent) {
   );
 }
 
-function shiftIsoMonth(isoDate: string, monthDelta: number): string {
-  const [yearRaw, monthRaw, dayRaw] = isoDate.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-
-  const nextMonth = month - 1 + monthDelta;
-  const nextYear = year + Math.floor(nextMonth / 12);
-  const normalizedMonthIndex = ((nextMonth % 12) + 12) % 12;
-  const maxDay = new Date(Date.UTC(nextYear, normalizedMonthIndex + 1, 0, 12, 0, 0)).getUTCDate();
-  const clampedDay = Math.min(day, maxDay);
-
-  const mm = String(normalizedMonthIndex + 1).padStart(2, "0");
-  const dd = String(clampedDay).padStart(2, "0");
-  return `${nextYear}-${mm}-${dd}`;
-}
-
 export function DiscoverPremium({
   parties,
   avatarFallback,
@@ -154,7 +130,8 @@ export function DiscoverPremium({
   const router = useRouter();
   const pathname = usePathname();
   const { showToast } = useToast();
-  const [filter, setFilter] = useState<FilterKey>(initialFilter);
+  const todayKey = useMemo(() => berlinDayKeyFromIso(new Date().toISOString()), []);
+  const [filter, setFilter] = useState<DiscoverFilterKey>(initialFilter);
   const [view, setView] = useState<ViewKey>(initialView);
   const [likedOnly] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -164,8 +141,8 @@ export function DiscoverPremium({
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [authSheetReason, setAuthSheetReason] = useState("Um mitzumachen, logge dich mit deiner Uni-Mail ein.");
   const [onlyMappable, setOnlyMappable] = useState(false);
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(initialCalendarDate);
-  const [calendarMonthDate, setCalendarMonthDate] = useState<string>(initialCalendarDate);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(initialCalendarDate || todayKey);
+  const [calendarMonthDate, setCalendarMonthDate] = useState<string>(initialCalendarDate || todayKey);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const initialUpvoteCounts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -175,7 +152,21 @@ export function DiscoverPremium({
     return map;
   }, [parties]);
   const initialUpvotedIds = useMemo(
-    () => parties.filter((party) => party.upvotedByMe).map((party) => party.id),
+    () => {
+      const base = parties.filter((party) => party.upvotedByMe).map((party) => party.id);
+      if (typeof window === "undefined") return base;
+      try {
+        const raw = window.localStorage.getItem(LOCAL_UPVOTED_EVENTS_KEY);
+        if (!raw) return base;
+        const storedIds = JSON.parse(raw) as string[];
+        if (!Array.isArray(storedIds) || storedIds.length === 0) return base;
+        const knownEventIds = new Set(parties.map((party) => party.id));
+        const validStoredIds = storedIds.filter((id) => typeof id === "string" && knownEventIds.has(id));
+        return Array.from(new Set([...base, ...validStoredIds]));
+      } catch {
+        return base;
+      }
+    },
     [parties],
   );
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(initialUpvoteCounts);
@@ -185,63 +176,11 @@ export function DiscoverPremium({
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(LOCAL_UPVOTED_EVENTS_KEY);
-      if (!raw) {
-        return;
-      }
-
-      const storedIds = JSON.parse(raw) as string[];
-      if (!Array.isArray(storedIds) || storedIds.length === 0) {
-        return;
-      }
-
-      const knownEventIds = new Set(parties.map((party) => party.id));
-      const validStoredIds = storedIds.filter((id) => typeof id === "string" && knownEventIds.has(id));
-      if (validStoredIds.length === 0) {
-        return;
-      }
-
-      setUpvotedPartyIds((current) => Array.from(new Set([...current, ...validStoredIds])));
-      setUpvoteCounts((current) => {
-        const next = { ...current };
-        for (const id of validStoredIds) {
-          if ((next[id] ?? 0) <= 0) {
-            next[id] = 1;
-          }
-        }
-        return next;
-      });
-    } catch {
-      // Ignore malformed local cache.
-    }
-  }, [parties]);
-
-  useEffect(() => {
-    try {
       window.localStorage.setItem(LOCAL_UPVOTED_EVENTS_KEY, JSON.stringify(upvotedPartyIds));
     } catch {
       // Ignore storage write issues.
     }
   }, [upvotedPartyIds]);
-
-  useEffect(() => {
-    setVisibleCount(LOAD_MORE_STEP);
-  }, [filter, onlyMappable, parties]);
-
-  const todayKey = useMemo(
-    () => BERLIN_DAY_KEY_FORMATTER.format(new Date()),
-    [],
-  );
-
-  useEffect(() => {
-    if (!selectedCalendarDate) {
-      setSelectedCalendarDate(todayKey);
-    }
-
-    if (!calendarMonthDate) {
-      setCalendarMonthDate(todayKey);
-    }
-  }, [calendarMonthDate, selectedCalendarDate, todayKey]);
 
   useEffect(() => {
     if (typeof window === "undefined" || pathname !== "/discover") {
@@ -278,23 +217,15 @@ export function DiscoverPremium({
     }
   }, [filter, pathname, router, selectedCalendarDate, view]);
 
-  const sortedParties = useMemo(() => {
-    return [...parties].sort((left, right) => {
-      const leftScore = upvoteCounts[left.id] ?? left.upvoteCount ?? 0;
-      const rightScore = upvoteCounts[right.id] ?? right.upvoteCount ?? 0;
-
-      if (rightScore !== leftScore) {
-        return rightScore - leftScore;
-      }
-
-      return new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime();
-    });
-  }, [parties, upvoteCounts]);
+  const sortedParties = useMemo(
+    () => sortDiscoverByUpvotesThenDate(parties, upvoteCounts),
+    [parties, upvoteCounts],
+  );
 
   const topScore = useMemo(() => {
     let max = 0;
     for (const party of sortedParties) {
-      const dateKey = toDateKeyBerlin(party.startsAt);
+      const dateKey = berlinDayKeyFromIso(party.startsAt);
       if (dateKey < todayKey) {
         continue;
       }
@@ -314,7 +245,7 @@ export function DiscoverPremium({
 
     return (
       sortedParties.find((party) => {
-        const dateKey = toDateKeyBerlin(party.startsAt);
+        const dateKey = berlinDayKeyFromIso(party.startsAt);
         if (dateKey < todayKey) {
           return false;
         }
@@ -352,36 +283,11 @@ export function DiscoverPremium({
   }, [sortedParties, upvoteCounts]);
 
   const filteredParties = useMemo(() => {
-    const isClubEvent = (party: DiscoverEvent) => {
-      if (!party.isExternal) {
-        return false;
-      }
-
-      if (party.eventScope === "daytime") {
-        return false;
-      }
-
-      const categorySlug = (party.categorySlug ?? "").toLowerCase();
-      if (categorySlug === "market" || categorySlug === "flea-market") {
-        return false;
-      }
-
-      const text = `${party.title} ${party.description ?? ""} ${party.vibeLabel}`.toLowerCase();
-      if (/markt|flohmarkt|messe|basar|rathaus|regionalmarkt|georgimarkt/.test(text)) {
-        return false;
-      }
-
-      return true;
-    };
-
-    return sortedParties.filter((party) => {
-      if (filter === "clubs" && !isClubEvent(party)) return false;
-      if (filter === "daytime" && party.eventScope !== "daytime") return false;
-      if (filter === "community" && !party.isCommunity && party.sourceBadge !== "Community") return false;
-      if (onlyMappable && !hasMapCoordinates(party)) return false;
-
-      return true;
-    });
+    const byType = filterDiscoverEvents(sortedParties, filter);
+    if (!onlyMappable) {
+      return byType;
+    }
+    return byType.filter((party) => hasMapCoordinates(party));
   }, [filter, onlyMappable, sortedParties]);
 
   const mapParties = useMemo(
@@ -395,28 +301,14 @@ export function DiscoverPremium({
 
   const hasMoreVisibleParties = filteredParties.length > visibleCount;
 
-  const filterItems: Array<{ key: FilterKey; label: string; icon?: typeof Flame }> = [
+  const filterItems: Array<{ key: DiscoverFilterKey; label: string; icon?: typeof Flame }> = [
     { key: "all", label: "Alle", icon: Compass },
     { key: "clubs", label: "Clubs", icon: Building2 },
     { key: "daytime", label: "Tagesevents", icon: CalendarDays },
     { key: "community", label: "Community", icon: UsersRound },
   ];
 
-  function requireAuth(reason: string) {
-    if (isAuthenticated) {
-      return true;
-    }
-
-    setAuthSheetReason(reason);
-    setShowAuthSheet(true);
-    return false;
-  }
-
   async function toggleUpvote(eventId: string) {
-    if (!requireAuth("Um Events hochzuvoten, logge dich mit deiner Uni-Mail ein.")) {
-      return;
-    }
-
     const wasUpvoted = upvotedPartyIds.includes(eventId);
     const nextUpvoted = !wasUpvoted;
     const previousCount = upvoteCounts[eventId] ?? parties.find((party) => party.id === eventId)?.upvoteCount ?? 0;
@@ -497,21 +389,23 @@ export function DiscoverPremium({
     setFilter("all");
     setOnlyMappable(false);
     setView("list");
+    setVisibleCount(LOAD_MORE_STEP);
     setSelectedCalendarDate(todayKey);
     setCalendarMonthDate(todayKey);
   }
 
-  function handleFilterSelection(nextFilter: FilterKey) {
+  function handleFilterSelection(nextFilter: DiscoverFilterKey) {
     if (nextFilter === "all") {
       resetToAllView();
       return;
     }
 
     setFilter(nextFilter);
+    setVisibleCount(LOAD_MORE_STEP);
   }
 
   const selectedCalendarEvents = useMemo(() => {
-    return filteredParties.filter((party) => toDateKeyBerlin(party.startsAt) === selectedCalendarDate);
+    return filteredParties.filter((party) => berlinDayKeyFromIso(party.startsAt) === selectedCalendarDate);
   }, [filteredParties, selectedCalendarDate]);
 
   const selectedCalendarLabel = useMemo(() => {
@@ -522,35 +416,10 @@ export function DiscoverPremium({
     return BERLIN_CALENDAR_HEADING_FORMATTER.format(new Date(`${selectedCalendarDate}T12:00:00Z`));
   }, [selectedCalendarDate]);
 
-  const calendarMonthMeta = useMemo(() => {
-    const normalizedMonth = /^\d{4}-\d{2}-\d{2}$/.test(calendarMonthDate) ? calendarMonthDate : todayKey;
-    const [yearRaw, monthRaw] = normalizedMonth.split("-");
-    const year = Number(yearRaw);
-    const month = Number(monthRaw);
-    const monthStart = new Date(Date.UTC(year, month - 1, 1, 12, 0, 0));
-    const firstWeekday = (monthStart.getUTCDay() + 6) % 7;
-    const daysInMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
-
-    const cells: Array<{ isoDate: string | null; day: number | null }> = [];
-    for (let i = 0; i < firstWeekday; i += 1) {
-      cells.push({ isoDate: null, day: null });
-    }
-
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const mm = String(month).padStart(2, "0");
-      const dd = String(day).padStart(2, "0");
-      cells.push({ isoDate: `${year}-${mm}-${dd}`, day });
-    }
-
-    while (cells.length % 7 !== 0) {
-      cells.push({ isoDate: null, day: null });
-    }
-
-    return {
-      monthLabel: BERLIN_MONTH_LABEL_FORMATTER.format(monthStart),
-      cells,
-    };
-  }, [calendarMonthDate, todayKey]);
+  const calendarMonthMeta = useMemo(
+    () => buildCalendarMonthGrid(calendarMonthDate, todayKey),
+    [calendarMonthDate, todayKey],
+  );
 
   return (
     <div className="relative space-y-4 pb-32 lg:space-y-6 lg:pb-20">
@@ -620,9 +489,18 @@ export function DiscoverPremium({
         <div className="relative">
           <div className="flex flex-col gap-3 lg:gap-8">
             <div className="min-w-0 max-w-[18rem] sm:max-w-[24rem] lg:max-w-[34rem]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--accent-strong)]">
-                {"WasGehtT\u00fcb"}
-              </p>
+              <div className="flex items-center gap-3">
+                <Image
+                  src={SITE_LOGO_SRC}
+                  alt=""
+                  width={56}
+                  height={56}
+                  className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14"
+                />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--accent-strong)]">
+                  {"WasGehtT\u00fcb"}
+                </p>
+              </div>
               <h1 className="mt-1.5 max-w-[14ch] text-[1.85rem] font-black leading-[0.98] tracking-tight text-[color:var(--foreground)] sm:max-w-[16ch] sm:text-[2rem] lg:max-w-[18ch] lg:text-[3.2rem]">
                 {"Was geht in T\u00fcbingen heute?"}
               </h1>
@@ -753,7 +631,10 @@ export function DiscoverPremium({
 
             <button
               type="button"
-              onClick={() => setOnlyMappable((current) => !current)}
+              onClick={() => {
+                setOnlyMappable((current) => !current);
+                setVisibleCount(LOAD_MORE_STEP);
+              }}
               className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl border px-3 text-xs font-semibold"
               style={{
                 borderColor: "var(--nav-border)",
@@ -929,7 +810,7 @@ export function DiscoverPremium({
                   return <div key={`calendar-empty-${index}`} className="h-9" />;
                 }
 
-                const hasEvents = filteredParties.some((party) => toDateKeyBerlin(party.startsAt) === cell.isoDate);
+                const hasEvents = filteredParties.some((party) => berlinDayKeyFromIso(party.startsAt) === cell.isoDate);
                 const active = selectedCalendarDate === cell.isoDate;
 
                 return (

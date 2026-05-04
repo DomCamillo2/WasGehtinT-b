@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { requestPasswordResetAction, signInAction } from "@/app/actions/auth";
+import { SITE_LOGO_SRC } from "@/lib/site-config";
 
 type SheetMode = "login" | null;
 
@@ -36,7 +37,7 @@ export function SplashAuth() {
           <div className="relative mx-auto mb-6 mt-4 w-[230px]">
             <div className="absolute -inset-6 rounded-full bg-fuchsia-500/25 blur-3xl" />
             <Image
-              src="/Logo.png"
+              src={SITE_LOGO_SRC}
               alt="WasGehtTüb Logo"
               width={460}
               height={460}

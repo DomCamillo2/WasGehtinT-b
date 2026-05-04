@@ -32,9 +32,10 @@ cp .env.example .env.local
 - `SUPABASE_SECRET_KEY` (oder fallback `SUPABASE_SERVICE_ROLE_KEY`)
 - `INTERNAL_ADMIN_EMAILS` (kommagetrennt, z.B. `a@student.uni-tuebingen.de,b@student.uni-tuebingen.de`)
 - `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, für automatisches Partner-Event-Refresh per Cron)
-- `CRON_SECRET` (für sichere Vercel-Cron-Aufrufe auf interne API-Routen)
+- `CRON_SECRET` (für sichere Aufrufe interner Cron-Routen, z. B. durch cron-job.org oder CI — **nicht** Vercel Cron, siehe `ARCHITECTURE.md`)
 - `RESEND_API_KEY` (für transaktionale Mails)
 - `RESEND_FROM_EMAIL` (z. B. `WasGehtTüb <onboarding@resend.dev>` oder deine verifizierte Domain-Absenderadresse)
+- `PEXELS_API_KEY` (optional, fuer automatische Hero-Bilder in Discover-Eventkarten)
 
 4) Datenbank vorbereiten (Supabase SQL Editor)
 
@@ -74,14 +75,13 @@ Zusätzlich gibt es Status-Filter (`all`, `failed`, `pending`, `processed`) und 
 
 ## Partner-Events automatisch aktualisieren
 
-Externe Events sind jetzt sauber vom Frontend getrennt:
+Externe Events sind sauber vom Frontend getrennt:
 
 - Frontend liest nur aus Supabase (`v_external_events_public`).
-- Background-Worker scraped Quellen und schreibt direkt in `external_events_cache`.
-- Der Worker laeuft in GitHub Actions (`.github/workflows/external-events-refresh.yml`).
-- Das ist die aktive Source-of-Truth fuer Scheduling in Produktion.
-- `vercel.json` enthaelt bewusst keine aktiven Cronjobs.
-- `scripts/setup-cronjob-org.mjs` ist nur ein optionaler Fallback und standardmaessig nicht aktiv.
+- Scraper schreiben in `external_events_cache` (Next `/api/external-events/refresh`, Instagram `/api/cron/scrape`, optional CLI `npm run external-events:sync`).
+- **Vercel Cron wird nicht genutzt** (u. a. 8h-/Serverless-Rahmenbedingungen; Details in `ARCHITECTURE.md`). `vercel.json` bleibt mit leerem `crons`.
+- **Empfohlen:** externe Cronjobs via `scripts/setup-cronjob-org.mjs` (cron-job.org, `ENABLE_CRONJOB_ORG_SETUP=true`).
+- **Alternative:** GitHub Actions (`.github/workflows/external-events-refresh.yml` am Repo-Root).
 
 Benötigte GitHub Repository Secrets:
 

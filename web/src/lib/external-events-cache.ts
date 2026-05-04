@@ -1,7 +1,7 @@
 import { PartyCard } from "@/lib/types";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-const OFFICIAL_SCRAPER_SOURCE = "official-scraper";
+const DEFAULT_INGEST_SOURCE = "official-scraper";
 
 export type ExternalEventsSyncResult = {
   upserted: number;
@@ -10,10 +10,15 @@ export type ExternalEventsSyncResult = {
   deletedExpired: boolean;
 };
 
+function normalizeIngestSource(event: PartyCard): string {
+  const raw = (event.source ?? "").trim();
+  return raw.length > 0 ? raw : DEFAULT_INGEST_SOURCE;
+}
+
 function buildBaseRow(event: PartyCard, scrapedAt: string) {
   return {
     id: event.id,
-    source: OFFICIAL_SCRAPER_SOURCE,
+    source: normalizeIngestSource(event),
     title: event.title,
     description: event.description ?? null,
     starts_at: event.starts_at,
@@ -32,6 +37,7 @@ function buildExtendedRow(event: PartyCard, scrapedAt: string) {
   return {
     ...buildBaseRow(event, scrapedAt),
     category_slug: event.category_slug ?? null,
+    category_label: event.category_label ?? null,
     event_scope: event.event_scope ?? null,
     is_all_day: event.is_all_day === true,
     audience_label: event.audience_label ?? null,
@@ -43,6 +49,7 @@ function isUnknownColumnError(message: string) {
   const normalized = message.toLowerCase();
   return normalized.includes("column") && (
     normalized.includes("category_slug") ||
+    normalized.includes("category_label") ||
     normalized.includes("event_scope") ||
     normalized.includes("is_all_day") ||
     normalized.includes("audience_label") ||
@@ -56,45 +63,58 @@ export async function syncExternalEventsToCache(events: PartyCard[]): Promise<Ex
   const nowIso = new Date().toISOString();
   let usedBaseFallback = false;
 
+  if (events.length === 0) {
+    console.warn(
+      "[external-events-cache] Refresh produced zero events — skipping upsert and per-source stale deletes so existing cache rows stay intact.",
+    );
+    const { error: expiredDeleteError } = await supabase.from("external_events_cache").delete().lt("ends_at", nowIso);
+    if (expiredDeleteError) {
+      throw new Error(`Deleting expired external events failed: ${expiredDeleteError.message}`);
+    }
+    return {
+      upserted: 0,
+      usedBaseFallback: false,
+      deletedStale: false,
+      deletedExpired: true,
+    };
+  }
+
   const extendedRows = events.map((event) => buildExtendedRow(event, scrapedAt));
   const baseRows = events.map((event) => buildBaseRow(event, scrapedAt));
 
-  if (extendedRows.length > 0) {
-    const extendedUpsert = await supabase
+  const extendedUpsert = await supabase
+    .from("external_events_cache")
+    .upsert(extendedRows, { onConflict: "id" });
+
+  if (extendedUpsert.error) {
+    if (!isUnknownColumnError(extendedUpsert.error.message)) {
+      throw new Error(`Upsert external events failed: ${extendedUpsert.error.message}`);
+    }
+
+    usedBaseFallback = true;
+    const baseUpsert = await supabase
       .from("external_events_cache")
-      .upsert(extendedRows, { onConflict: "id" });
+      .upsert(baseRows, { onConflict: "id" });
 
-    if (extendedUpsert.error) {
-      if (!isUnknownColumnError(extendedUpsert.error.message)) {
-        throw new Error(`Upsert external events failed: ${extendedUpsert.error.message}`);
-      }
-
-      usedBaseFallback = true;
-      const baseUpsert = await supabase
-        .from("external_events_cache")
-        .upsert(baseRows, { onConflict: "id" });
-
-      if (baseUpsert.error) {
-        throw new Error(`Upsert external events failed: ${baseUpsert.error.message}`);
-      }
+    if (baseUpsert.error) {
+      throw new Error(`Upsert external events failed: ${baseUpsert.error.message}`);
     }
   }
 
-  const { error: staleDeleteError } = await supabase
-    .from("external_events_cache")
-    .delete()
-    .eq("source", OFFICIAL_SCRAPER_SOURCE)
-    .lt("scraped_at", scrapedAt);
+  const sourcesTouched = new Set(events.map((event) => normalizeIngestSource(event)));
+  for (const source of sourcesTouched) {
+    const { error: staleDeleteError } = await supabase
+      .from("external_events_cache")
+      .delete()
+      .eq("source", source)
+      .lt("scraped_at", scrapedAt);
 
-  if (staleDeleteError) {
-    throw new Error(`Deleting stale external events failed: ${staleDeleteError.message}`);
+    if (staleDeleteError) {
+      throw new Error(`Deleting stale external events failed for source ${source}: ${staleDeleteError.message}`);
+    }
   }
 
-  const { error: expiredDeleteError } = await supabase
-    .from("external_events_cache")
-    .delete()
-    .eq("source", OFFICIAL_SCRAPER_SOURCE)
-    .lt("ends_at", nowIso);
+  const { error: expiredDeleteError } = await supabase.from("external_events_cache").delete().lt("ends_at", nowIso);
 
   if (expiredDeleteError) {
     throw new Error(`Deleting expired external events failed: ${expiredDeleteError.message}`);

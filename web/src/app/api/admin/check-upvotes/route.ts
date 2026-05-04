@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
     // Check if table exists
     console.log('Checking if event_upvotes table exists...');
-    const { data: existing, error: checkError } = await supabase
+    const { error: checkError } = await supabase
       .from('event_upvotes')
       .select('COUNT(*)', { count: 'exact', head: true });
 

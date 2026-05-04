@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import { GoogleAnalyticsConsent } from "@/components/analytics/google-analytics-consent";
 import { CookieConsentBannerMount } from "@/components/layout/cookie-consent-banner-mount";
 import { SiteSchema } from "@/components/seo/site-schema";
@@ -7,6 +8,20 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site-config";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+/** Wortmarke / Logo — SemiBold, urban, gut lesbar in kleinen Größen */
+const bricolageGrotesque = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: "600",
+  variable: "--font-bricolage",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -55,11 +70,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" suppressHydrationWarning className="h-full antialiased">
+    <html
+      lang="de"
+      suppressHydrationWarning
+      className={`h-full antialiased ${inter.variable} ${bricolageGrotesque.variable}`}
+    >
       <head>
         <ThemeInitScript />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <ToastProvider>
           <SiteSchema />
           <GoogleAnalyticsConsent />

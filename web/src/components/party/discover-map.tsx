@@ -3,15 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { hasExternalServicesConsent, setCookieConsent } from "@/lib/cookie-consent";
+import type { DiscoverFilterKey } from "@/lib/discover-filters";
 import { createBaseMapStyle } from "@/lib/map-style";
 import { ensurePerformanceMarkApi } from "@/lib/performance-compat";
+import { resolvePartyMapCoordinates } from "@/lib/discover-map-coords";
 import { DiscoverEvent } from "@/services/discover/discover-view-model";
 
 type Props = {
   parties: DiscoverEvent[];
+  /** Optional outer map container classes (default uses zinc border for classic discover). */
+  containerClassName?: string;
+  /** If active, markers switch to accent orange for filter-highlighted mode. */
+  accentMarkers?: boolean;
+  activeFilter?: DiscoverFilterKey;
 };
 type MapTheme = "light" | "dark";
 
+const ACCENT_MARKER_ORANGE = "#ff7a18";
 const KUCKUCK_RED = "#b00000";
 const CLUBHAUS_BLUE = "#1d4ed8";
 const SCHLACHTHAUS_BROWN = "#7c2d12";
@@ -19,25 +27,10 @@ const HOLLE_ROSE = "#be185d";
 const SCHAF_CYAN = "#0e7490";
 const DEFAULT_MARKER = "#18181b";
 
-const VENUE_COORDS = {
-  kuckuck: { lat: 48.5413588, lng: 9.0599431 },
-  clubhaus: { lat: 48.5243852, lng: 9.0605991 },
-  schlachthaus: { lat: 48.5255, lng: 9.0515 },
-  frauHolle: { lat: 48.5203906, lng: 9.051808 },
-  schwarzesSchaf: { lat: 48.5212656, lng: 9.0574061 },
-  epplehaus: { lat: 48.522317, lng: 9.048936 },
-  blauerTurm: { lat: 48.5178, lng: 9.0601 },
-  top10: { lat: 48.5145, lng: 9.0835 },
-  sudhaus: { lat: 48.5065, lng: 9.0625 },
-  uhlandstrasse: { lat: 48.52162, lng: 9.05496 },
-  marktplatz: { lat: 48.52156, lng: 9.05774 },
-} as const;
-
 const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = [
-  { match: /kuckuck/i, src: "/logos/venues/kuckuck.png", alt: "Kuckuck Logo" },
-  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
-  { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
-  { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
+  { match: /kuckuck/i, src: "/logos/venues/kuckuck.svg", alt: "Kuckuck Logo" },
+  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.svg", alt: "Schlachthaus Logo" },
+  { match: /clubhaus/i, src: "/logos/venues/clubhaus.svg", alt: "Clubhaus Logo" },
   {
     match: /frau\s*holle|frauholle|frau_holle_tuebingen|holle\s*t(?:ue|u)bingen|haaggasse\s*15\/?2/i,
     src: "/logos/venues/frau-holle.svg",
@@ -50,68 +43,10 @@ const VENUE_ICON_MATCHERS: Array<{ match: RegExp; src: string; alt: string }> = 
   },
 ];
 
-function getVenueKey(
-  party: DiscoverEvent,
-):
-  | "kuckuck"
-  | "clubhaus"
-  | "schlachthaus"
-  | "frau-holle"
-  | "schwarzes-schaf"
-  | "epplehaus"
-  | "blauer-turm"
-  | "top10"
-  | "sudhaus"
-  | "uhlandstrasse"
-  | "marktplatz"
-  | null {
-  const location = `${party.locationName ?? ""} ${party.vibeLabel} ${party.title}`.toLowerCase();
-
-  if (location.includes("kuckuck")) return "kuckuck";
-  if (location.includes("clubhaus")) return "clubhaus";
-  if (location.includes("schlachthaus")) return "schlachthaus";
-  if (location.includes("frau holle") || location.includes("frau_holle") || location.includes("holle") || location.includes("haaggasse")) {
-    return "frau-holle";
+function resolveMarkerTheme(party: DiscoverEvent, accentMarkers = false) {
+  if (accentMarkers) {
+    return { background: ACCENT_MARKER_ORANGE, foreground: "#2d1d10", glyph: "•", venue: "Gefiltert" };
   }
-  if (location.includes("schwarzes schaf") || location.includes("schwarzesschaf") || location.includes("schaf")) {
-    return "schwarzes-schaf";
-  }
-  if (location.includes("epplehaus")) return "epplehaus";
-  if (location.includes("blauer turm")) return "blauer-turm";
-  if (location.includes("top10")) return "top10";
-  if (location.includes("sudhaus")) return "sudhaus";
-  if (location.includes("uhlandstraße") || location.includes("uhlandstrasse") || location.includes("flohmarkt")) {
-    return "uhlandstrasse";
-  }
-  if (location.includes("marktplatz") || location.includes("rathaus") || location.includes("markt")) {
-    return "marktplatz";
-  }
-
-  return null;
-}
-
-function resolvePartyCoordinates(party: DiscoverEvent): { lat: number; lng: number } | null {
-  if (Number.isFinite(party.publicLat) && Number.isFinite(party.publicLng)) {
-    return { lat: Number(party.publicLat), lng: Number(party.publicLng) };
-  }
-
-  const venueKey = getVenueKey(party);
-  if (venueKey === "kuckuck") return VENUE_COORDS.kuckuck;
-  if (venueKey === "clubhaus") return VENUE_COORDS.clubhaus;
-  if (venueKey === "schlachthaus") return VENUE_COORDS.schlachthaus;
-  if (venueKey === "frau-holle") return VENUE_COORDS.frauHolle;
-  if (venueKey === "schwarzes-schaf") return VENUE_COORDS.schwarzesSchaf;
-  if (venueKey === "epplehaus") return VENUE_COORDS.epplehaus;
-  if (venueKey === "blauer-turm") return VENUE_COORDS.blauerTurm;
-  if (venueKey === "top10") return VENUE_COORDS.top10;
-  if (venueKey === "sudhaus") return VENUE_COORDS.sudhaus;
-  if (venueKey === "uhlandstrasse") return VENUE_COORDS.uhlandstrasse;
-  if (venueKey === "marktplatz") return VENUE_COORDS.marktplatz;
-
-  return null;
-}
-
-function resolveMarkerTheme(party: DiscoverEvent) {
   const location = `${party.locationName ?? ""} ${party.vibeLabel} ${party.title}`.toLowerCase();
 
   for (const matcher of VENUE_ICON_MATCHERS) {
@@ -126,10 +61,6 @@ function resolveMarkerTheme(party: DiscoverEvent) {
 
       if (matcher.src.includes("clubhaus")) {
         return { background: CLUBHAUS_BLUE, foreground: "#ffffff", glyph: "C", venue: "Clubhaus", iconSrc: matcher.src, iconAlt: matcher.alt };
-      }
-
-      if (matcher.src.includes("epplehaus")) {
-        return { background: "#15803d", foreground: "#ffffff", glyph: "E", venue: "Epplehaus", iconSrc: matcher.src, iconAlt: matcher.alt };
       }
 
       if (matcher.src.includes("frau-holle")) {
@@ -227,7 +158,7 @@ function createMarkerElement(theme: { glyph: string; background: string; foregro
     const image = document.createElement("img");
     image.src = theme.iconSrc;
     image.alt = theme.iconAlt ?? theme.glyph;
-    image.className = "h-full w-full object-cover";
+    image.className = "h-full w-full object-contain p-0.5";
     marker.appendChild(image);
     return marker;
   }
@@ -236,7 +167,10 @@ function createMarkerElement(theme: { glyph: string; background: string; foregro
   return marker;
 }
 
-export function DiscoverMap({ parties }: Props) {
+const DEFAULT_MAP_CONTAINER_CLASS =
+  "h-[22rem] w-full overflow-hidden rounded-2xl border border-zinc-200";
+
+export function DiscoverMap({ parties, containerClassName, accentMarkers = false }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<import("maplibre-gl").Map | null>(null);
   const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null);
@@ -249,10 +183,11 @@ export function DiscoverMap({ parties }: Props) {
   });
   const [mapTheme, setMapTheme] = useState<MapTheme>(() => {
     if (typeof document === "undefined") return "light";
-    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+    const root = document.documentElement;
+    return root.classList.contains("dark") || root.classList.contains("discover-ui-new") ? "dark" : "light";
   });
   const partiesWithCoords = useMemo(
-    () => parties.filter((party) => resolvePartyCoordinates(party) !== null),
+    () => parties.filter((party) => resolvePartyMapCoordinates(party) !== null),
     [parties],
   );
 
@@ -263,7 +198,7 @@ export function DiscoverMap({ parties }: Props) {
 
     const root = document.documentElement;
     const syncTheme = () => {
-      setMapTheme(root.classList.contains("dark") ? "dark" : "light");
+      setMapTheme(root.classList.contains("dark") || root.classList.contains("discover-ui-new") ? "dark" : "light");
     };
 
     syncTheme();
@@ -317,6 +252,11 @@ export function DiscoverMap({ parties }: Props) {
   }, [canLoadMap, mapTheme]);
 
   useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    mapInstanceRef.current.setStyle(createBaseMapStyle(mapTheme));
+  }, [mapTheme]);
+
+  useEffect(() => {
     if (!canLoadMap || !mapReady || !mapInstanceRef.current || !maplibreRef.current) {
       return;
     }
@@ -335,14 +275,14 @@ export function DiscoverMap({ parties }: Props) {
     const bounds = new maplibre.LngLatBounds();
 
     for (const party of partiesWithCoords) {
-      const coords = resolvePartyCoordinates(party);
+      const coords = resolvePartyMapCoordinates(party);
       if (!coords) {
         continue;
       }
 
       const lng = coords.lng;
       const lat = coords.lat;
-      const theme = resolveMarkerTheme(party);
+      const theme = resolveMarkerTheme(party, accentMarkers);
       const popupNode = createPopupNode(party, theme.venue);
 
       const marker = new maplibre.Marker({
@@ -358,7 +298,7 @@ export function DiscoverMap({ parties }: Props) {
 
     const markerSignature = partiesWithCoords
       .map((party) => {
-        const coords = resolvePartyCoordinates(party);
+        const coords = resolvePartyMapCoordinates(party);
         return coords ? `${party.id}:${coords.lat}:${coords.lng}` : party.id;
       })
       .sort()
@@ -367,7 +307,7 @@ export function DiscoverMap({ parties }: Props) {
     if (markerSignature !== lastMarkerSignatureRef.current) {
       if (partiesWithCoords.length === 1) {
         const singleParty = partiesWithCoords[0];
-        const singleCoords = resolvePartyCoordinates(singleParty);
+        const singleCoords = resolvePartyMapCoordinates(singleParty);
         if (!singleCoords) {
           return;
         }
@@ -386,7 +326,7 @@ export function DiscoverMap({ parties }: Props) {
 
       lastMarkerSignatureRef.current = markerSignature;
     }
-  }, [canLoadMap, mapReady, partiesWithCoords]);
+  }, [accentMarkers, canLoadMap, mapReady, partiesWithCoords]);
 
   if (!canLoadMap) {
     return (
@@ -409,5 +349,5 @@ export function DiscoverMap({ parties }: Props) {
     );
   }
 
-  return <div ref={mapRef} className="h-[22rem] w-full overflow-hidden rounded-2xl border border-zinc-200" />;
+  return <div ref={mapRef} className={containerClassName ?? DEFAULT_MAP_CONTAINER_CLASS} />;
 }

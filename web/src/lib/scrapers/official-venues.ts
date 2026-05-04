@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
 import { PartyCard } from "@/lib/types";
 
 // Feste Koordinaten für Tübinger Venues
@@ -10,7 +11,8 @@ const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
 };
 
 const DIGINIGHTS_URL = "https://diginights.com/city/tuebingen";
-const DIGINIGHTS_ENABLED = (process.env.EXTERNAL_EVENTS_ENABLE_DIGINIGHTS ?? "false").trim().toLowerCase() === "true";
+const DIGINIGHTS_DISABLED =
+  (process.env.EXTERNAL_EVENTS_ENABLE_DIGINIGHTS ?? "true").trim().toLowerCase() === "false";
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
 const TUEBINGEN_MARKETS_URL = "https://www.tuebingen.de/3393.html";
@@ -19,7 +21,8 @@ const UNI_EVENTS_URL = "https://uni-tuebingen.de/universitaet/aktuelles-und-publ
 const SUDHAUS_URL = "https://www.sudhaus-tuebingen.de/programm/alle.html";
 const CLUB_VOLTAIRE_URL = "https://club-voltaire.net/kalender/";
 const DAI_URL = "https://www.dai-tuebingen.de/veranstaltungen/";
-const REDDIT_SUBREDDITS = (process.env.EXTERNAL_EVENTS_REDDIT_SUBREDDITS ?? "tuebingen")
+const PARTYKEL_URL = "https://www.partykel.info/events/day/events/";
+const REDDIT_SUBREDDITS = (process.env.EXTERNAL_EVENTS_REDDIT_SUBREDDITS ?? "tuebingen,reutlingen,stuttgart")
   .split(",")
   .map((value) => value.trim().toLowerCase())
   .filter((value) => value.length > 0);
@@ -309,6 +312,7 @@ async function fetchGenericCalendarEvents(config: {
 
       events.push({
         id: eventId,
+        source: config.source,
         title,
         description: `${config.locationName} – ${config.categoryLabel}`,
         starts_at: startsAtDate.toISOString(),
@@ -359,7 +363,10 @@ function collectSchlachthausCandidateLines($: cheerio.CheerioAPI): string[] {
 }
 
 function parseSchlachthausLine(line: string): { day: number; month: number; title: string; hour: number; minute: number } | null {
-  const normalizedLine = String(line ?? "").replace(/\s+/g, " ").trim();
+  const normalizedLine = String(line ?? "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
   const match = normalizedLine.match(SCHLACHTHAUS_EVENT_PATTERN);
   if (!match) {
     return null;
@@ -430,12 +437,19 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
 
       const { day, month, title, hour, minute } = parsed;
 
-      let eventDate = new Date(Date.UTC(currentYear, month - 1, day, hour, minute, 0));
-      if (eventDate < tenDaysAgo) {
-        eventDate = new Date(Date.UTC(currentYear + 1, month - 1, day, hour, minute, 0));
+      const pad = (n: number) => String(n).padStart(2, "0");
+      let isoDate = `${currentYear}-${pad(month)}-${pad(day)}`;
+      let eventDate = berlinWallTimeToUtc(isoDate, hour, minute);
+      if (Number.isNaN(eventDate.getTime())) {
+        continue;
       }
 
       if (eventDate < tenDaysAgo) {
+        isoDate = `${currentYear + 1}-${pad(month)}-${pad(day)}`;
+        eventDate = berlinWallTimeToUtc(isoDate, hour, minute);
+      }
+
+      if (Number.isNaN(eventDate.getTime()) || eventDate < tenDaysAgo) {
         continue;
       }
 
@@ -449,6 +463,7 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
 
       events.push({
         id: eventId,
+        source: "schlachthaus",
         title,
         description: "Schlachthaus Tübingen – Kulturzentrum und Veranstaltungsort",
         starts_at: eventDate.toISOString(),
@@ -473,11 +488,52 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
   }
 }
 
+function collectLdJsonEventNodes(root: unknown): unknown[] {
+  if (!root || typeof root !== "object") {
+    return [];
+  }
+
+  const o = root as Record<string, unknown>;
+  const graph = o["@graph"];
+  if (Array.isArray(graph)) {
+    return graph;
+  }
+
+  if (ldJsonTypeMatches(o["@type"], "ItemList") && Array.isArray(o.itemListElement)) {
+    const nested: unknown[] = [];
+    for (const el of o.itemListElement) {
+      if (!el || typeof el !== "object") {
+        continue;
+      }
+
+      const row = el as Record<string, unknown>;
+      const item = row.item ?? row;
+      nested.push(item);
+    }
+
+    return nested;
+  }
+
+  return [root];
+}
+
+function ldJsonTypeMatches(types: unknown, needle: string): boolean {
+  if (types === needle) {
+    return true;
+  }
+
+  if (Array.isArray(types)) {
+    return types.some((t) => t === needle);
+  }
+
+  return false;
+}
+
 /**
- * Fetch and parse Diginights events for Tübingen
+ * Fetch and parse Diginights events for Tübingen (JSON-LD Event / MusicEvent).
  */
 export async function fetchDignightsEvents(): Promise<PartyCard[]> {
-  if (!DIGINIGHTS_ENABLED) {
+  if (DIGINIGHTS_DISABLED) {
     console.warn("Diginights scraper disabled via EXTERNAL_EVENTS_ENABLE_DIGINIGHTS=false.");
     return [];
   }
@@ -487,12 +543,13 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
       cache: "no-store",
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
       },
     });
 
     if (response.status === 404) {
-      console.warn("Diginights source returned 404. Keeping source disabled for this run.");
+      console.warn("Diginights source returned 404.");
       return [];
     }
 
@@ -501,11 +558,135 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
       return [];
     }
 
-    // Source endpoint currently unreliable; keep non-failing no-op behavior until replacement scraper is added.
-    console.warn("Diginights endpoint reachable but parser is intentionally inactive.");
-    return [];
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const events: PartyCard[] = [];
+    const seen = new Set<string>();
+    const nowMs = Date.now();
+
+    $("script[type=\"application/ld+json\"]").each((_, el) => {
+      const raw = $(el).html();
+      if (!raw) {
+        return;
+      }
+
+      let data: unknown;
+      try {
+        data = JSON.parse(raw.trim());
+      } catch {
+        return;
+      }
+
+      const roots = Array.isArray(data) ? data : [data];
+      for (const root of roots) {
+        for (const node of collectLdJsonEventNodes(root)) {
+          if (!node || typeof node !== "object") {
+            continue;
+          }
+
+          const item = node as Record<string, unknown>;
+          const typeField = item["@type"];
+          if (!ldJsonTypeMatches(typeField, "Event") && !ldJsonTypeMatches(typeField, "MusicEvent")) {
+            continue;
+          }
+
+          const name = String(item.name ?? "").trim();
+          if (!name || name.length < 2) {
+            continue;
+          }
+
+          const startRaw = item.startDate;
+          const startStr = typeof startRaw === "string" ? startRaw : null;
+          if (!startStr) {
+            continue;
+          }
+
+          const startsAt = new Date(startStr);
+          if (Number.isNaN(startsAt.getTime())) {
+            continue;
+          }
+
+          let endsAt: Date;
+          const endRaw = item.endDate;
+          if (typeof endRaw === "string") {
+            const parsedEnd = new Date(endRaw);
+            endsAt = Number.isNaN(parsedEnd.getTime())
+              ? new Date(startsAt.getTime() + 4 * 60 * 60 * 1000)
+              : parsedEnd;
+          } else {
+            endsAt = new Date(startsAt.getTime() + 4 * 60 * 60 * 1000);
+          }
+
+          if (endsAt.getTime() < nowMs) {
+            continue;
+          }
+
+          const location = item.location;
+          let locationName: string | null = "Tübingen";
+          let lat: number | null = null;
+          let lng: number | null = null;
+
+          if (location && typeof location === "object") {
+            const loc = location as Record<string, unknown>;
+            const locName = loc.name;
+            if (typeof locName === "string" && locName.trim()) {
+              locationName = locName.trim();
+            }
+
+            const geo = loc.geo;
+            if (geo && typeof geo === "object") {
+              const g = geo as Record<string, unknown>;
+              const la = Number(g.latitude);
+              const ln = Number(g.longitude);
+              if (Number.isFinite(la) && Number.isFinite(ln)) {
+                lat = la;
+                lng = ln;
+              }
+            }
+          }
+
+          const urlField = item.url;
+          const externalLink = typeof urlField === "string" && urlField.startsWith("http") ? urlField : DIGINIGHTS_URL;
+          const desc = typeof item.description === "string" ? item.description.slice(0, 500) : null;
+          const eventId = generateEventId("diginights", startsAt, name);
+          if (seen.has(eventId)) {
+            continue;
+          }
+
+          seen.add(eventId);
+          events.push({
+            id: eventId,
+            source: "diginights",
+            title: name,
+            description: desc,
+            starts_at: startsAt.toISOString(),
+            ends_at: endsAt.toISOString(),
+            max_guests: 0,
+            contribution_cents: 0,
+            public_lat: lat,
+            public_lng: lng,
+            is_external: true,
+            external_link: externalLink,
+            vibe_label: "Diginights",
+            spots_left: 0,
+            location_name: locationName,
+            event_scope: "nightlife",
+            category_slug: "party",
+            category_label: "Party",
+          } as PartyCard);
+        }
+      }
+    });
+
+    if (events.length === 0) {
+      console.warn(
+        "[diginights] No Event/MusicEvent nodes in JSON-LD — page structure may have changed.",
+      );
+    }
+
+    return events.slice(0, 80);
   } catch (error) {
-    console.error("Error checking Diginights source:", error);
+    console.error("Error fetching Diginights source:", error);
     return [];
   }
 }
@@ -574,6 +755,7 @@ export async function fetchEpplehausEvents(): Promise<PartyCard[]> {
 
         return {
           id: `epplehaus-${slugify(uid.replace(/@.*/, ""))}`,
+          source: "epplehaus",
           title,
           description: description || "Event im Epplehaus, Tübingen",
           starts_at: startsAt,
@@ -631,6 +813,7 @@ export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
 
         return {
           id: `tuebingen-market-${slugify(rawLabel)}`,
+          source: "tuebingen-market",
           title,
           description: "Offizieller Markttermin der Universitätsstadt Tübingen",
           starts_at: parsedRange.startsAt,
@@ -719,6 +902,7 @@ export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
 
         return {
           id: `tuebingen-flohmarkt-${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+          source: "tuebingen-flohmarkt",
           title: "Städtischer Flohmarkt in der Uhlandstraße",
           description: "Offizieller Flohmarkttermin der Universitätsstadt Tübingen",
           starts_at: startsAt,
@@ -795,6 +979,83 @@ export async function fetchDaiEvents(): Promise<PartyCard[]> {
   });
 }
 
+export async function fetchPartykelEvents(): Promise<PartyCard[]> {
+  try {
+    const response = await fetch(PARTYKEL_URL, {
+      cache: "no-store",
+      headers: {
+        "User-Agent": "wasgehttueb-events-bot/1.0",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    if (!response.ok) {
+      console.warn("partykel fetch failed with status:", response.status);
+      return [];
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const events: PartyCard[] = [];
+    const seen = new Set<string>();
+    const nowMs = Date.now();
+
+    $("a[href*='/events/view/id/']").each((_, node) => {
+      const eventLink = $(node).attr("href") ?? "";
+      const eventTitle = $(node).text().replace(/\s+/g, " ").trim();
+      if (!eventTitle) return;
+
+      const locationLink = $(node).closest("p,li,div,tr").find("a[href*='/locations/view/id/']").first();
+      const locationName = locationLink.text().replace(/\s+/g, " ").trim() || "Tübingen";
+      if (!/tuebingen|tübingen/i.test(locationName)) return;
+
+      const dateMatch = eventLink.match(/\/date\/(\d{9,11})/);
+      if (!dateMatch) return;
+      const dayAnchorMs = Number(dateMatch[1]) * 1000;
+      if (!Number.isFinite(dayAnchorMs)) return;
+
+      const startsAt = new Date(dayAnchorMs);
+      if (startsAt.getTime() < nowMs - 24 * 60 * 60 * 1000) return;
+
+      const eventId = generateEventId("partykel", startsAt, eventTitle);
+      if (seen.has(eventId)) return;
+      seen.add(eventId);
+
+      const absoluteLink = eventLink.startsWith("http")
+        ? eventLink
+        : `https://www.partykel.info${eventLink.startsWith("/") ? "" : "/"}${eventLink}`;
+
+      events.push({
+        id: eventId,
+        source: "partykel",
+        title: eventTitle.slice(0, 140),
+        description: `Event-Hinweis via Partykel (${locationName})`,
+        starts_at: startsAt.toISOString(),
+        ends_at: new Date(startsAt.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+        max_guests: 0,
+        contribution_cents: 0,
+        public_lat: null,
+        public_lng: null,
+        is_external: true,
+        external_link: absoluteLink,
+        vibe_label: "Partykel",
+        spots_left: 0,
+        location_name: locationName,
+        category_slug: "culture",
+        category_label: "Kultur",
+        event_scope: "mixed",
+        is_all_day: false,
+        audience_label: "Alle",
+        price_info: null,
+      } as PartyCard);
+    });
+
+    return events.slice(0, 40);
+  } catch (error) {
+    console.error("Error fetching Partykel events:", error);
+    return [];
+  }
+}
+
 export async function fetchRedditEvents(): Promise<PartyCard[]> {
   const now = Date.now();
   const maxPostAgeMs = 30 * 24 * 60 * 60 * 1000;
@@ -859,6 +1120,7 @@ export async function fetchRedditEvents(): Promise<PartyCard[]> {
 
         events.push({
           id: eventId,
+          source: `reddit-${subreddit}`,
           title: title.slice(0, 140),
           description: selftext.slice(0, 320) || `Event-Hinweis aus r/${subreddit}`,
           starts_at: startsAtDate.toISOString(),

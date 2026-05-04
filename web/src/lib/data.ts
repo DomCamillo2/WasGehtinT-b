@@ -14,7 +14,7 @@ type EventWindowOptions = {
 
 type PublicDataClient = ReturnType<typeof getSupabasePublicServerClient>;
 
-function inferExternalCategoryFields(input: {
+export function inferExternalCategoryFields(input: {
   title?: string | null;
   description?: string | null;
   vibe_label?: string | null;
@@ -102,7 +102,7 @@ function inferExternalCategoryFields(input: {
   const daytimeKnowledgePattern =
     /\b(vortrag|workshop|diskussion|diskurs|talk|lesung|seminar|treffen|plenum|infoabend|kultur|ausstellung|film|kino|markt|flohmarkt)\b/i;
   const nightlifePattern =
-    /\b(club|party|rave|dj|aftershow|concert|kiez|nacht|night|techno|drum\s*&?\s*bass|house|reggaeton)\b/i;
+    /\b(club|party|rave|dj|aftershow|concert|konzert|live\s*musik|kiez|nacht|night|techno|drum\s*&?\s*bass|house|reggaeton)\b/i;
   const universityPattern =
     /\b(uni|universit[aä]t|hochschule|fachschaft|hochschulgruppe|campus|studierenden|student)\b/i;
   const sudhausCulturePattern =
@@ -143,7 +143,20 @@ function inferExternalCategoryFields(input: {
     };
   }
 
+  // Do not infer "daytime" from UTC hour alone for known Tübingen club/night venues —
+  // captions/scrapers often use local wall time stored as Zulu, which pushes events into
+  // startHourUtc < 18 and hides them from the Discover "Clubs" filter (event_scope daytime).
+  const tuebingenClubVenuePattern =
+    /\b(schlachthaus|kuckuck|clubhaus(?:fest)?|frau\s*holle|frauholle|haaggasse|sudhaus|voltaire|schwarzes\s*schaf|zahnis|luscht|queerspace|stadtkind|morgenstern|top\s*10|blauer\s*turm)\b|\bholle\b/i;
+
   if (startHourUtc !== null && startHourUtc < 18) {
+    if (tuebingenClubVenuePattern.test(haystack)) {
+      return {
+        category_slug: null,
+        category_label: null,
+        event_scope: null,
+      };
+    }
     return {
       category_slug: "community",
       category_label: "Community",
@@ -335,7 +348,7 @@ export async function getExternalEvents(
     return normalized === "official scraper";
   };
 
-  return ((data ?? []) as Array<{
+  const mapped = ((data ?? []) as Array<{
     id: string | number;
     source?: string | null;
     title: string;
@@ -386,12 +399,30 @@ export async function getExternalEvents(
       is_all_day: event.is_all_day === true,
       audience_label: event.audience_label ?? null,
       price_info: event.price_info ?? null,
+      source: event.source ?? null,
       source_badge: event.source && !isOfficialScraperLabel(event.source) ? event.source : null,
       is_community: false,
       upvote_count: 0,
       upvoted_by_me: false,
     } as PartyCard;
   });
+
+  // External sources often emit near-duplicates (same event via multiple scrapers).
+  // Keep one representative so Discover stays diverse.
+  const seen = new Set<string>();
+  const deduped: PartyCard[] = [];
+  for (const item of mapped) {
+    const key = [
+      (item.external_link ?? "").trim().toLowerCase(),
+      item.starts_at,
+      (item.title ?? "").trim().toLowerCase(),
+      (item.location_name ?? "").trim().toLowerCase(),
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+  return deduped;
 }
 
 export async function getExternalEventById(eventId: string) {
@@ -464,6 +495,7 @@ export async function getExternalEventById(eventId: string) {
     is_all_day: event.is_all_day === true,
     audience_label: event.audience_label ?? null,
     price_info: event.price_info ?? null,
+    source: event.source ?? null,
     source_badge: event.source && !isOfficialScraperLabel(event.source) ? event.source : null,
     is_community: false,
     upvote_count: 0,

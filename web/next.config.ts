@@ -3,6 +3,14 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["apify-client"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.pexels.com",
+      },
+    ],
+  },
   outputFileTracingIncludes: {
     "/api/cron/scrape": [
       "./node_modules/proxy-agent/**",

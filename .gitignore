@@ -34,6 +34,9 @@ web/coverage/
 .codex-temp
 .claude/settings.local.json
 
+# Chat/IDE screenshot exports at repo root (keep local only)
+/ChatGPT*.png
+
 # Cron / local secrets (never commit)
 .cron_secret_tmp
 **/.cron_secret_tmp

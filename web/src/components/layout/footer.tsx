@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { SITE_LOGO_SRC } from '@/lib/site-config';
 import { Heart } from 'lucide-react';
 
 export function Footer() {
@@ -22,7 +23,7 @@ export function Footer() {
           <div>
             <div className="mb-3 flex items-center gap-3">
               <Image
-                src="/favicon-tight.png"
+                src={SITE_LOGO_SRC}
                 alt="WasGehtTueb Logo"
                 width={72}
                 height={72}

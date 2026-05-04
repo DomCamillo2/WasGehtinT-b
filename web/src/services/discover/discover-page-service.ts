@@ -1,14 +1,17 @@
 import { cookies } from "next/headers";
 import { unstable_cache } from "next/cache";
 import { getCommunityHangoutsForDiscover, getExternalEvents, getPublicParties } from "@/lib/data";
+import { enrichPartiesWithDiscoverHeroImages } from "@/lib/discover-event-images";
+import type { DiscoverFilterKey } from "@/lib/discover-filters";
+import { applyTrafficBasedUpvoteEstimates } from "@/lib/discover-traffic-upvotes";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
 import { DiscoverEvent, mapPartyCardToDiscoverEvent } from "@/services/discover/discover-view-model";
 
 const DEFAULT_WEEKS = 4;
-const WEEK_STEP = 4;
 const MAX_WEEKS = 24;
+const MIN_DISCOVER_EVENTS_ON_ENTRY = 12;
 
 function isMissingColumnError(code: string | undefined) {
   return code === "42703" || code === "PGRST204";
@@ -146,7 +149,7 @@ export type DiscoverPageData = {
   canLoadMore: boolean;
   currentWeeks: number;
   initialView: "calendar" | "list" | "map";
-  initialFilter: "all" | "community" | "clubs" | "daytime";
+  initialFilter: DiscoverFilterKey;
   initialCalendarDate: string;
 };
 
@@ -155,6 +158,25 @@ type DiscoverPublicData = {
   externalParties: PartyCard[];
   communityHangouts: PartyCard[];
 };
+
+function mergeUniqueById(items: PartyCard[]): PartyCard[] {
+  const seen = new Set<string>();
+  const merged: PartyCard[] = [];
+  for (const item of items) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    merged.push(item);
+  }
+  return merged;
+}
+
+function mergeDiscoverPublicData(left: DiscoverPublicData, right: DiscoverPublicData): DiscoverPublicData {
+  return {
+    dbParties: mergeUniqueById([...left.dbParties, ...right.dbParties]),
+    externalParties: mergeUniqueById([...left.externalParties, ...right.externalParties]),
+    communityHangouts: mergeUniqueById([...left.communityHangouts, ...right.communityHangouts]),
+  };
+}
 
 const loadDiscoverPublicDataCached = unstable_cache(
   async (fromIso: string, untilIso: string): Promise<DiscoverPublicData> => {
@@ -181,6 +203,7 @@ const loadDiscoverPublicDataCached = unstable_cache(
 
 export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): Promise<DiscoverPageData> {
   const weeks = clampWeeks(searchParams.weeks);
+  const likedOnly = searchParams.liked === "1";
   const windowStart = new Date();
   const windowEnd = addWeeks(windowStart, weeks);
   const windowStartIso = windowStart.toISOString();
@@ -196,13 +219,25 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
     ? supabase.auth.getUser().then((result) => result.data.user)
     : Promise.resolve(null);
 
-  const [publicData, user] = await Promise.all([
+  const [initialPublicData, user] = await Promise.all([
     loadDiscoverPublicDataCached(windowStartIso, windowEndIso),
     userPromise,
   ]);
+  let publicData = initialPublicData;
+  // Ensure enough discover content on first load: grow window until at least 12 events (unless liked-only).
+  if (!likedOnly) {
+    let fetchWeeks = weeks;
+    while (fetchWeeks < MAX_WEEKS) {
+      const total = publicData.dbParties.length + publicData.externalParties.length + publicData.communityHangouts.length;
+      if (total >= MIN_DISCOVER_EVENTS_ON_ENTRY) break;
+      fetchWeeks = Math.min(MAX_WEEKS, fetchWeeks + 4);
+      const expandedEndIso = addWeeks(windowStart, fetchWeeks).toISOString();
+      const expanded = await loadDiscoverPublicDataCached(windowStartIso, expandedEndIso);
+      publicData = mergeDiscoverPublicData(publicData, expanded);
+    }
+  }
 
   const { dbParties, externalParties, communityHangouts } = publicData;
-  const likedOnly = searchParams.liked === "1";
 
   const parties = [...dbParties, ...communityHangouts, ...externalParties];
   const canLoadMore = weeks < MAX_WEEKS;
@@ -235,11 +270,16 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
     }
   }
 
-  const partiesWithHostData = [...enrichedDbParties, ...communityHangouts, ...externalParties];
+  // Fill low/empty counts with deterministic traffic-based estimates
+  // so discover ranking and social proof look realistic before enough real usage accumulates.
+  const modeledUpvotes = applyTrafficBasedUpvoteEstimates(parties, upvoteCountMap);
 
-  const partiesWithUpvotes = partiesWithHostData.map((party) => ({
+  const partiesWithHostData = [...enrichedDbParties, ...communityHangouts, ...externalParties];
+  const partiesWithHeroImages = await enrichPartiesWithDiscoverHeroImages(partiesWithHostData);
+
+  const partiesWithUpvotes = partiesWithHeroImages.map((party) => ({
     ...party,
-    upvote_count: upvoteCountMap.get(party.id) ?? 0,
+    upvote_count: modeledUpvotes.get(party.id) ?? upvoteCountMap.get(party.id) ?? 0,
     upvoted_by_me: upvotedByMe.has(party.id),
   }));
 
@@ -257,6 +297,7 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
       : "list";
   const initialFilter =
     searchParams.type === "community" ||
+    searchParams.type === "top" ||
     searchParams.type === "clubs" ||
     searchParams.type === "daytime" ||
     searchParams.type === "all"

@@ -29,6 +29,7 @@ export type DiscoverEvent = {
   upvotedByMe: boolean;
   sourceBadge: string | null;
   isCommunity: boolean;
+  heroImageUrl: string | null;
 };
 
 export function mapPartyCardToDiscoverEvent(party: PartyCard): DiscoverEvent {
@@ -61,5 +62,6 @@ export function mapPartyCardToDiscoverEvent(party: PartyCard): DiscoverEvent {
     upvotedByMe: party.upvoted_by_me === true,
     sourceBadge: party.source_badge ?? null,
     isCommunity: party.is_community === true,
+    heroImageUrl: party.hero_image_url ?? null,
   };
 }

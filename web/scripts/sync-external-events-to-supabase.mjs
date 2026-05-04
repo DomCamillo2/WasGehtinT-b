@@ -1,7 +1,8 @@
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
 
-const SOURCE = "official-scraper";
+/** Fallback if a scraped event omits `source` */
+const DEFAULT_SOURCE = "official-scraper";
 const DEFAULT_DIGINIGHTS_URLS = [
   "https://diginights.com/city/tuebingen",
   "https://diginights.com/city/tubingen",
@@ -67,6 +68,44 @@ function slugify(input) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/** YYYY-MM-DD + wall time in Europe/Berlin → UTC Date */
+function berlinWallTimeToUtc(isoDate, hour, minute) {
+  const [y, mon, d] = isoDate.split("-").map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(mon) || !Number.isFinite(d)) {
+    return new Date(NaN);
+  }
+
+  let t = Date.UTC(y, mon - 1, d, hour - 1, minute, 0);
+
+  for (let i = 0; i < 24; i += 1) {
+    const dt = new Date(t);
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Berlin",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    }).formatToParts(dt);
+
+    const py = Number(parts.find((p) => p.type === "year")?.value);
+    const pm = Number(parts.find((p) => p.type === "month")?.value);
+    const pd = Number(parts.find((p) => p.type === "day")?.value);
+    const ph = Number(parts.find((p) => p.type === "hour")?.value);
+    const pmin = Number(parts.find((p) => p.type === "minute")?.value);
+
+    if (py === y && pm === mon && pd === d && ph === hour && pmin === minute) {
+      return dt;
+    }
+
+    const diffMin = hour * 60 + minute - (ph * 60 + pmin);
+    t += diffMin * 60 * 1000;
+  }
+
+  return new Date(t);
 }
 
 function normalizeChunk(input) {
@@ -197,29 +236,32 @@ function toIsoDate(day, month) {
     return null;
   }
 
-  const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth() + 1;
+  const now = Date.now();
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date());
 
-  let year = currentYear;
-  if (month < currentMonth) {
-    year += 1;
+  let year = Number(parts.find((p) => p.type === "year")?.value);
+  if (!Number.isFinite(year)) {
+    year = new Date().getUTCFullYear();
   }
 
-  const candidate = new Date(Date.UTC(year, month - 1, day, 20, 0, 0));
+  const pad = (n) => String(n).padStart(2, "0");
+  let isoDate = `${year}-${pad(month)}-${pad(day)}`;
+  let candidate = berlinWallTimeToUtc(isoDate, 20, 0);
   if (Number.isNaN(candidate.getTime())) {
     return null;
   }
 
-  if (
-    candidate.getUTCFullYear() !== year ||
-    candidate.getUTCMonth() !== month - 1 ||
-    candidate.getUTCDate() !== day
-  ) {
-    return null;
+  if (candidate.getTime() < now - 12 * 60 * 60 * 1000) {
+    isoDate = `${year + 1}-${pad(month)}-${pad(day)}`;
+    candidate = berlinWallTimeToUtc(isoDate, 20, 0);
   }
 
-  if (candidate.getTime() < now.getTime()) {
+  if (Number.isNaN(candidate.getTime()) || candidate.getTime() < now - 12 * 60 * 60 * 1000) {
     return null;
   }
 
@@ -298,6 +340,7 @@ function parseWeeklyProgram(rawText) {
     const title = titleBase.split(" ").filter(Boolean).slice(0, 8).join(" ").trim() || "Kuckuck Event";
 
     events.push({
+      source: "kuckuck",
       id: `kuckuck-${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${slugify(title)}`,
       title,
       description: normalizedBody.slice(0, 240) || "Kuckuck Event in Tübingen",
@@ -316,7 +359,8 @@ function parseWeeklyProgram(rawText) {
 }
 
 function parseClubhausDate(day, month, year) {
-  const candidate = new Date(Date.UTC(year, month - 1, day, 20, 0, 0));
+  const pad = (n) => String(n).padStart(2, "0");
+  const candidate = berlinWallTimeToUtc(`${year}-${pad(month)}-${pad(day)}`, 20, 0);
   if (Number.isNaN(candidate.getTime())) {
     return null;
   }
@@ -403,6 +447,7 @@ async function fetchFsrvvClubhausEvents() {
 
         const dateKey = `${String(event.day).padStart(2, "0")}-${String(event.month).padStart(2, "0")}-${event.year}`;
         return {
+          source: "clubhaus",
           id: `clubhaus-${dateKey}-${slugify(event.title)}`,
           title: event.title,
           description: "Offizieller Clubhausfesttermin (FSRVV), Wilhelmstraße 30, 72074 Tübingen",
@@ -475,6 +520,7 @@ async function fetchEpplehausEvents() {
         }
 
         return {
+          source: "epplehaus",
           id: `epplehaus-${slugify(uid.replace(/@.*/, ""))}`,
           title,
           description: description || "Event im Epplehaus, Karlstraße 13, 72072 Tübingen",
@@ -516,6 +562,7 @@ async function fetchTuebingenMarketEvents() {
           : TUEBINGEN_MARKETS_URL;
 
         return {
+          source: "tuebingen-market",
           id: `tuebingen-market-${slugify(rawLabel)}`,
           title,
           description: "Offizieller Markttermin der Universitätsstadt Tübingen",
@@ -582,6 +629,7 @@ async function fetchTuebingenFleaMarketEvents() {
         }
 
         return {
+          source: "tuebingen-flohmarkt",
           id: `tuebingen-flohmarkt-${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
           title: "Städtischer Flohmarkt in der Uhlandstraße",
           description: "Offizieller Flohmarkttermin der Universitätsstadt Tübingen",
@@ -600,66 +648,6 @@ async function fetchTuebingenFleaMarketEvents() {
     console.error("[worker] Tuebingen flea market scrape failed:", error instanceof Error ? error.message : String(error));
     return [];
   }
-}
-
-function parseGermanDate(dateStr) {
-  const value = String(dateStr ?? "").trim();
-
-  const dotMatch = value.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-  if (dotMatch) {
-    const [, day, month, year] = dotMatch;
-    const date = new Date(Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), 20, 0, 0));
-    if (!Number.isNaN(date.getTime())) {
-      return date;
-    }
-  }
-
-  const monthNames = {
-    januar: 1,
-    februar: 2,
-    märz: 3,
-    april: 4,
-    mai: 5,
-    juni: 6,
-    juli: 7,
-    august: 8,
-    september: 9,
-    oktober: 10,
-    november: 11,
-    dezember: 12,
-    january: 1,
-    february: 2,
-    march: 3,
-    may: 5,
-    june: 6,
-    july: 7,
-    october: 10,
-    december: 12,
-  };
-
-  const textMatch = value.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/i);
-  if (textMatch) {
-    const [, day, monthName, year] = textMatch;
-    const month = monthNames[monthName.toLowerCase()];
-    if (month) {
-      const date = new Date(Date.UTC(parseInt(year, 10), month - 1, parseInt(day, 10), 20, 0, 0));
-      if (!Number.isNaN(date.getTime())) {
-        return date;
-      }
-    }
-  }
-
-  return null;
-}
-
-function getVenueCoordinates(venueName) {
-  const normalized = String(venueName ?? "").toLowerCase().trim();
-  for (const [key, coords] of Object.entries(VENUE_COORDINATES)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
-      return coords;
-    }
-  }
-  return null;
 }
 
 function generateEventId(venue, date, title) {
@@ -686,50 +674,89 @@ function getConfiguredDiginightsUrls() {
   return unique;
 }
 
+const SCHLACHTHAUS_LINE_PATTERN =
+  /^(MO|DI|MI|DO|FR|SA|SO)\s+(\d{1,2})\.(\d{1,2})\.\s*(?:\|\s*)?(.+?)(?:\s*\|\s*(\d{1,2})[.:](\d{2}))?$/i;
+
 async function fetchSchlachthausEvents() {
   try {
     const html = await fetchWithTimeout(SCHLACHTHAUS_URL);
     const $ = cheerio.load(html);
-    const bodyText = $("body").text();
-    const lines = bodyText
-      .split("\n")
-      .map((line) => line.trim())
+    const headingLines = $("h2, h3, h4, h5, h6")
+      .toArray()
+      .map((node) => $(node).text().replace(/\s+/g, " ").replace(/\u00a0/g, " ").trim())
       .filter((line) => line.length > 0);
 
-    const eventPattern = /^(MO|DI|MI|DO|FR|SA|SO)\s+(\d{1,2})\.(\d{1,2})\.\s*\|\s*(.+?)\s*\|\s*(\d{1,2}):(\d{2})/i;
+    const lines =
+      headingLines.length > 0
+        ? headingLines
+        : $("body")
+            .text()
+            .split("\n")
+            .map((line) => line.replace(/\s+/g, " ").replace(/\u00a0/g, " ").trim())
+            .filter((line) => line.length > 0);
+
     const events = [];
     const currentYear = new Date().getFullYear();
     const now = new Date();
     const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+    const uniqueEventIds = new Set();
 
-    for (const line of lines) {
+    for (const rawLine of lines) {
       if (events.length >= 10) {
         break;
       }
 
-      const match = line.match(eventPattern);
+      const line = rawLine.replace(/^#{1,6}\s+/gm, "").trim();
+      const match = line.match(SCHLACHTHAUS_LINE_PATTERN);
       if (!match) {
         continue;
       }
 
-      const [, , dayStr, monthStr, title, hourStr, minStr] = match;
-      const day = parseInt(dayStr, 10);
-      const month = parseInt(monthStr, 10);
-      const hour = parseInt(hourStr, 10);
-      const min = parseInt(minStr, 10);
+      const day = Number(match[2]);
+      const month = Number(match[3]);
+      const rawTitle = String(match[4] ?? "").replace(/\s*\|\s*$/, "").trim();
+      const title = rawTitle.replace(/\s+/g, " ").trim();
+      const hour = Number(match[5] ?? "20");
+      const minute = Number(match[6] ?? "00");
 
-      let eventDate = new Date(Date.UTC(currentYear, month - 1, day, hour, min, 0));
-      if (eventDate < tenDaysAgo) {
-        const nextYearDate = new Date(Date.UTC(currentYear + 1, month - 1, day, hour, min, 0));
-        if (nextYearDate > tenDaysAgo) {
-          eventDate = nextYearDate;
-        } else {
-          continue;
-        }
+      if (!title || /geschlossen/i.test(title)) {
+        continue;
       }
 
+      if (!Number.isInteger(day) || !Number.isInteger(month) || day < 1 || day > 31 || month < 1 || month > 12) {
+        continue;
+      }
+
+      if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        continue;
+      }
+
+      const pad = (n) => String(n).padStart(2, "0");
+      let isoDate = `${currentYear}-${pad(month)}-${pad(day)}`;
+      let eventDate = berlinWallTimeToUtc(isoDate, hour, minute);
+      if (Number.isNaN(eventDate.getTime())) {
+        continue;
+      }
+
+      if (eventDate < tenDaysAgo) {
+        isoDate = `${currentYear + 1}-${pad(month)}-${pad(day)}`;
+        eventDate = berlinWallTimeToUtc(isoDate, hour, minute);
+      }
+
+      if (Number.isNaN(eventDate.getTime()) || eventDate < tenDaysAgo) {
+        continue;
+      }
+
+      const eventId = generateEventId("schlachthaus", eventDate, title);
+      if (uniqueEventIds.has(eventId)) {
+        continue;
+      }
+
+      uniqueEventIds.add(eventId);
+
       events.push({
-        id: generateEventId("schlachthaus", eventDate, title),
+        source: "schlachthaus",
+        id: eventId,
         title,
         description: "Schlachthaus Tübingen – Kulturzentrum und Veranstaltungsort",
         starts_at: eventDate.toISOString(),
@@ -750,99 +777,156 @@ async function fetchSchlachthausEvents() {
   }
 }
 
+function ldJsonTypeMatches(types, needle) {
+  if (types === needle) {
+    return true;
+  }
+
+  if (Array.isArray(types)) {
+    return types.some((t) => t === needle);
+  }
+
+  return false;
+}
+
+function collectLdJsonEventNodes(root) {
+  if (!root || typeof root !== "object") {
+    return [];
+  }
+
+  const graph = root["@graph"];
+  if (Array.isArray(graph)) {
+    return graph;
+  }
+
+  if (ldJsonTypeMatches(root["@type"], "ItemList") && Array.isArray(root.itemListElement)) {
+    const nested = [];
+    for (const el of root.itemListElement) {
+      if (!el || typeof el !== "object") {
+        continue;
+      }
+
+      nested.push(el.item ?? el);
+    }
+
+    return nested;
+  }
+
+  return [root];
+}
+
 async function fetchDiginightsEvents() {
   const diginightsUrls = getConfiguredDiginightsUrls();
   const aggregatedEvents = [];
+  const nowMs = Date.now();
+  const seen = new Set();
 
   for (const diginightsUrl of diginightsUrls) {
     try {
       const html = await fetchWithTimeout(diginightsUrl);
       const $ = cheerio.load(html);
 
-      const eventElements = $(
-        'article, [class*="event"], [class*="concert"], [class*="party"], .event-card, [class*="event-item"]'
-      )
-        .slice(0, 20)
-        .toArray();
-
-      for (const element of eventElements) {
-        const $elem = $(element);
-        const titleElem = $elem.find('h2, h3, h4, .title, [class*="title"]').first();
-        const dateElem = $elem.find('time, [class*="date"], [class*="time"], .datum').first();
-        const venueElem = $elem.find('[class*="venue"], [class*="location"], [class*="ort"]').first();
-        const anchorElem = $elem.find("a[href]").first();
-
-        let title = titleElem.text().trim();
-        const dateText = dateElem.attr("datetime") || dateElem.text().trim();
-        const venueName = venueElem.text().trim() || "Diginights Tübingen";
-        const contextText = normalizeChunk($elem.text()).toLowerCase();
-
-        if (!title && !dateText) {
-          continue;
+      $('script[type="application/ld+json"]').each((_, el) => {
+        const raw = $(el).html();
+        if (!raw) {
+          return;
         }
 
-        const titleLower = title.toLowerCase();
-        const venueLower = venueName.toLowerCase();
-        if (
-          !titleLower.includes("tübingen") &&
-          !titleLower.includes("tuebingen") &&
-          !venueLower.includes("tübingen") &&
-          !venueLower.includes("tuebingen") &&
-          !contextText.includes("tübingen") &&
-          !contextText.includes("tuebingen")
-        ) {
-          continue;
+        let data;
+        try {
+          data = JSON.parse(raw.trim());
+        } catch {
+          return;
         }
 
-        title = title.replace(/\s+/g, " ").trim();
-        if (!title) {
-          title = venueName || "Diginights Event";
-        }
+        const roots = Array.isArray(data) ? data : [data];
+        for (const root of roots) {
+          for (const node of collectLdJsonEventNodes(root)) {
+            if (!node || typeof node !== "object") {
+              continue;
+            }
 
-        if (title.length > 80) {
-          title = `${title.slice(0, 77)}...`;
-        }
+            if (!ldJsonTypeMatches(node["@type"], "Event") && !ldJsonTypeMatches(node["@type"], "MusicEvent")) {
+              continue;
+            }
 
-        let parsedDate = null;
-        if (dateText && dateText.includes("T")) {
-          const isoDate = new Date(dateText);
-          if (!Number.isNaN(isoDate.getTime()) && isoDate > new Date()) {
-            parsedDate = isoDate;
+            const name = String(node.name ?? "").trim();
+            if (!name || name.length < 2) {
+              continue;
+            }
+
+            const startStr = typeof node.startDate === "string" ? node.startDate : null;
+            if (!startStr) {
+              continue;
+            }
+
+            const startsAt = new Date(startStr);
+            if (Number.isNaN(startsAt.getTime())) {
+              continue;
+            }
+
+            let endsAt;
+            if (typeof node.endDate === "string") {
+              const parsedEnd = new Date(node.endDate);
+              endsAt = Number.isNaN(parsedEnd.getTime())
+                ? new Date(startsAt.getTime() + 4 * 60 * 60 * 1000)
+                : parsedEnd;
+            } else {
+              endsAt = new Date(startsAt.getTime() + 4 * 60 * 60 * 1000);
+            }
+
+            if (endsAt.getTime() < nowMs) {
+              continue;
+            }
+
+            let locationName = "Tübingen";
+            let lat = null;
+            let lng = null;
+            const loc = node.location;
+            if (loc && typeof loc === "object") {
+              if (typeof loc.name === "string" && loc.name.trim()) {
+                locationName = loc.name.trim();
+              }
+
+              const geo = loc.geo;
+              if (geo && typeof geo === "object") {
+                const la = Number(geo.latitude);
+                const ln = Number(geo.longitude);
+                if (Number.isFinite(la) && Number.isFinite(ln)) {
+                  lat = la;
+                  lng = ln;
+                }
+              }
+            }
+
+            const urlField = node.url;
+            const externalLink =
+              typeof urlField === "string" && urlField.startsWith("http") ? urlField : diginightsUrl;
+            const desc = typeof node.description === "string" ? node.description.slice(0, 500) : null;
+            const eventId = generateEventId("diginights", startsAt, name);
+            if (seen.has(eventId)) {
+              continue;
+            }
+
+            seen.add(eventId);
+
+            aggregatedEvents.push({
+              source: "diginights",
+              id: eventId,
+              title: name,
+              description: desc || "Diginights Event in Tübingen",
+              starts_at: startsAt.toISOString(),
+              ends_at: endsAt.toISOString(),
+              public_lat: lat,
+              public_lng: lng,
+              external_link: externalLink,
+              vibe_label: "Diginights",
+              location_name: locationName,
+              music_genre: inferMusicGenre(name),
+            });
           }
         }
-
-        if (!parsedDate && dateText) {
-          parsedDate = parseGermanDate(dateText);
-        }
-
-        if (!parsedDate || parsedDate < new Date()) {
-          continue;
-        }
-
-        const coords = getVenueCoordinates(venueName);
-        if (!coords) {
-          continue;
-        }
-
-        const eventHref = anchorElem.attr("href")?.trim();
-        const externalLink = eventHref
-          ? new URL(eventHref, diginightsUrl).toString()
-          : diginightsUrl;
-
-        aggregatedEvents.push({
-          id: generateEventId("diginights", parsedDate, title),
-          title,
-          description: "Diginights Event in Tübingen",
-          starts_at: parsedDate.toISOString(),
-          ends_at: new Date(parsedDate.getTime() + 4 * 60 * 60 * 1000).toISOString(),
-          public_lat: coords.lat,
-          public_lng: coords.lng,
-          external_link: externalLink,
-          vibe_label: venueName.length > 0 ? venueName : "Diginights",
-          location_name: venueName || "Diginights",
-          music_genre: inferMusicGenre(title),
-        });
-      }
+      });
     } catch (error) {
       console.warn(
         `[worker] Diginights source failed (${diginightsUrl}):`,
@@ -852,24 +936,17 @@ async function fetchDiginightsEvents() {
   }
 
   if (!aggregatedEvents.length) {
-    console.warn("[worker] Diginights returned 0 events across all fallback URLs.");
+    console.warn("[worker] Diginights JSON-LD: 0 events (structure may differ per URL).");
     return [];
   }
 
-  const uniqueById = new Map();
-  for (const event of aggregatedEvents) {
-    if (!uniqueById.has(event.id)) {
-      uniqueById.set(event.id, event);
-    }
-  }
-
-  return Array.from(uniqueById.values());
+  return aggregatedEvents.slice(0, 80);
 }
 
 function toDbRow(event) {
   return {
     id: event.id,
-    source: SOURCE,
+    source: event.source ?? DEFAULT_SOURCE,
     title: event.title,
     description: event.description || null,
     starts_at: event.starts_at,
@@ -934,43 +1011,46 @@ async function syncToSupabase(events) {
   });
 
   const runStartedAt = new Date().toISOString();
+  const nowIso = new Date().toISOString();
   const rows = events.map((event) => ({
     ...toDbRow(event),
     scraped_at: runStartedAt,
   }));
 
-  if (rows.length > 0) {
-    const { error: upsertError } = await supabase
-      .from("external_events_cache")
-      .upsert(rows, { onConflict: "id" });
+  if (rows.length === 0) {
+    console.warn(
+      "[worker] No events to upsert — skipping per-source stale delete; pruning all expired rows only.",
+    );
+    const expiredEmpty = await supabase.from("external_events_cache").delete().lt("ends_at", nowIso);
+    if (expiredEmpty.error) {
+      throw new Error(`Cleanup (expired) failed: ${expiredEmpty.error.message}`);
+    }
+    return { upserted: 0 };
+  }
 
-    if (upsertError) {
-      throw new Error(`Upsert failed: ${upsertError.message}`);
+  const { error: upsertError } = await supabase.from("external_events_cache").upsert(rows, { onConflict: "id" });
+
+  if (upsertError) {
+    throw new Error(`Upsert failed: ${upsertError.message}`);
+  }
+
+  const sourcesTouched = new Set(rows.map((row) => row.source ?? DEFAULT_SOURCE));
+  for (const source of sourcesTouched) {
+    const staleResult = await supabase
+      .from("external_events_cache")
+      .delete()
+      .eq("source", source)
+      .lt("scraped_at", runStartedAt);
+
+    if (staleResult.error) {
+      throw new Error(`Cleanup (stale) failed for ${source}: ${staleResult.error.message}`);
     }
   }
 
-  const nowIso = new Date().toISOString();
+  const expiredResult = await supabase.from("external_events_cache").delete().lt("ends_at", nowIso);
 
-  const staleResult = await supabase
-    .from("external_events_cache")
-    .delete()
-    .eq("source", SOURCE)
-    .lt("scraped_at", runStartedAt);
-
-  if (staleResult.error) {
-    throw new Error(`Cleanup (stale) failed: ${staleResult.error.message}`);
-  }
-
-  const expiredResult = await supabase
-    .from("external_events_cache")
-    .delete()
-    .eq("source", SOURCE)
-    .lt("ends_at", nowIso);
-
-  const deleteError = expiredResult.error;
-
-  if (deleteError) {
-    throw new Error(`Cleanup (expired) failed: ${deleteError.message}`);
+  if (expiredResult.error) {
+    throw new Error(`Cleanup (expired) failed: ${expiredResult.error.message}`);
   }
 
   return { upserted: rows.length };

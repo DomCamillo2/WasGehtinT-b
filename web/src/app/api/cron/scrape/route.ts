@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { inferExternalCategoryFields } from "@/lib/data";
 import {
   fetchLatestInstagramPosts,
   parseEventsFromCaptions,
   type InstagramPostCandidate,
 } from "@/lib/scrape-events";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
 
 export const runtime = "nodejs";
 
@@ -42,25 +44,25 @@ const SCRAPE_COOLDOWN_MINUTES = (() => {
   return Math.floor(parsed);
 })();
 const MAX_VENUES_PER_RUN = (() => {
-  const parsed = Number(process.env.INSTAGRAM_MAX_VENUES_PER_RUN ?? "2");
+  const parsed = Number(process.env.INSTAGRAM_MAX_VENUES_PER_RUN ?? "8");
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 2;
+    return 8;
   }
-  return Math.min(Math.floor(parsed), Math.max(VENUES.length, 1), 4);
+  return Math.min(Math.floor(parsed), Math.max(VENUES.length, 1), 16);
 })();
 const MAX_POSTS_PER_VENUE = (() => {
-  const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "2");
+  const parsed = Number(process.env.INSTAGRAM_MAX_POSTS_PER_VENUE ?? "3");
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 2;
+    return 3;
   }
-  return Math.min(Math.floor(parsed), 3);
+  return Math.min(Math.floor(parsed), 5);
 })();
 const MAX_GEMINI_CAPTIONS_PER_RUN = (() => {
-  const parsed = Number(process.env.INSTAGRAM_MAX_GEMINI_CAPTIONS_PER_RUN ?? "4");
+  const parsed = Number(process.env.INSTAGRAM_MAX_GEMINI_CAPTIONS_PER_RUN ?? "24");
   if (!Number.isFinite(parsed) || parsed < 0) {
-    return 4;
+    return 24;
   }
-  return Math.min(Math.floor(parsed), 12);
+  return Math.min(Math.floor(parsed), 48);
 })();
 const EVENT_HINT_REGEX = /(\d{1,2}\.\d{1,2}\.|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}:\d{2}\b|\buhr\b|\beinlass\b|\bstart\b|\bline\s*up\b|\btickets?\b|\bheute\b|\bmorgen\b|\bfreitag\b|\bsamstag\b|\bsonntag\b|\bmo\b|\bdi\b|\bmi\b|\bdo\b|\bfr\b|\bsa\b|\bso\b)/i;
 const INTERNAL_ADMIN_REGEX = /\bf[\s\-]?sitzung\b|\bfachschaftssitzung\b|\btagesordnung\b|\bto[\s\-]?punkt\b|\babstimmung\b|\bproto(?:koll)?\b|\bwahl(?:en)?\b|\bkandidatur\b|\bamtszeit\b/i;
@@ -95,7 +97,7 @@ function parseStartDate(date: string, time: string): Date {
   const safeHour = Number.isFinite(hour) ? Math.min(Math.max(hour, 0), 23) : 20;
   const safeMinute = Number.isFinite(minute) ? Math.min(Math.max(minute, 0), 59) : 0;
 
-  return new Date(`${date}T${String(safeHour).padStart(2, "0")}:${String(safeMinute).padStart(2, "0")}:00.000Z`);
+  return berlinWallTimeToUtc(date, safeHour, safeMinute);
 }
 
 function buildEventId(venue: string, title: string, date: string, location: string): string {
@@ -103,9 +105,29 @@ function buildEventId(venue: string, title: string, date: string, location: stri
 }
 
 function dateRangeForDay(date: string) {
-  const start = `${date}T00:00:00.000Z`;
-  const end = `${date}T23:59:59.999Z`;
-  return { start, end };
+  const start = berlinWallTimeToUtc(date, 0, 0);
+  const almostMidnight = berlinWallTimeToUtc(date, 23, 59);
+  const end = new Date(almostMidnight.getTime() + 60 * 1000 - 1);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+function instagramVenueVibeLabel(venueHandle: string): string {
+  const key = venueHandle.toLowerCase().replace(/^@/, "").replace(/\./g, "_");
+  const map: Record<string, string> = {
+    frau_holle_tuebingen: "Frau Holle",
+    kuckuck_bar_tuebingen: "Kuckuck",
+    schwarzes_schaf_tuebingen: "Schwarzes Schaf",
+    stadtkindtuebingen: "Stadtkind",
+    queerspaceparties: "Queerspace",
+    luscht_tuebingen: "Luscht",
+    zahnis_tuebingen: "Zahnis",
+    fsk_tuebingen: "FSK",
+    fachschaftmedizintuebingen: "Fachschaft Medizin",
+    fachschaftmewi: "Fachschaft MeWi",
+    schoener_wohnen_tuebingen: "Schöner Wohnen",
+    schoener_leben_tuebingen: "Schöner Leben",
+  };
+  return map[key] ?? resolveFallbackLocation(venueHandle).split(",")[0]?.trim() ?? "Instagram";
 }
 
 function isMissingColumnError(message: string, ...columnNames: string[]): boolean {
@@ -194,6 +216,11 @@ function parseCaptionDate(caption: string): string | null {
   if (match[3]) {
     const parsedYear = Number(match[3]);
     year = match[3].length === 2 ? 2000 + parsedYear : parsedYear;
+    // Guard against implausible explicit years from noisy captions/OCR.
+    const currentYear = now.getUTCFullYear();
+    if (year > currentYear + 1 || year < currentYear - 1) {
+      year = currentYear;
+    }
   }
 
   let candidate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
@@ -209,6 +236,33 @@ function parseCaptionDate(caption: string): string | null {
     candidate = new Date(Date.UTC(year + 1, month - 1, day, 12, 0, 0));
   }
 
+  return candidate.toISOString().slice(0, 10);
+}
+
+function normalizeEventDateForInstagram(dateIso: string): string {
+  const match = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return dateIso;
+  const now = new Date();
+  const nowYear = now.getUTCFullYear();
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  let candidate = new Date(Date.UTC(Number(match[1]), month - 1, day, 12, 0, 0));
+  if (Number.isNaN(candidate.getTime())) return dateIso;
+
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const maxFutureMs = 370 * oneDayMs;
+  const delta = candidate.getTime() - now.getTime();
+  const tooOld = delta < -oneDayMs;
+  const tooFarFuture = delta > maxFutureMs;
+  if (!tooOld && !tooFarFuture) {
+    return dateIso;
+  }
+
+  // Normalize implausible years to current/next year based on calendar proximity.
+  const currentYearDate = new Date(Date.UTC(nowYear, month - 1, day, 12, 0, 0));
+  const nextYearDate = new Date(Date.UTC(nowYear + 1, month - 1, day, 12, 0, 0));
+  candidate = currentYearDate.getTime() >= now.getTime() - oneDayMs ? currentYearDate : nextYearDate;
   return candidate.toISOString().slice(0, 10);
 }
 
@@ -326,6 +380,14 @@ async function insertEventRow(input: {
 
   const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000);
   const scrapedAt = new Date().toISOString();
+  const vibeLabel = instagramVenueVibeLabel(input.venue);
+  const inferred = inferExternalCategoryFields({
+    title: input.title,
+    description: input.description,
+    vibe_label: vibeLabel,
+    location_name: input.location,
+    starts_at: startsAt.toISOString(),
+  });
 
   const extendedRow = {
     id: buildEventId(input.venue, input.title, input.date, input.location),
@@ -339,10 +401,16 @@ async function insertEventRow(input: {
     public_lat: null,
     public_lng: null,
     external_link: input.post.sourceUrl,
-    vibe_label: "Instagram",
+    vibe_label: vibeLabel,
     location_name: input.location,
     music_genre: input.musicGenre,
     scraped_at: scrapedAt,
+    category_slug: inferred.category_slug,
+    category_label: inferred.category_label,
+    event_scope: inferred.event_scope,
+    is_all_day: false,
+    audience_label: null,
+    price_info: null,
   };
 
   const extendedInsert = await supabase
@@ -367,7 +435,7 @@ async function insertEventRow(input: {
     public_lat: null,
     public_lng: null,
     external_link: input.post.sourceUrl,
-    vibe_label: "Instagram",
+    vibe_label: vibeLabel,
     location_name: input.location,
     music_genre: input.musicGenre,
     scraped_at: scrapedAt,
@@ -405,6 +473,8 @@ async function handleCronScrape(request: Request) {
     return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
   }
 
+  const url = new URL(request.url);
+  const forceRun = ["1", "true", "yes"].includes((url.searchParams.get("force") ?? "").toLowerCase());
   const supabase = getSupabaseAdmin();
   const latestInstagramScrape = await supabase
     .from("external_events_cache")
@@ -414,7 +484,7 @@ async function handleCronScrape(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  if (!latestInstagramScrape.error && latestInstagramScrape.data?.scraped_at && SCRAPE_COOLDOWN_MINUTES > 0) {
+  if (!forceRun && !latestInstagramScrape.error && latestInstagramScrape.data?.scraped_at && SCRAPE_COOLDOWN_MINUTES > 0) {
     const lastScrapedMs = new Date(latestInstagramScrape.data.scraped_at).getTime();
     const cooldownMs = SCRAPE_COOLDOWN_MINUTES * 60 * 1000;
     if (Number.isFinite(lastScrapedMs) && Date.now() - lastScrapedMs < cooldownMs) {
@@ -497,6 +567,7 @@ async function handleCronScrape(request: Request) {
         const eventsToInsert: Array<{ post: InstagramPostCandidate; event: ReturnType<typeof parseEventsFromCaptionFallback>[0] }> = [];
         if (allParsed.length > 0) {
           for (const event of allParsed) {
+            event.date = normalizeEventDateForInstagram(event.date);
             // Best-effort: attribute event to the post whose caption contains the event date.
             const matchedPost = postsForGemini.find((p) => p.caption.includes(event.date.slice(5).replace("-", ".")))
               ?? postsForGemini[0];
@@ -511,6 +582,7 @@ async function handleCronScrape(request: Request) {
           for (const post of fallbackPosts) {
             const fallbackEvents = parseEventsFromCaptionFallback(post.caption, venue);
             for (const event of fallbackEvents) {
+              event.date = normalizeEventDateForInstagram(event.date);
               eventsToInsert.push({ post, event });
             }
           }
@@ -554,6 +626,7 @@ async function handleCronScrape(request: Request) {
   return NextResponse.json({
     success,
     skipped: false,
+    forced: forceRun,
     venuesChecked: runVenues,
     maxVenuesPerRun: MAX_VENUES_PER_RUN,
     maxPostsPerVenue: MAX_POSTS_PER_VENUE,

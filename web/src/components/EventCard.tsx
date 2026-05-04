@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { DiscoverEvent } from "@/services/discover/discover-view-model";
+import { resolveDiscoverVenuePartnerLogo } from "@/lib/discover-venue-visual";
 
 type Props = {
   party: DiscoverEvent;
@@ -33,23 +34,6 @@ type TypeTag = {
   label: string;
   bookmarkClasses: string;
 };
-
-const PARTNER_LOGOS: Array<{ match: RegExp; src: string; alt: string }> = [
-  { match: /kuckuck/i, src: "/logos/venues/kuckuck.png", alt: "Kuckuck Logo" },
-  { match: /schlachthaus/i, src: "/logos/venues/schlachthaus.jpg", alt: "Schlachthaus Logo" },
-  { match: /clubhaus/i, src: "/logos/venues/clubhaus.jpg", alt: "Clubhaus Logo" },
-  { match: /epplehaus/i, src: "/logos/venues/epplehaus.jpg", alt: "Epplehaus Logo" },
-  {
-    match: /frau\s*holle|frauholle|frau_holle_tuebingen|holle\s*t(?:ue|u)bingen|haaggasse\s*15\/?2/i,
-    src: "/logos/venues/frau-holle.svg",
-    alt: "Frau Holle Icon",
-  },
-  {
-    match: /schwarzes\s*schaf|schwarzes[-_.\s]*schaf|schwarzesschaf\.tuebingen|schwarzes_schaf_tuebingen|schwarzesschaf_tuebingen/i,
-    src: "/logos/venues/schwarzes-schaf.svg",
-    alt: "Schwarzes Schaf Icon",
-  },
-];
 
 function resolveVenueLabel(party: DiscoverEvent): string {
   const locationName = (party.locationName ?? "").trim();
@@ -146,23 +130,6 @@ function getAddressLine(party: DiscoverEvent) {
   return "Adresse wird vor dem Event bekannt gegeben";
 }
 
-function resolvePartnerLogo(party: DiscoverEvent, typeTag: TypeTag): { src: string; alt: string } | null {
-  const locationName = (party.locationName ?? "").trim();
-  const probeText = `${locationName} ${party.vibeLabel} ${party.title} ${party.externalLink ?? ""}`;
-
-  for (const partner of PARTNER_LOGOS) {
-    if (partner.match.test(probeText)) {
-      return { src: partner.src, alt: partner.alt };
-    }
-  }
-
-  if (typeTag.key === "club-bar") {
-    return { src: "/logos/venues/dance.png", alt: "Dance Icon" };
-  }
-
-  return null;
-}
-
 const MUSIC_GENRE_PATTERNS: Array<{ regex: RegExp; label: string }> = [
   { regex: /hard\s*trance|trance|bounce/i, label: "Trance/Bounce" },
   { regex: /techno|acid\s*techno/i, label: "Techno" },
@@ -226,7 +193,7 @@ export function EventCard({
 }: Props) {
   const typeTag = getTypeTag(party);
   const musicGenre = resolveMusicGenre(party);
-  const partnerLogo = resolvePartnerLogo(party, typeTag);
+  const partnerLogo = resolveDiscoverVenuePartnerLogo(party);
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
   const [showFlameTooltip, setShowFlameTooltip] = useState(false);
 

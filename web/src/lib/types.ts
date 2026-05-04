@@ -21,6 +21,8 @@ export type PartyCard = {
   external_link: string | null;
   vibe_label: string;
   spots_left: number;
+  /** Persisted to external_events_cache.source; drives source_badge after DB read */
+  source?: string | null;
   location_name?: string | null;
   host_user_id?: string | null;
   host_avatar_url?: string | null;
@@ -35,6 +37,8 @@ export type PartyCard = {
   upvoted_by_me?: boolean;
   source_badge?: string | null;
   is_community?: boolean;
+  /** Optional hero image for Discover cards (e.g. from Pexels). */
+  hero_image_url?: string | null;
 };
 
 export type BringProgress = {

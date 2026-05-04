@@ -77,7 +77,7 @@ async function applyMigration() {
     console.log('Migration executed successfully');
     
     // Verify table exists
-    const { data, error: verifyError } = await supabase
+    const { error: verifyError } = await supabase
       .from('event_upvotes')
       .select('count(*)', { count: 'exact', head: true });
     

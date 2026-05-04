@@ -313,7 +313,9 @@ Behandle beide Pipelines als Backend-Prozesse. Sie gehören nicht in UI-Komponen
 
 Nutze für Instagram-Scraping diesen Pfad:
 
-`Vercel Cron -> /api/cron/scrape -> src/lib/scrape-events.ts -> Apify + Gemini -> Supabase Admin Client -> external_events_cache`
+`Externer Cronjob (z. B. cron-job.org) oder CI -> /api/cron/scrape -> src/lib/scrape-events.ts -> Apify + Gemini -> Supabase Admin Client -> external_events_cache`
+
+**Vercel Cron wird nicht verwendet** (siehe Abschnitt „Cron-Ausführung“).
 
 Konkrete Projektdateien:
 
@@ -350,7 +352,7 @@ Wenn du die Caption-Parsing-Logik änderst, ändere nicht gleichzeitig die Persi
 
 Nutze für kuratierte externe Events diesen Pfad:
 
-`Cron oder manueller Trigger -> /api/external-events/refresh -> fetchExternalEventsAction() -> Scraper-Funktionen -> syncExternalEventsToCache() -> external_events_cache -> Discover`
+`Externer Cronjob oder manueller Trigger -> /api/external-events/refresh -> fetchExternalEvents() -> Scraper-Funktionen -> syncExternalEventsToCache() -> external_events_cache -> Discover`
 
 Konkrete Projektdateien:
 
@@ -372,8 +374,8 @@ Aktuelle Logik:
   - Tübinger Märkte
   - Tübinger Flohmärkte
   - Diginights-Fallback
-- `syncExternalEventsToCache()` in `src/lib/external-events-cache.ts` schreibt die normalisierten Events mit `source = "official-scraper"` nach `external_events_cache`.
-- Danach werden veraltete und abgelaufene Events bereinigt.
+- `syncExternalEventsToCache()` in `src/lib/external-events-cache.ts` schreibt normalisierte Events nach `external_events_cache` (pro Quelle eigener `source`, z. B. `kuckuck`, `clubhaus`, `schlachthaus`, `diginights`; Fallback-Label `official-scraper` nur wenn ein Event keine Quelle setzt).
+- Danach werden veraltete und abgelaufene Events bereinigt (pro Lauf nur für Quellen, die im Batch vorkommen; bei leerem Batch kein Stale-Wipe).
 - Anschließend wird `/discover` revalidiert.
 - `scripts/sync-external-events-to-supabase.mjs` bildet denselben fachlichen Sync als operatives Node-Skript für manuelle oder externe Läufe ab.
 
@@ -399,23 +401,33 @@ Vermeide, Scraperdaten direkt in Discover-Komponenten oder Page-Dateien aufzuber
 
 ### Cron-Ausführung
 
-Nutze Cron-Auslöser ausschließlich über definierte Backend-Endpunkte.
+Nutze Cron-Auslöser ausschließlich über definierte Backend-Endpunkte (`Authorization: Bearer $CRON_SECRET` oder konfiguriertes Refresh-Token).
 
-Aktuelle Source-of-Truth für Scheduling ist **GitHub Actions**:
+#### Vercel Cron: nicht verwenden
 
-- Workflow: `web/.github/workflows/external-events-refresh.yml`
-- Trigger: alle 6 Stunden
-- Ausführung: `web/scripts/sync-external-events-to-supabase.mjs`
+**Vercel Cron wird bewusst nicht genutzt.** Hintergrund: Am gewählten Setup besteht eine relevante **8-Stunden-Leitplanke** (Ausführungs-/Budget-Kontext der Plattform), und Serverless-Route-Handler sind zusätzlich an **kurze Maximal-Laufzeiten** pro Invocation gebunden. Längere oder zuverlässig wiederholte Scrape-Jobs gehören deshalb auf **externe Cronjobs** oder CI, nicht auf Vercel Cron.
 
-`web/vercel.json` enthält aktuell bewusst keine produktiven Cron-Einträge.
+`web/vercel.json` bleibt mit **`"crons": []`** — keine produktiven Vercel-Cron-Einträge committen.
 
-`web/scripts/setup-cronjob-org.mjs` bleibt als optionaler Fallback für Notfälle erhalten, ist aber **nicht** Teil des regulären Produktionsbetriebs.
+#### Empfohlene Scheduler (extern)
 
-Nutze bei Änderungen an Cron-Logik immer diese Regel:
+1. **cron-job.org** (Standard-Empfehlung für Produktion)  
+   - Setup: `web/scripts/setup-cronjob-org.mjs` mit `ENABLE_CRONJOB_ORG_SETUP=true`, `CRON_JOB_API_KEY`, `CRON_SECRET`, `APP_BASE_URL` / `NEXT_PUBLIC_APP_URL`.  
+   - Vorgehaltene Jobs (siehe Skript): **External-Refresh** an `/api/external-events/refresh` (Standard: 0, 6, 12, 18 Uhr Europe/Berlin), **Instagram** an `/api/cron/scrape` (Standard: täglich 7:00).  
+   - Passe Stunden/Minuten im Skript an, wenn sich Anforderungen ändern.
+
+2. **GitHub Actions** (Alternative)  
+   - Workflow: `.github/workflows/external-events-refresh.yml` (Repo-Root).  
+   - Kann z. B. `web/scripts/sync-external-events-to-supabase.mjs` oder per `curl` die gleichen API-Routen triggern — konsistent mit Auth-Secrets im Repository halten.
+
+3. **Manuell / andere Worker**  
+   - `npm run external-events:sync` bzw. `web/scripts/trigger-external-events-refresh.mjs` für Einmalläufe und Debugging.
+
+Regeln bei Änderungen:
 
 - Ändere Schedule, Auth und Zielroute bewusst zusammen.
-- Dokumentiere genau eine aktive Scheduler-Quelle.
-- Vermeide doppelte, unkoordinierte Trigger auf dieselbe Route.
+- Dokumentiere im Team **eine** klare „aktive“ Scheduler-Strategie (cron-job.org **oder** GitHub Actions als Hauptquelle), um doppelte unkontrollierte Trigger zu vermeiden.
+- Vercel Cron nicht als Ersatz einführen, solange die 8h-/Serverless-Rahmenbedingungen der Architektur gelten.
 
 ### Debug- und Testpfade
 

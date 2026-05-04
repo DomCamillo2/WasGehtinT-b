@@ -79,7 +79,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+  /* UI: Inter (next/font setzt --font-inter auf <html>) */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
@@ -90,12 +91,7 @@ html {
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family:
-    "Avenir Next",
-    "Segoe UI",
-    Helvetica,
-    Arial,
-    sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   min-height: 100vh;
@@ -234,4 +230,270 @@ body::before {
     inset 0 0 0 1px rgba(255, 237, 213, 0.12),
     0 0 18px -4px rgba(251, 146, 60, 0.35);
   animation: hot-card-ring 2.15s ease-in-out infinite;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Discover UI v2 (?ui=new) — sunset / editorial tokens + utilities           */
+/* -------------------------------------------------------------------------- */
+
+html.discover-ui-new {
+  --bg-page: #0f0b08;
+  --bg-surface: #17120f;
+  --bg-surface-2: #1d1713;
+  --border-soft: #2a221d;
+  --text-main: #f2ece6;
+  --text-muted: #a89b90;
+  --accent: #ff7a18;
+  --accent-strong: #ff8b2a;
+  --accent-dark-text: #2d1d10;
+  --shadow-accent: 0 8px 24px rgba(255, 122, 24, 0.35);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --background: oklch(0.12 0.015 60);
+  --foreground: oklch(0.93 0.02 80);
+  --card: oklch(0.16 0.02 55);
+  --card-foreground: oklch(0.93 0.02 80);
+  --popover: oklch(0.14 0.018 55);
+  --popover-foreground: oklch(0.93 0.02 80);
+  --primary: oklch(0.72 0.18 45);
+  --primary-foreground: oklch(0.12 0.015 60);
+  --secondary: oklch(0.78 0.15 75);
+  --secondary-foreground: oklch(0.12 0.015 60);
+  --muted: oklch(0.22 0.02 55);
+  --muted-foreground: oklch(0.55 0.03 70);
+  --accent: oklch(0.75 0.12 35);
+  --accent-foreground: oklch(0.12 0.015 60);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.93 0.02 80);
+  --border: oklch(0.25 0.025 55);
+  --input: oklch(0.18 0.02 55);
+  --ring: oklch(0.72 0.18 45);
+  --color-background: oklch(0.12 0.015 60);
+  --color-foreground: oklch(0.93 0.02 80);
+  --color-card: oklch(0.16 0.02 55);
+  --color-card-foreground: oklch(0.93 0.02 80);
+  --color-popover: oklch(0.14 0.018 55);
+  --color-popover-foreground: oklch(0.93 0.02 80);
+  --color-primary: oklch(0.72 0.18 45);
+  --color-primary-foreground: oklch(0.12 0.015 60);
+  --color-secondary: oklch(0.78 0.15 75);
+  --color-secondary-foreground: oklch(0.12 0.015 60);
+  --color-muted: oklch(0.22 0.02 55);
+  --color-muted-foreground: oklch(0.55 0.03 70);
+  --color-accent: oklch(0.75 0.12 35);
+  --color-accent-foreground: oklch(0.12 0.015 60);
+  --color-destructive: oklch(0.55 0.22 25);
+  --color-destructive-foreground: oklch(0.93 0.02 80);
+  --color-border: oklch(0.25 0.025 55);
+  --color-input: oklch(0.18 0.02 55);
+  --color-ring: oklch(0.72 0.18 45);
+  --surface: oklch(0.16 0.02 55);
+  --surface-elevated: oklch(0.14 0.018 55);
+  --surface-card: oklch(0.16 0.02 55);
+  --surface-soft: oklch(0.22 0.02 55);
+  --surface-strong: oklch(0.25 0.025 55);
+  --border-soft: oklch(0.25 0.025 55 / 0.45);
+  --border-strong: oklch(0.35 0.03 55 / 0.55);
+  --nav-bg: oklch(0.14 0.018 55 / 0.9);
+  --nav-border: oklch(0.25 0.025 55 / 0.4);
+  color-scheme: dark;
+}
+
+html.discover-ui-new body {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+html.discover-ui-new body::before {
+  display: none;
+}
+
+/* Wortmarke „WasGeht / Tüb“ — Bricolage Grotesque SemiBold */
+.font-wordmark {
+  font-family: var(--font-bricolage), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.discover-ui-v2 .scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.discover-ui-v2 .scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.discover-ui-v2 .skip-to-content {
+  position: absolute;
+  left: -9999px;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-radius: 0.5rem;
+}
+
+.discover-ui-v2 .skip-to-content:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
+.discover-ui-v2 .noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  mix-blend-mode: soft-light;
+}
+
+.discover-ui-v2 .text-gradient-sunset {
+  background: linear-gradient(
+    135deg,
+    oklch(0.72 0.18 45) 0%,
+    oklch(0.78 0.15 75) 50%,
+    oklch(0.75 0.12 35) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.discover-ui-v2 .editorial-shadow {
+  box-shadow:
+    0 4px 12px oklch(0 0 0 / 0.3),
+    0 2px 4px oklch(0 0 0 / 0.2);
+}
+
+.discover-ui-v2 .card-lift {
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s ease;
+}
+
+.discover-ui-v2 .card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -20px oklch(0 0 0 / 0.5);
+}
+
+@keyframes discover-v2-float-blob-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@keyframes discover-v2-float-blob-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-40px, 20px) scale(1.05);
+  }
+  66% {
+    transform: translate(25px, -25px) scale(1.1);
+  }
+}
+
+@keyframes discover-v2-float-blob-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, 30px) scale(1.08);
+  }
+}
+
+@keyframes discover-v2-slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes discover-v2-glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px oklch(0.72 0.18 45 / 0.5),
+      0 0 20px oklch(0.72 0.18 45 / 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 15px oklch(0.72 0.18 45 / 0.6),
+      0 0 30px oklch(0.72 0.18 45 / 0.35);
+  }
+}
+
+.discover-ui-v2 .animate-float-1 {
+  animation: discover-v2-float-blob-1 20s ease-in-out infinite;
+}
+
+.discover-ui-v2 .animate-float-2 {
+  animation: discover-v2-float-blob-2 25s ease-in-out infinite;
+}
+
+.discover-ui-v2 .animate-float-3 {
+  animation: discover-v2-float-blob-3 18s ease-in-out infinite;
+}
+
+.discover-ui-v2 .animate-slide-up {
+  animation: discover-v2-slide-up-fade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.discover-ui-v2 .animate-glow-pulse {
+  animation: discover-v2-glow-pulse 3s ease-in-out infinite;
+}
+
+.discover-ui-v2 .glow-sunset {
+  box-shadow:
+    0 0 12px oklch(0.72 0.18 45 / 0.45),
+    0 0 24px oklch(0.78 0.15 75 / 0.2);
+}
+
+.discover-ui-v2 .squishy:active {
+  transform: scale(0.98);
+}
+
+.discover-ui-v2 .pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.discover-ui-v2 .event-card-separator {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, #ff7a18 0%, #ff9a3f 50%, #ff7a18 100%);
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discover-ui-v2 .animate-float-1,
+  .discover-ui-v2 .animate-float-2,
+  .discover-ui-v2 .animate-float-3,
+  .discover-ui-v2 .animate-slide-up,
+  .discover-ui-v2 .animate-glow-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .discover-ui-v2 .squishy:active {
+    transform: none;
+  }
 }

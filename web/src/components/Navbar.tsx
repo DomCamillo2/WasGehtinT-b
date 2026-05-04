@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SITE_LOGO_SRC } from "@/lib/site-config";
 import { Menu, Sparkles } from "lucide-react";
 
 type NavbarProps = {
@@ -10,7 +11,7 @@ type NavbarProps = {
 };
 
 export function Navbar({
-  logoSrc = "/Logo.png",
+  logoSrc = SITE_LOGO_SRC,
   appName = "WasGehtTüb",
 }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);

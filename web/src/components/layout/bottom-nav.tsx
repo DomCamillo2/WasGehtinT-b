@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
-import { CirclePlus, Compass, Flame, MessageCircle, Sparkles, X } from "lucide-react";
+import { CirclePlus, Compass, Flame, Sparkles, X } from "lucide-react";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
 import { createPartyAction, type CreatePartyActionState } from "@/app/actions/parties";
 

@@ -9,15 +9,6 @@ type ProfileDbRow = {
   profile_visibility: "public" | "members" | "hidden" | null;
 };
 
-type SubmissionDbRow = {
-  id: string;
-  title: string;
-  starts_at: string;
-  created_at: string;
-  status: string | null;
-  review_status: string | null;
-};
-
 export type ProfileViewModel = {
   displayName: string | null;
   avatarUrl: string | null;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DiscoverExperienceV2 } from "@/components/discover/discover-experience-v2";
 import { AppShell } from "@/components/layout/app-shell";
 import { DiscoverPremium } from "@/components/party/discover-premium";
 import { DiscoverSchema } from "@/components/seo/discover-schema";
@@ -42,9 +43,17 @@ export const metadata: Metadata = {
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; date?: string; type?: string; weeks?: string; liked?: string }>;
+  searchParams: Promise<{
+    view?: string;
+    date?: string;
+    type?: string;
+    weeks?: string;
+    liked?: string;
+    ui?: string;
+  }>;
 }) {
   const resolvedSearchParams = await searchParams;
+  const isUiNew = resolvedSearchParams.ui === "new";
   const {
     parties,
     avatarFallback,
@@ -59,18 +68,35 @@ export default async function DiscoverPage({
   );
 
   return (
-    <AppShell shellClassName="overflow-visible">
+    <AppShell
+      shellClassName="overflow-visible"
+      showFooter={!isUiNew}
+      showBottomNav={!isUiNew}
+      mainFlush={isUiNew}
+    >
       <DiscoverSchema events={parties} />
-      <DiscoverPremium
-        parties={parties}
-        avatarFallback={avatarFallback}
-        isAuthenticated={isAuthenticated}
-        canLoadMore={canLoadMore}
-        currentWeeks={currentWeeks}
-        initialView={initialView}
-        initialFilter={initialFilter}
-        initialCalendarDate={initialCalendarDate}
-      />
+      {isUiNew ? (
+        <DiscoverExperienceV2
+          parties={parties}
+          avatarFallback={avatarFallback}
+          isAuthenticated={isAuthenticated}
+          canLoadMore={canLoadMore}
+          currentWeeks={currentWeeks}
+          initialFilter={initialFilter}
+          initialCalendarDate={initialCalendarDate}
+        />
+      ) : (
+        <DiscoverPremium
+          parties={parties}
+          avatarFallback={avatarFallback}
+          isAuthenticated={isAuthenticated}
+          canLoadMore={canLoadMore}
+          currentWeeks={currentWeeks}
+          initialView={initialView}
+          initialFilter={initialFilter}
+          initialCalendarDate={initialCalendarDate}
+        />
+      )}
     </AppShell>
   );
 }

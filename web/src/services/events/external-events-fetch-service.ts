@@ -2,6 +2,7 @@ import "server-only";
 
 import * as cheerio from "cheerio";
 import { unstable_cache } from "next/cache";
+import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
 import { PartyCard } from "@/lib/types";
 import {
   fetchSchlachthausEvents,
@@ -13,8 +14,10 @@ import {
   fetchSudhausEvents,
   fetchClubVoltaireEvents,
   fetchDaiEvents,
+  fetchPartykelEvents,
   fetchRedditEvents,
 } from "@/lib/scrapers/official-venues";
+import { discoverImportantEventSourceCandidates } from "@/lib/scrapers/source-discovery";
 
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
 const KUCKUCK_LAT = 48.5413588;
@@ -86,29 +89,32 @@ function toIsoDate(day: number, month: number): string | null {
     return null;
   }
 
-  const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth() + 1;
+  const now = Date.now();
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date());
 
-  let year = currentYear;
-  if (month < currentMonth) {
-    year += 1;
+  let year = Number(parts.find((p) => p.type === "year")?.value);
+  if (!Number.isFinite(year)) {
+    year = new Date().getUTCFullYear();
   }
 
-  const candidate = new Date(Date.UTC(year, month - 1, day, 20, 0, 0));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let isoDate = `${year}-${pad(month)}-${pad(day)}`;
+  let candidate = berlinWallTimeToUtc(isoDate, 20, 0);
   if (Number.isNaN(candidate.getTime())) {
     return null;
   }
 
-  if (
-    candidate.getUTCFullYear() !== year ||
-    candidate.getUTCMonth() !== month - 1 ||
-    candidate.getUTCDate() !== day
-  ) {
-    return null;
+  if (candidate.getTime() < now - 12 * 60 * 60 * 1000) {
+    isoDate = `${year + 1}-${pad(month)}-${pad(day)}`;
+    candidate = berlinWallTimeToUtc(isoDate, 20, 0);
   }
 
-  if (candidate.getTime() < now.getTime()) {
+  if (Number.isNaN(candidate.getTime()) || candidate.getTime() < now - 12 * 60 * 60 * 1000) {
     return null;
   }
 
@@ -234,6 +240,7 @@ async function fetchKuckuckEvents(): Promise<PartyCard[]> {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")}`,
+      source: "kuckuck",
       title: event.title,
       description: event.description || "Kuckuck Event in T\u00fcbingen",
       starts_at: event.startsAt,
@@ -256,7 +263,8 @@ async function fetchKuckuckEvents(): Promise<PartyCard[]> {
 }
 
 function parseClubhausDate(day: number, month: number, year: number): string | null {
-  const candidate = new Date(Date.UTC(year, month - 1, day, 20, 0, 0));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const candidate = berlinWallTimeToUtc(`${year}-${pad(month)}-${pad(day)}`, 20, 0);
   if (Number.isNaN(candidate.getTime())) {
     return null;
   }
@@ -389,6 +397,7 @@ async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "")}`,
+          source: "clubhaus",
           title: event.title,
           description: "Offizieller Clubhausfesttermin (FSRVV), Wilhelmstra\u00dfe 30, 72074 T\u00fcbingen",
           starts_at: startsAt,
@@ -427,6 +436,7 @@ const getCachedExternalEvents = unstable_cache(
       sudhausEvents,
       clubVoltaireEvents,
       daiEvents,
+      partykelEvents,
       redditEvents,
     ] = await Promise.all([
       fetchKuckuckEvents(),
@@ -440,8 +450,18 @@ const getCachedExternalEvents = unstable_cache(
       fetchSudhausEvents(),
       fetchClubVoltaireEvents(),
       fetchDaiEvents(),
+      fetchPartykelEvents(),
       fetchRedditEvents(),
     ]);
+
+    // Non-blocking source discovery: surfaces promising future sources in logs.
+    if ((process.env.EXTERNAL_EVENTS_AUTO_SOURCE_DISCOVERY ?? "true").trim().toLowerCase() !== "false") {
+      void discoverImportantEventSourceCandidates().then((candidates) => {
+        if (candidates.length > 0) {
+          console.info("[external-events] Source discovery candidates:", candidates);
+        }
+      });
+    }
 
     const allEvents = [
       ...kuckuckEvents,
@@ -455,6 +475,7 @@ const getCachedExternalEvents = unstable_cache(
       ...sudhausEvents,
       ...clubVoltaireEvents,
       ...daiEvents,
+      ...partykelEvents,
       ...redditEvents,
     ]
       .filter((event) => !isCancelledOrOutageEvent(event))
