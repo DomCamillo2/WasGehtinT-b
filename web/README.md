@@ -35,7 +35,7 @@ cp .env.example .env.local
 - `CRON_SECRET` (für sichere Aufrufe interner Cron-Routen, z. B. durch cron-job.org oder CI — **nicht** Vercel Cron, siehe `ARCHITECTURE.md`)
 - `RESEND_API_KEY` (für transaktionale Mails)
 - `RESEND_FROM_EMAIL` (z. B. `WasGehtTüb <onboarding@resend.dev>` oder deine verifizierte Domain-Absenderadresse)
-- `PEXELS_API_KEY` (optional, fuer automatische Hero-Bilder in Discover-Eventkarten)
+- `PEXELS_API_KEY` (empfohlen: Pexels-API-Key; **für Live/Preview in Vercel unter Environment Variables / Secrets setzen** — sonst fehlen Stock-Fotos in Discover. Lokal: optional in `.env.local`)
 
 4) Datenbank vorbereiten (Supabase SQL Editor)
 

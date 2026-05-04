@@ -28,8 +28,11 @@ In Vercel unter **Project Settings → Environment Variables** eintragen:
 - `STRIPE_WEBHOOK_SECRET`
 - `INTERNAL_ADMIN_EMAILS` (kommagetrennt)
 - `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, aber empfohlen)
+- `PEXELS_API_KEY` (**empfohlen** für Discover: Stock-Herobilder server- und clientseitig; ohne Key bleiben viele Karten mit Buchstaben-Platzhalter. In Vercel als Secret für **Production** und ggf. **Preview** anlegen, danach **Redeploy**)
 
 Dann ersten Production Deploy starten.
+
+**PEXELS in Vercel hinterlegen:** [Project] → **Settings** → **Environment Variables** → Add: Name `PEXELS_API_KEY`, Wert = API-Key von [pexels.com/api](https://www.pexels.com/api/), Environments: Production (und optional Preview). Oder lokal mit Vercel CLI: `npx vercel env add PEXELS_API_KEY` (Anzeige/Import sensibler Werte in der interaktiven Eingabe).
 
 ## 3) Supabase Auth + Redirects (5 Min)
 
