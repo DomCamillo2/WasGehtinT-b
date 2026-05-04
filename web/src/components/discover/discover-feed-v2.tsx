@@ -665,6 +665,7 @@ export function DiscoverFeedV2({
 
   return (
     <div className="min-h-screen pb-28 max-sm:pb-[9.5rem]">
+      <div className="overflow-x-clip">
       <a href="#events-feed-v2" className="skip-to-content">
         Zum Events-Bereich springen
       </a>
@@ -1079,6 +1080,7 @@ export function DiscoverFeedV2({
           </>
         ) : null}
       </main>
+      </div>
 
       <button
         type="button"

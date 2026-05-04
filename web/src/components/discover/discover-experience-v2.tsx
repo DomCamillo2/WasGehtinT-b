@@ -23,7 +23,7 @@ type Props = {
 
 export function DiscoverExperienceV2(props: Props) {
   return (
-    <div className="discover-ui-v2 relative min-h-screen bg-background overflow-x-hidden text-foreground">
+    <div className="discover-ui-v2 relative min-h-screen bg-background text-foreground">
       <div className="noise-overlay" aria-hidden="true" />
       <div
         className="fixed inset-0 pointer-events-none overflow-hidden z-0 [contain:strict]"
