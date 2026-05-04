@@ -194,7 +194,6 @@ export function DiscoverFeedV2({
   const [headerCompact, setHeaderCompact] = useState(false);
   const [viewExtrasOpen, setViewExtrasOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
     const raw = searchParams.get("view");
     if (raw === "cards" || raw === "list" || raw === "calendar" || raw === "map") {
@@ -996,14 +995,6 @@ export function DiscoverFeedV2({
           role="tablist"
           aria-label="Kategorien"
         >
-          <button
-            type="button"
-            onClick={() => setFilterSheetOpen(true)}
-            className="snap-start flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-colors hover:border-primary/40 hover:text-primary sm:hidden"
-            aria-label="Mehr Filter und klassische Ansicht"
-          >
-            <SlidersHorizontal className="h-5 w-5" />
-          </button>
           {filterItems.map((item) => (
             <button
               key={item.id}
@@ -1274,40 +1265,6 @@ export function DiscoverFeedV2({
       >
         <Search className="h-5 w-5" aria-hidden="true" />
       </button>
-
-      {filterSheetOpen ? (
-        <div className="fixed inset-0 z-[60] sm:hidden" role="dialog" aria-modal="true" aria-labelledby="discover-filter-sheet-title">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
-            aria-label="Schließen"
-            onClick={() => setFilterSheetOpen(false)}
-          />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-[#2B2623] bg-[#141210] p-4 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#3a312b]" aria-hidden="true" />
-            <h2 id="discover-filter-sheet-title" className="text-base font-semibold text-[#f2ece6]">
-              Mehr Optionen
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#a89b90]">
-              Erweiterte Filter und die klassische Discover-Ansicht mit allen Steuerungen.
-            </p>
-            <Link
-              href={buildClassicDiscoverHref()}
-              onClick={() => setFilterSheetOpen(false)}
-              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#ff7a18] px-4 text-sm font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
-            >
-              Klassische Discover-Ansicht
-            </Link>
-            <button
-              type="button"
-              className="mt-3 w-full min-h-[44px] rounded-xl border border-[#2B2623] bg-[#1A1715]/90 py-3 text-sm font-medium text-[#E9DFD6]"
-              onClick={() => setFilterSheetOpen(false)}
-            >
-              Schließen
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {viewExtrasOpen ? (
         <div
