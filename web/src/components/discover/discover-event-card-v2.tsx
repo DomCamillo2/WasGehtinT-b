@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Flame } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { SITE_LOGO_SRC } from "@/lib/site-config";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { resolveDiscoverVenuePartnerLogo } from "@/lib/discover-venue-visual";
@@ -79,8 +79,8 @@ export function DiscoverEventCardV2({
   const initial = (event.title?.trim().charAt(0) ?? "?").toUpperCase();
   const partnerLogo = resolveDiscoverVenuePartnerLogo(event);
   const hasHeroImage = typeof event.heroImageUrl === "string" && event.heroImageUrl.length > 0;
-  const mediaSrc = event.heroImageUrl ?? partnerLogo?.src ?? null;
-  const mediaAlt = hasHeroImage ? `Eventbild für ${event.title}` : (partnerLogo?.alt ?? "");
+  const mediaSrc = event.heroImageUrl ?? null;
+  const mediaAlt = hasHeroImage ? `Eventbild für ${event.title}` : "";
   const [mediaFailed, setMediaFailed] = useState(false);
   const showMedia = Boolean(mediaSrc && !mediaFailed);
   const [ctaPressed, setCtaPressed] = useState(false);
@@ -112,7 +112,11 @@ export function DiscoverEventCardV2({
               alt={mediaAlt}
               fill
               sizes="100vw"
-              className={hasHeroImage ? "object-cover object-center" : "object-contain object-center p-8 sm:p-10"}
+              className={
+                hasHeroImage
+                  ? "object-cover object-center saturate-125 contrast-110 brightness-95"
+                  : "object-contain object-center p-8 sm:p-10"
+              }
               onError={() => setMediaFailed(true)}
             />
           ) : (
@@ -137,16 +141,6 @@ export function DiscoverEventCardV2({
           aria-hidden="true"
         />
 
-        {isHot ? (
-          <div
-            className="absolute left-4 top-4 z-[3] flex items-center gap-1.5 rounded-full border border-[#ff9a3f]/90 bg-[#ff7a18]/95 px-3 py-1.5 text-xs font-medium text-[#2D1D10] shadow-[0_8px_20px_rgba(255,122,24,0.35)]"
-            role="status"
-            aria-label="Im Trend"
-          >
-            <Flame className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Im Trend</span>
-          </div>
-        ) : null}
         <div
           className="absolute right-4 top-4 z-[3] flex h-9 w-9 items-center justify-center rounded-full border border-[#2B2623] bg-[#17120f]/85 shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
           aria-hidden="true"

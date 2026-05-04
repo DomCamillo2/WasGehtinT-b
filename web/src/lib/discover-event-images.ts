@@ -46,12 +46,12 @@ function buildDiscoverImageQuery(party: PartyCard): string {
     return `${title} ${venue} community meetup young people germany`;
   }
   if (party.event_scope === "daytime") {
-    return `${title} ${venue} city daytime event crowd germany`;
+    return `${title} ${venue} colorful city daytime event crowd germany`;
   }
   if (genre) {
-    return `${genre} nightclub dj crowd dancefloor neon lights`;
+    return `${genre} colorful nightclub dj crowd dancefloor germany`;
   }
-  return `${title} ${venue} nightclub event crowd lights`;
+  return `${title} ${venue} colorful nightlife event crowd germany`;
 }
 
 async function fetchPexelsLandscapeImage(query: string): Promise<string | null> {
@@ -73,7 +73,7 @@ async function fetchPexelsLandscapeImage(query: string): Promise<string | null> 
 
   const data = (await response.json()) as PexelsResponse;
   const first = data.photos?.[0];
-  const best = first?.src?.original ?? first?.src?.large2x ?? first?.src?.large ?? first?.src?.landscape ?? null;
+  const best = first?.src?.landscape ?? first?.src?.large2x ?? first?.src?.large ?? first?.src?.original ?? null;
   return normalizePexelsImageUrl(best);
 }
 

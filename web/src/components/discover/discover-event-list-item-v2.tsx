@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Clock, Flame, MapPin } from "lucide-react";
+import { Check, ChevronRight, Clock, MapPin } from "lucide-react";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { resolveDiscoverVenuePartnerLogo } from "@/lib/discover-venue-visual";
 import { DiscoverVenueLogoBadge } from "./discover-venue-logo-badge";
@@ -57,7 +57,7 @@ export function DiscoverEventListItemV2({
             width={56}
             height={56}
             sizes="56px"
-            className={hasHeroImage ? "h-full w-full object-cover" : "h-full w-full object-contain p-1.5"}
+            className={hasHeroImage ? "h-full w-full object-cover saturate-125 contrast-110 brightness-95" : "h-full w-full object-contain p-1.5"}
             onError={() => setMediaFailed(true)}
           />
         ) : (
@@ -65,14 +65,6 @@ export function DiscoverEventListItemV2({
             {initial}
           </span>
         )}
-        {isHot ? (
-          <div
-            className="absolute right-1 top-1 z-[1] flex h-4.5 w-4.5 items-center justify-center rounded-full border border-[#ff9a3f]/80 bg-[#ff7a18] shadow-[0_6px_18px_rgba(255,122,24,0.4)]"
-            aria-label="Im Trend"
-          >
-            <Flame className="h-2.5 w-2.5 text-[#2D1D10]" />
-          </div>
-        ) : null}
       </Link>
 
       <div className="min-w-0 flex-1">
