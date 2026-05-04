@@ -31,7 +31,7 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
   const overflow = n - 3;
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
+    <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
       <div
         className="flex -space-x-1.5 shrink-0"
         aria-label={n === 1 ? "1 Person interessiert" : `${n} Personen interessiert`}
@@ -41,7 +41,7 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
           return (
             <div
               key={i}
-              className="relative h-7 w-7 shrink-0 rounded-full border-2 border-stone-900/80 overflow-hidden bg-stone-800"
+              className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full border-2 border-stone-900/80 bg-stone-800 sm:h-7 sm:w-7"
               style={{ zIndex: 3 - i }}
             >
               {isFirst ? (
@@ -56,12 +56,12 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
           );
         })}
         {showOverflow ? (
-          <div className="relative z-0 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-stone-900/80 bg-stone-900 text-[9px] font-bold text-stone-300">
+          <div className="relative z-0 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-stone-900/80 bg-stone-900 text-[8px] font-bold text-stone-300 sm:h-7 sm:w-7 sm:text-[9px]">
             +{overflow}
           </div>
         ) : null}
       </div>
-      <span className="text-xs font-medium text-stone-100/90 tabular-nums">{n} dabei</span>
+      <span className="text-[11px] font-medium tabular-nums text-stone-100/90 sm:text-xs">{n} dabei</span>
     </div>
   );
 }
@@ -142,10 +142,10 @@ export function DiscoverEventCardV2({
         />
 
         <div
-          className="absolute right-4 top-4 z-[3] flex h-9 w-9 items-center justify-center rounded-full border border-[#2B2623] bg-[#17120f]/85 shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
+          className="absolute right-4 top-4 z-[3] flex h-8 w-8 items-center justify-center rounded-full border border-[#2B2623] bg-[#17120f]/85 shadow-[0_8px_20px_rgba(0,0,0,0.35)] sm:h-9 sm:w-9"
           aria-hidden="true"
         >
-          <Image src={SITE_LOGO_SRC} alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain" />
+          <Image src={SITE_LOGO_SRC} alt="" width={18} height={18} className="h-4 w-4 object-contain sm:h-[18px] sm:w-[18px]" />
         </div>
 
         {/* Mock layout: links Titel → Venue → Social, rechts Datum-Pille + CTA */}
@@ -156,11 +156,11 @@ export function DiscoverEventCardV2({
                 href={event.detailHref}
                 className="block min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-sm"
               >
-                <h3 className="text-xl sm:text-2xl font-semibold leading-snug tracking-tight text-white drop-shadow-sm line-clamp-2">
+                <h3 className="text-lg font-semibold leading-snug tracking-tight text-white drop-shadow-sm line-clamp-2 sm:text-2xl">
                   {event.title}
                 </h3>
               </Link>
-              <p className="flex min-w-0 items-center gap-2 text-xs font-medium text-stone-200/95">
+              <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-stone-200/95 sm:gap-2 sm:text-xs">
                 {partnerLogo ? (
                   <DiscoverVenueLogoBadge
                     src={partnerLogo.src}
@@ -177,12 +177,12 @@ export function DiscoverEventCardV2({
             </div>
 
             <div className="flex w-full shrink-0 items-center justify-between gap-2.5 sm:w-auto sm:flex-col sm:items-end sm:justify-start">
-              <div className="flex items-center gap-2 rounded-full border border-stone-600/50 bg-stone-950/90 px-3 py-1.5 sm:px-3.5 sm:py-2">
-                <time className="text-sm font-semibold tabular-nums text-stone-100" dateTime={event.startsAt}>
+              <div className="flex items-center gap-1.5 rounded-full border border-stone-600/50 bg-stone-950/90 px-2.5 py-1.5 sm:gap-2 sm:px-3.5 sm:py-2">
+                <time className="text-xs font-semibold tabular-nums text-stone-100 sm:text-sm" dateTime={event.startsAt}>
                   {dateLabel}
                 </time>
                 <span className="h-0.5 w-0.5 rounded-full bg-stone-400" aria-hidden="true" />
-                <span className="text-sm font-semibold tabular-nums text-stone-200">{timeLabel}</span>
+                <span className="text-xs font-semibold tabular-nums text-stone-200 sm:text-sm">{timeLabel}</span>
               </div>
               <button
                 type="button"
@@ -201,7 +201,7 @@ export function DiscoverEventCardV2({
                 onTouchEnd={() => setCtaPressed(false)}
                 aria-pressed={upvotedByMe}
                 aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-                className={`relative min-h-[44px] px-4 py-2.5 text-sm font-semibold rounded-full transition-all duration-200 flex items-center gap-2 shadow-md sm:px-5 ${
+                className={`relative flex min-h-[40px] items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-md transition-all duration-200 sm:min-h-[44px] sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
                   upvotedByMe
                     ? "wg-cta-confirmed bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_10px_24px_-14px_rgba(255,122,24,0.95)]"
                     : "wg-cta-attention bg-[#1A1715]/92 text-[#E9DFD6] border border-[#2B2623] hover:border-[#3A312B] hover:text-white"
@@ -209,13 +209,13 @@ export function DiscoverEventCardV2({
               >
                 {upvotedByMe ? (
                   <>
-                    <Check className="w-4 h-4" aria-hidden="true" />
+                    <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
                     <span>Dabei!</span>
                   </>
                 ) : (
                   <>
                     <span>Ich bin dabei!</span>
-                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
                   </>
                 )}
               </button>

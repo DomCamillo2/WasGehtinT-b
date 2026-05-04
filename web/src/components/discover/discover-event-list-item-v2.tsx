@@ -107,7 +107,7 @@ export function DiscoverEventListItemV2({
             <span className="text-xs font-medium tabular-nums text-[#8C8178]">0 dabei</span>
           )}
           {isHot ? (
-            <span className="rounded-full border border-[#ff9a3f]/80 bg-[#ff7a18] px-2 py-0.5 text-[11px] font-semibold text-[#2D1D10]">
+            <span className="rounded-full border border-[#ff9a3f]/80 bg-[#ff7a18] px-1.5 py-0.5 text-[10px] font-semibold text-[#2D1D10] sm:px-2 sm:text-[11px]">
               Im Trend
             </span>
           ) : null}

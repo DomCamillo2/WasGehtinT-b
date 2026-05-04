@@ -697,10 +697,10 @@ export function DiscoverFeedV2({
         <div className="mt-2">
             <Link
               href={hottestParty.detailHref}
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-full border border-[#ff9a3f] bg-[#ff7a18] px-4 py-2 text-sm font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.42)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a3f]/50"
+              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-[#ff9a3f] bg-[#ff7a18] px-3 py-1.5 text-xs font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.42)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a3f]/50 sm:min-h-[38px] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
               aria-label={`Im Trend: ${hottestParty.title}`}
             >
-              <Flame className="w-4 h-4" aria-hidden="true" />
+              <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
               <span>Im Trend</span>
             </Link>
           </div>
