@@ -12,15 +12,14 @@ type HeroImagesBody = {
   parties?: unknown;
 };
 
-function isPartyCardLite(value: unknown): value is PartyCard {
+function isPartyCardLiteBody(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== "object") return false;
   const o = value as Record<string, unknown>;
   return (
     typeof o.id === "string" &&
     o.id.length > 0 &&
     typeof o.title === "string" &&
-    o.title.length > 0 &&
-    typeof o.vibe_label === "string"
+    o.title.length > 0
   );
 }
 
@@ -42,8 +41,12 @@ export async function POST(request: Request) {
 
   const parties: PartyCard[] = [];
   for (const item of raw) {
-    if (!isPartyCardLite(item)) continue;
-    parties.push(item);
+    if (!isPartyCardLiteBody(item)) continue;
+    const o = item;
+    parties.push({
+      ...(o as unknown as PartyCard),
+      vibe_label: typeof o.vibe_label === "string" ? o.vibe_label : "",
+    });
   }
   if (!parties.length) {
     return Response.json({ ok: false, error: "no_valid_parties" }, { status: 400 });

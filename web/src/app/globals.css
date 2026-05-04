@@ -584,7 +584,7 @@ html.discover-ui-new body::before {
 @media (max-width: 639px) {
   html.discover-v2-scroll-enhanced {
     scroll-padding-top: min(7.5rem, 28vh);
-    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
     scroll-snap-type: y proximity;
   }
 
@@ -602,33 +602,15 @@ html.discover-ui-new body::before {
     scroll-margin-bottom: 0.5rem;
   }
 
-  .discover-ui-v2 .discover-feed-scroll-item--card {
-    opacity: 0;
-    transform: translate3d(0, 18px, 0) scale(0.985);
-    transition:
-      opacity 0.42s cubic-bezier(0.22, 1, 0.32, 1),
-      transform 0.5s cubic-bezier(0.22, 1, 0.32, 1);
-    will-change: opacity, transform;
-  }
-
-  .discover-ui-v2 .discover-feed-scroll-item--card.is-revealed {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    will-change: auto;
-  }
-
+  /*
+   * Feed items must stay visible on narrow viewports (same as sm+).
+   * Hiding with opacity:0 until IntersectionObserver ran kept hero/Pexels images
+   * from appearing reliably on mobile (cards looked empty vs desktop).
+   */
+  .discover-ui-v2 .discover-feed-scroll-item--card,
   .discover-ui-v2 .discover-feed-scroll-item--list {
-    opacity: 0;
-    transform: translate3d(0, 10px, 0);
-    transition:
-      opacity 0.32s cubic-bezier(0.22, 1, 0.32, 1),
-      transform 0.38s cubic-bezier(0.22, 1, 0.32, 1);
-    will-change: opacity, transform;
-  }
-
-  .discover-ui-v2 .discover-feed-scroll-item--list.is-revealed {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
     will-change: auto;
   }
 }

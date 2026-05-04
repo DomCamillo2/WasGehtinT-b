@@ -13,6 +13,7 @@ import {
   Heart,
   LayoutGrid,
   List,
+  Loader2,
   MapPin,
   Search,
   SlidersHorizontal,
@@ -137,7 +138,7 @@ function discoverEventToPartyCardForHero(e: DiscoverEvent): PartyCard {
     public_lng: e.publicLng,
     is_external: e.isExternal,
     external_link: e.externalLink,
-    vibe_label: e.vibeLabel,
+    vibe_label: e.vibeLabel ?? "",
     spots_left: e.spotsLeft,
     location_name: e.locationName,
     music_genre: e.musicGenre,
@@ -166,6 +167,14 @@ export function DiscoverFeedV2({
   const { showToast } = useToast();
   const [filter, setFilter] = useState<DiscoverFilterKey>(initialFilter);
   const [searchQuery, setSearchQuery] = useState(() => parseSearchFromDiscoverUrl(searchParams));
+  /** Debounced value pushed to the URL as `q` (see backlog P0 — avoids router.replace on every keystroke). */
+  const [debouncedSearchForUrl, setDebouncedSearchForUrl] = useState(() =>
+    parseSearchFromDiscoverUrl(searchParams).trim(),
+  );
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const weeksSentinelRef = useRef<HTMLDivElement | null>(null);
+  const [headerCompact, setHeaderCompact] = useState(false);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
     const raw = searchParams.get("view");
     if (raw === "cards" || raw === "list" || raw === "calendar" || raw === "map") {
@@ -188,6 +197,7 @@ export function DiscoverFeedV2({
   );
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installDismissed, setInstallDismissed] = useState(false);
+  const [weeksNavPending, setWeeksNavPending] = useState(false);
 
   const likedOnly = searchParams.get("liked") === "1";
 
@@ -211,6 +221,7 @@ export function DiscoverFeedV2({
     setFilter((prev) => (prev === fromUrlFilter ? prev : fromUrlFilter));
     const fromUrlSearch = parseSearchFromDiscoverUrl(params);
     setSearchQuery((prev) => (prev === fromUrlSearch ? prev : fromUrlSearch));
+    setDebouncedSearchForUrl(fromUrlSearch.trim());
 
     const rawDate = params.get("date");
     const validDate = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
@@ -219,6 +230,23 @@ export function DiscoverFeedV2({
       setCalendarMonth((prev) => (prev === validDate ? prev : validDate));
     }
   }, [discoverUrlSignature]);
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length === 0) {
+      setDebouncedSearchForUrl("");
+      return;
+    }
+    const id = window.setTimeout(() => setDebouncedSearchForUrl(trimmed), 320);
+    return () => window.clearTimeout(id);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const onScroll = () => setHeaderCompact(window.scrollY > 96);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   /** Counts follow server; localStorage only drives Merkliste (upvotedPartyIds), not displayed totals. */
   const [upvoteCounts, setUpvoteCounts] = useState<Record<string, number>>(() => {
@@ -364,7 +392,7 @@ export function DiscoverFeedV2({
     if (typeof window === "undefined" || pathname !== "/discover") return;
     const params = new URLSearchParams(window.location.search);
     params.set("ui", "new");
-    const trimmedQuery = searchQuery.trim();
+    const trimmedQuery = debouncedSearchForUrl;
     if (trimmedQuery.length > 0) params.set("q", trimmedQuery);
     else params.delete("q");
     if (filter !== "all") params.set("type", filter);
@@ -384,7 +412,11 @@ export function DiscoverFeedV2({
     if (currentHref !== nextHref) {
       router.replace(nextHref, { scroll: false });
     }
-  }, [filter, viewMode, calendarDate, pathname, router, searchQuery]);
+  }, [filter, viewMode, calendarDate, pathname, router, debouncedSearchForUrl]);
+
+  useEffect(() => {
+    setWeeksNavPending(false);
+  }, [currentWeeks]);
 
   const sortedParties = useMemo(
     () => sortDiscoverByUpvotesThenDate(parties, upvoteCounts),
@@ -445,6 +477,36 @@ export function DiscoverFeedV2({
   );
 
   const hasMoreVisible = searchFiltered.length > visibleCount;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (viewMode === "map" || viewMode === "calendar") return;
+    const el = weeksSentinelRef.current;
+    if (!el || !canLoadMore || hasMoreVisible || searchFiltered.length === 0 || weeksNavPending) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        setWeeksNavPending(true);
+        const nextWeeks = Math.min(24, currentWeeks + 4);
+        const p = new URLSearchParams(window.location.search);
+        p.set("ui", "new");
+        p.set("weeks", String(nextWeeks));
+        router.replace(`/discover?${p.toString()}`, { scroll: false });
+      },
+      { root: null, rootMargin: "160px 0px", threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [
+    canLoadMore,
+    currentWeeks,
+    hasMoreVisible,
+    router,
+    searchFiltered.length,
+    viewMode,
+    weeksNavPending,
+  ]);
 
   const filterCounts = useMemo(() => {
     const count = (f: DiscoverFilterKey) =>
@@ -602,20 +664,22 @@ export function DiscoverFeedV2({
   }
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-28 max-sm:pb-[9.5rem]">
       <a href="#events-feed-v2" className="skip-to-content">
         Zum Events-Bereich springen
       </a>
 
       <header
-        className="discover-header-glass sticky top-0 z-40 px-4 pb-4 backdrop-blur-md backdrop-saturate-150"
+        className={`discover-header-glass sticky top-0 z-40 px-4 backdrop-blur-md backdrop-saturate-150 motion-safe:transition-[padding] motion-safe:duration-200 ${
+          headerCompact ? "pb-2" : "pb-4"
+        }`}
         style={{
           paddingTop: "max(12px, env(safe-area-inset-top, 0px))",
           background:
             "linear-gradient(to bottom, rgba(15,11,8,0.72), rgba(15,11,8,0.4), rgba(15,11,8,0))",
         }}
       >
-        <div className="mb-4 flex items-center justify-between">
+        <div className={`flex items-center justify-between motion-safe:transition-[margin] motion-safe:duration-200 ${headerCompact ? "mb-2" : "mb-4"}`}>
           <div className="min-w-0">
             <h1 className="sr-only">WasGehtTüb – Events entdecken</h1>
             <div aria-hidden="true" className="flex items-center gap-2">
@@ -624,12 +688,20 @@ export function DiscoverFeedV2({
                 alt=""
                 width={120}
                 height={120}
-                className="h-11 w-11 object-contain sm:h-14 sm:w-14"
+                className={`object-contain motion-safe:transition-[width,height] motion-safe:duration-200 ${
+                  headerCompact ? "h-9 w-9 sm:h-12 sm:w-12" : "h-11 w-11 sm:h-14 sm:w-14"
+                }`}
                 priority
               />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold tracking-wide text-[#f2ece6]">WasGehtTüb</p>
-                <p className="hidden truncate text-[11px] text-[#a89b90] sm:block">Clubs, Tagesevents, Community</p>
+                <p
+                  className={`hidden truncate text-[11px] text-[#a89b90] sm:block motion-safe:transition-opacity motion-safe:duration-200 ${
+                    headerCompact ? "sm:opacity-0 sm:pointer-events-none sm:h-0 sm:overflow-hidden" : ""
+                  }`}
+                >
+                  Clubs, Tagesevents, Community
+                </p>
               </div>
             </div>
           </div>
@@ -692,11 +764,13 @@ export function DiscoverFeedV2({
           <div className="flex-1 min-w-[min(100%,12rem)] flex items-center gap-3 px-4 py-3 bg-[#141210]/90 border border-[#2A2521] rounded-xl transition-all duration-200 focus-within:bg-[#1b1714] focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20">
             <Search className="w-4 h-4 text-[#8C8178] flex-shrink-0" aria-hidden="true" />
             <input
+              ref={searchInputRef}
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Events oder Locations suchen…"
               aria-label="Events suchen"
+              id="discover-v2-search"
               className="flex-1 bg-transparent text-sm text-[#E9DFD6] placeholder:text-[#6F655D] focus:outline-none min-w-0"
             />
             {searchQuery ? (
@@ -713,7 +787,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("cards")}
-              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Kartenansicht"
@@ -724,7 +798,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Listenansicht"
@@ -735,7 +809,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("calendar")}
-              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "calendar" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Kalender"
@@ -746,7 +820,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("map")}
-              className={`flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-all duration-200 ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Karte"
@@ -755,6 +829,14 @@ export function DiscoverFeedV2({
               <MapPin className="w-4 h-4" />
             </button>
           </div>
+          <button
+            type="button"
+            onClick={() => setFilterSheetOpen(true)}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:hidden"
+            aria-label="Mehr Filter und klassische Ansicht"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+          </button>
           <Link
             href={buildClassicDiscoverHref()}
             className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:flex"
@@ -765,7 +847,9 @@ export function DiscoverFeedV2({
         </div>
 
         <div
-          className="flex snap-x snap-proximity scroll-pb-1 scroll-smooth items-center gap-2.5 mt-4 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 scrollbar-hide"
+          className={`flex snap-x snap-proximity scroll-pb-1 scroll-smooth items-center gap-2.5 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 scrollbar-hide motion-safe:transition-[margin] motion-safe:duration-200 ${
+            headerCompact ? "mt-2" : "mt-4"
+          }`}
           role="tablist"
           aria-label="Kategorien"
         >
@@ -779,7 +863,7 @@ export function DiscoverFeedV2({
               }}
               role="tab"
               aria-selected={filter === item.id}
-              className={`snap-start shrink-0 flex min-h-[34px] items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
+              className={`snap-start shrink-0 flex min-h-[44px] items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
                 filter === item.id
                   ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
                   : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
@@ -800,7 +884,7 @@ export function DiscoverFeedV2({
             onClick={() => toggleLikedFilter()}
             role="tab"
             aria-selected={likedOnly}
-            className={`snap-start shrink-0 flex min-h-[34px] items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
+            className={`snap-start shrink-0 flex min-h-[44px] items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
               likedOnly
                 ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
                 : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
@@ -817,7 +901,7 @@ export function DiscoverFeedV2({
         </div>
 
         {viewMode === "cards" && hottestParty && topScore > 0 ? (
-        <div className="mt-2">
+        <div className={`mt-2 motion-safe:transition-opacity motion-safe:duration-200 ${headerCompact ? "max-sm:opacity-0 max-sm:h-0 max-sm:mt-0 max-sm:overflow-hidden max-sm:pointer-events-none" : ""}`}>
             <Link
               href={hottestParty.detailHref}
               className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-[#ff9a3f] bg-[#ff7a18] px-3 py-1.5 text-xs font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.42)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a3f]/50 sm:min-h-[38px] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
@@ -836,8 +920,8 @@ export function DiscoverFeedV2({
           viewMode === "map" || viewMode === "calendar"
             ? "space-y-3 px-4"
             : viewMode === "cards"
-              ? "space-y-3 px-0 sm:space-y-4"
-              : "space-y-2 px-2.5"
+              ? "px-0"
+              : "px-2.5"
         }
         role={viewMode === "map" || viewMode === "calendar" ? undefined : "feed"}
         aria-label={
@@ -882,39 +966,68 @@ export function DiscoverFeedV2({
           )
         ) : visibleEvents.length > 0 ? (
           viewMode === "cards" ? (
-            visibleEvents.map((event, index) => (
-              <DiscoverFeedScrollItem key={event.id} variant="card" scrollSnap>
-                <DiscoverEventCardV2
-                  event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
-                  imagePriority={index < 4}
-                  isHot={hotPartyIds.has(event.id)}
-                  upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
-                  upvotedByMe={upvotedPartyIds.includes(event.id)}
-                  dateLabel={formatEventDate(event.startsAt)}
-                  timeLabel={formatEventTime(event.startsAt)}
-                  venueLabel={venueLabel(event)}
-                  onUpvote={() => void handleUpvote(event.id)}
-                />
-              </DiscoverFeedScrollItem>
-            ))
+            <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 md:max-w-[min(100%,80rem)] md:mx-auto">
+              {visibleEvents.map((event, index) => (
+                <DiscoverFeedScrollItem key={event.id} variant="card" scrollSnap>
+                  <DiscoverEventCardV2
+                    event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
+                    imagePriority={index < 4}
+                    isHot={hotPartyIds.has(event.id)}
+                    upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
+                    upvotedByMe={upvotedPartyIds.includes(event.id)}
+                    dateLabel={formatEventDate(event.startsAt)}
+                    timeLabel={formatEventTime(event.startsAt)}
+                    venueLabel={venueLabel(event)}
+                    onUpvote={() => void handleUpvote(event.id)}
+                  />
+                </DiscoverFeedScrollItem>
+              ))}
+            </div>
           ) : (
-            visibleEvents.map((event) => (
-              <DiscoverFeedScrollItem key={event.id} variant="list">
-                <DiscoverEventListItemV2
-                  event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
-                  isHot={hotPartyIds.has(event.id)}
-                  upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
-                  upvotedByMe={upvotedPartyIds.includes(event.id)}
-                  dateLabel={formatEventDate(event.startsAt)}
-                  timeLabel={formatEventTime(event.startsAt)}
-                  venueLabel={venueLabel(event)}
-                  onUpvote={() => void handleUpvote(event.id)}
-                />
-              </DiscoverFeedScrollItem>
-            ))
+            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 md:gap-3 md:max-w-[min(100%,80rem)] md:mx-auto">
+              {visibleEvents.map((event) => (
+                <DiscoverFeedScrollItem key={event.id} variant="list">
+                  <DiscoverEventListItemV2
+                    event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
+                    isHot={hotPartyIds.has(event.id)}
+                    upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
+                    upvotedByMe={upvotedPartyIds.includes(event.id)}
+                    dateLabel={formatEventDate(event.startsAt)}
+                    timeLabel={formatEventTime(event.startsAt)}
+                    venueLabel={venueLabel(event)}
+                    onUpvote={() => void handleUpvote(event.id)}
+                  />
+                </DiscoverFeedScrollItem>
+              ))}
+            </div>
           )
+        ) : likedOnly && filteredByType.length === 0 ? (
+          <div
+            className="flex flex-col items-center justify-center py-20 px-4 text-center"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center mb-4 border border-border">
+              <Heart className="w-8 h-8 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Noch nichts gemerkt</h2>
+            <p className="text-sm text-muted-foreground max-w-[280px]">
+              Tippe bei einem Event auf „Ich bin dabei!“, um es hier zu speichern — oder stöbere neu in allen Events.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigateBottomNavDiscover()}
+              className="mt-6 min-h-[44px] px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity"
+            >
+              Events entdecken
+            </button>
+          </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+          <div
+            className="flex flex-col items-center justify-center py-20 px-4 text-center"
+            role="status"
+            aria-live="polite"
+          >
             <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center mb-4 border border-border">
               <Search className="w-8 h-8 text-muted-foreground" />
             </div>
@@ -925,7 +1038,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => resetDiscoverV2Filters()}
-              className="mt-6 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity"
+              className="mt-6 min-h-[44px] px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity"
             >
               Filter zurücksetzen
             </button>
@@ -933,11 +1046,11 @@ export function DiscoverFeedV2({
         )}
 
         {viewMode !== "map" && viewMode !== "calendar" && hasMoreVisible ? (
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-center scroll-mt-8 pt-4 pb-2 max-sm:scroll-mb-40 max-sm:pb-6">
             <button
               type="button"
               onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
-              className="px-5 py-2.5 rounded-full border border-border bg-card/50 text-sm font-medium text-foreground hover:bg-card"
+              className="min-h-[44px] px-5 py-2.5 rounded-full border border-border bg-card/50 text-sm font-medium text-foreground hover:bg-card"
             >
               Mehr anzeigen
             </button>
@@ -945,17 +1058,75 @@ export function DiscoverFeedV2({
         ) : null}
 
         {viewMode !== "map" && viewMode !== "calendar" && canLoadMore && !hasMoreVisible && searchFiltered.length > 0 ? (
-          <div className="flex justify-center pt-6">
+          <>
+            <div ref={weeksSentinelRef} className="h-2 w-full shrink-0" aria-hidden="true" />
+          <div className="flex justify-center scroll-mt-8 pt-6 pb-2 max-sm:scroll-mb-40 max-sm:pb-8">
             <button
               type="button"
-              onClick={() => router.replace(buildLoadMoreHref(), { scroll: false })}
-              className="px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity text-sm"
+              disabled={weeksNavPending}
+              onClick={() => {
+                setWeeksNavPending(true);
+                router.replace(buildLoadMoreHref(), { scroll: false });
+              }}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity text-sm disabled:opacity-70"
             >
-              Mehr Wochen laden
+              {weeksNavPending ? (
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
+              ) : null}
+              {weeksNavPending ? "Lade weitere Wochen …" : "Mehr Wochen laden"}
             </button>
           </div>
+          </>
         ) : null}
       </main>
+
+      <button
+        type="button"
+        className="fixed bottom-[7.25rem] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/95 text-[#E9DFD6] shadow-lg backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:hidden"
+        onClick={() => {
+          searchInputRef.current?.focus();
+          window.requestAnimationFrame(() => {
+            document.getElementById("discover-v2-search")?.scrollIntoView({ behavior: "smooth", block: "center" });
+          });
+        }}
+        aria-label="Suche öffnen"
+      >
+        <Search className="h-5 w-5" aria-hidden="true" />
+      </button>
+
+      {filterSheetOpen ? (
+        <div className="fixed inset-0 z-[60] sm:hidden" role="dialog" aria-modal="true" aria-labelledby="discover-filter-sheet-title">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
+            aria-label="Schließen"
+            onClick={() => setFilterSheetOpen(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-[#2B2623] bg-[#141210] p-4 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#3a312b]" aria-hidden="true" />
+            <h2 id="discover-filter-sheet-title" className="text-base font-semibold text-[#f2ece6]">
+              Mehr Optionen
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#a89b90]">
+              Erweiterte Filter und die klassische Discover-Ansicht mit allen Steuerungen.
+            </p>
+            <Link
+              href={buildClassicDiscoverHref()}
+              onClick={() => setFilterSheetOpen(false)}
+              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#ff7a18] px-4 text-sm font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
+            >
+              Klassische Discover-Ansicht
+            </Link>
+            <button
+              type="button"
+              className="mt-3 w-full min-h-[44px] rounded-xl border border-[#2B2623] bg-[#1A1715]/90 py-3 text-sm font-medium text-[#E9DFD6]"
+              onClick={() => setFilterSheetOpen(false)}
+            >
+              Schließen
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <DiscoverBottomNavV2
         activeTab={likedOnly ? "saved" : "discover"}

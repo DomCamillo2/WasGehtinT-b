@@ -17,8 +17,11 @@ export function DiscoverBottomNavV2({
   onSelectSaved,
 }: Props) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe pointer-events-none" aria-label="Hauptnavigation">
-      <div className="mx-4 mb-4 sm:mx-auto sm:max-w-md pointer-events-auto">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 pb-safe pointer-events-none lg:bottom-6 lg:flex lg:justify-center lg:pb-6"
+      aria-label="Hauptnavigation"
+    >
+      <div className="mx-4 mb-4 w-full max-w-md pointer-events-auto sm:mx-auto lg:max-w-xl lg:mx-0 lg:mb-0 lg:shadow-[0_12px_40px_rgba(0,0,0,0.45)] lg:rounded-2xl lg:overflow-hidden">
         <div
           className="flex items-center justify-around rounded-2xl border border-[#2a221d]/75 bg-[#17120f]/65 px-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md backdrop-saturate-150"
           role="tablist"

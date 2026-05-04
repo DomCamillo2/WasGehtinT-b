@@ -26,14 +26,14 @@ export function CookieConsentBanner() {
             "linear-gradient(180deg, color-mix(in srgb, var(--surface-card) 94%, transparent), color-mix(in srgb, var(--surface-elevated) 92%, transparent))",
         }}
       >
-        <p className="text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-sm leading-6 text-foreground/95">
           {"Wir verwenden technisch notwendige Cookies fuer Login/Sicherheit. Optionale externe Dienste und Analytics (z. B. Karten, Google Analytics) laden wir nur mit deiner Einwilligung."}
         </p>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={() => saveConsent("rejected")}
-            className="h-10 flex-1 rounded-xl border text-sm font-medium"
+            className="min-h-[44px] flex-1 rounded-xl border text-sm font-medium outline-none transition-[color,background,border-color] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color-mix(in_srgb,var(--surface-card)_96%,transparent)]"
             style={{
               borderColor: "var(--border-strong)",
               backgroundColor: "color-mix(in srgb, var(--surface-soft) 74%, transparent)",
@@ -45,7 +45,7 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => saveConsent("accepted")}
-            className="h-10 flex-1 rounded-xl text-sm font-semibold text-white"
+            className="min-h-[44px] flex-1 rounded-xl text-sm font-semibold text-white outline-none transition-[filter] focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-[color-mix(in_srgb,var(--surface-card)_96%,transparent)]"
             style={{
               background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
             }}

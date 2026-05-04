@@ -42,7 +42,7 @@ export function DiscoverEventListItemV2({
 
   return (
     <article
-      className="group relative flex w-full items-center gap-3 rounded-2xl border border-[#2B2623] bg-[linear-gradient(180deg,#151210_0%,#12100e_100%)] px-3.5 py-3 shadow-[0_12px_32px_-26px_rgba(255,122,24,0.5)] [content-visibility:auto] [contain-intrinsic-size:auto_4.5rem] transition-[border-color,box-shadow] duration-150 hover:border-[#3A312B] hover:shadow-[0_20px_44px_-28px_rgba(255,122,24,0.7)]"
+      className="group relative flex w-full items-center gap-3 rounded-2xl border border-[#2B2623] bg-[linear-gradient(180deg,#151210_0%,#12100e_100%)] px-3.5 py-3 shadow-[0_12px_32px_-26px_rgba(255,122,24,0.5)] [contain-intrinsic-size:auto_4.5rem] transition-[border-color,box-shadow] duration-150 hover:border-[#3A312B] hover:shadow-[0_20px_44px_-28px_rgba(255,122,24,0.7)]"
       role="article"
       aria-label={`${event.title} in ${venueLabel}, ${dateLabel} ${timeLabel}`}
     >
@@ -76,7 +76,7 @@ export function DiscoverEventListItemV2({
             {event.title}
           </h3>
         </Link>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-[#8C8178]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-[#c9beb4]">
           <span className="flex min-w-0 max-w-[58%] items-center gap-2 sm:max-w-none">
             {partnerLogo ? (
               <DiscoverVenueLogoBadge
@@ -86,12 +86,12 @@ export function DiscoverEventListItemV2({
                 className="border border-[#5a4a3f]/50"
               />
             ) : (
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-[#756a61]" aria-hidden="true" />
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-[#9a8f86]" aria-hidden="true" />
             )}
             <span className="truncate">{venueLabel}</span>
           </span>
-          <span className="flex items-center gap-1.5 whitespace-nowrap font-semibold tabular-nums text-[#A69A91]">
-            <Clock className="h-3.5 w-3.5 shrink-0 text-[#756a61]" aria-hidden="true" />
+          <span className="flex items-center gap-1.5 whitespace-nowrap font-semibold tabular-nums text-[#dcd4cc]">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-[#9a8f86]" aria-hidden="true" />
             <span>
               {dateLabel}, {timeLabel}
             </span>
@@ -104,7 +104,7 @@ export function DiscoverEventListItemV2({
               <span className="text-[12px] font-medium text-[#EAA16B]">dabei</span>
             </span>
           ) : (
-            <span className="text-xs font-medium tabular-nums text-[#8C8178]">0 dabei</span>
+            <span className="text-xs font-medium tabular-nums text-[#aea396]">0 dabei</span>
           )}
           {isHot ? (
             <span className="rounded-full border border-[#ff9a3f]/80 bg-[#ff7a18] px-1.5 py-0.5 text-[10px] font-semibold text-[#2D1D10] sm:px-2 sm:text-[11px]">

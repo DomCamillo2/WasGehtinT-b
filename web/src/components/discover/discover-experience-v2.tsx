@@ -7,6 +7,7 @@ import type { DiscoverFilterKey } from "@/lib/discover-filters";
 import type { DiscoverViewMode } from "@/services/discover/discover-page-service";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 
+import { DiscoverFeedSkeleton } from "./discover-feed-skeleton";
 import { DiscoverFeedV2 } from "./discover-feed-v2";
 
 type Props = {
@@ -19,19 +20,6 @@ type Props = {
   initialFilter: DiscoverFilterKey;
   initialCalendarDate?: string;
 };
-
-function DiscoverFeedFallback() {
-  return (
-    <div className="flex min-h-[32vh] flex-col items-center justify-center gap-3 px-4">
-      <div
-        className="h-8 w-8 rounded-full border-2 border-[#2a221d] border-t-[#ff7a18] animate-spin"
-        aria-hidden="true"
-      />
-      <p className="text-xs font-medium text-[#8c8178]">Entdecken wird geladen …</p>
-      <span className="sr-only">Discover-Feed wird geladen</span>
-    </div>
-  );
-}
 
 export function DiscoverExperienceV2(props: Props) {
   return (
@@ -47,7 +35,7 @@ export function DiscoverExperienceV2(props: Props) {
         <div className="absolute bottom-32 right-1/3 h-[400px] w-[400px] rounded-full bg-accent/10 blur-[72px]" />
       </div>
       <div className="relative z-10">
-        <Suspense fallback={<DiscoverFeedFallback />}>
+        <Suspense fallback={<DiscoverFeedSkeleton />}>
           <DiscoverFeedV2 key={props.currentWeeks} {...props} />
         </Suspense>
       </div>
