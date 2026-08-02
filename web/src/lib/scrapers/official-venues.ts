@@ -1,13 +1,17 @@
 import * as cheerio from "cheerio";
 import { berlinWallTimeToUtc, resolveYearlessBerlinDate } from "@/lib/timezone-berlin";
+import {
+  resolveTuebingenVenueCoordsFromText,
+  TUEBINGEN_VENUE_COORDS,
+} from "@/lib/tuebingen-venues";
 import { PartyCard } from "@/lib/types";
 
-// Feste Koordinaten für Tübinger Venues
+// Feste Koordinaten für Tübinger Venues (legacy keys kept for Schlachthaus scraper)
 const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
-  schlachthaus: { lat: 48.5255, lng: 9.0515 },
-  "blauer turm": { lat: 48.5178, lng: 9.0601 },
-  top10: { lat: 48.5145, lng: 9.0835 },
-  sudhaus: { lat: 48.5065, lng: 9.0625 },
+  schlachthaus: TUEBINGEN_VENUE_COORDS.schlachthaus,
+  "blauer turm": TUEBINGEN_VENUE_COORDS.blauerTurm,
+  top10: TUEBINGEN_VENUE_COORDS.top10,
+  sudhaus: TUEBINGEN_VENUE_COORDS.sudhaus,
 };
 
 const DIGINIGHTS_URL = (process.env.DIGINIGHTS_URL || process.env.DIGINIGHTS_URLS?.split(",")[0] || "https://diginights.com").trim();
@@ -276,7 +280,16 @@ async function fetchGenericCalendarEvents(config: {
   categorySlug: string;
   scope?: "daytime" | "nightlife" | "mixed";
   selectors?: string[];
+  publicLat?: number | null;
+  publicLng?: number | null;
 }): Promise<PartyCard[]> {
+  const resolved =
+    Number.isFinite(config.publicLat) && Number.isFinite(config.publicLng)
+      ? { lat: Number(config.publicLat), lng: Number(config.publicLng) }
+      : resolveTuebingenVenueCoordsFromText(`${config.locationName} ${config.vibeLabel}`)?.coords ??
+        null;
+  const publicLat = resolved?.lat ?? null;
+  const publicLng = resolved?.lng ?? null;
   try {
     const response = await fetch(config.url, {
       cache: "no-store",
@@ -355,8 +368,8 @@ async function fetchGenericCalendarEvents(config: {
             ends_at: new Date(endsAtMs).toISOString(),
             max_guests: 0,
             contribution_cents: 0,
-            public_lat: null,
-            public_lng: null,
+            public_lat: publicLat,
+            public_lng: publicLng,
             is_external: true,
             external_link: externalLink,
             vibe_label: config.vibeLabel,
@@ -425,8 +438,8 @@ async function fetchGenericCalendarEvents(config: {
         ends_at: new Date(startsAtDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
         max_guests: 0,
         contribution_cents: 0,
-        public_lat: null,
-        public_lng: null,
+        public_lat: publicLat,
+        public_lng: publicLng,
         is_external: true,
         external_link: config.url,
         vibe_label: config.vibeLabel,
@@ -922,8 +935,8 @@ export async function fetchEpplehausEvents(): Promise<PartyCard[]> {
           ends_at: endsAt,
           max_guests: 0,
           contribution_cents: 0,
-          public_lat: null,
-          public_lng: null,
+          public_lat: TUEBINGEN_VENUE_COORDS.epplehaus.lat,
+          public_lng: TUEBINGEN_VENUE_COORDS.epplehaus.lng,
           is_external: true,
           external_link: externalLink,
           vibe_label: "Epplehaus",
@@ -980,8 +993,8 @@ export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
           ends_at: parsedRange.endsAt,
           max_guests: 0,
           contribution_cents: 0,
-          public_lat: null,
-          public_lng: null,
+          public_lat: TUEBINGEN_VENUE_COORDS.marktplatz.lat,
+          public_lng: TUEBINGEN_VENUE_COORDS.marktplatz.lng,
           is_external: true,
           external_link: externalLink,
           vibe_label: "Markt",
@@ -1069,8 +1082,8 @@ export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
           ends_at: endsAt,
           max_guests: 0,
           contribution_cents: 0,
-          public_lat: null,
-          public_lng: null,
+          public_lat: TUEBINGEN_VENUE_COORDS.uhlandstrasse.lat,
+          public_lng: TUEBINGEN_VENUE_COORDS.uhlandstrasse.lng,
           is_external: true,
           external_link: TUEBINGEN_FLEA_MARKETS_URL,
           vibe_label: "Flohmarkt",
@@ -1193,8 +1206,8 @@ export async function fetchPartykelEvents(): Promise<PartyCard[]> {
         ends_at: new Date(startsAt.getTime() + 2 * 60 * 60 * 1000).toISOString(),
         max_guests: 0,
         contribution_cents: 0,
-        public_lat: null,
-        public_lng: null,
+        public_lat: (resolveTuebingenVenueCoordsFromText(locationName)?.coords.lat ?? TUEBINGEN_VENUE_COORDS.tuebingenCenter.lat),
+        public_lng: (resolveTuebingenVenueCoordsFromText(locationName)?.coords.lng ?? TUEBINGEN_VENUE_COORDS.tuebingenCenter.lng),
         is_external: true,
         external_link: absoluteLink,
         vibe_label: "Partykel",

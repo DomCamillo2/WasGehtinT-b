@@ -57,6 +57,11 @@ const DiscoverMapLazy = dynamic(
   { ssr: false },
 );
 
+const DiscoverMapEventListLazy = dynamic(
+  () => import("@/components/party/discover-map").then((m) => m.DiscoverMapEventList),
+  { ssr: false },
+);
+
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
 const LOAD_MORE_STEP = 24;
 const INSTALL_DISMISSED_KEY = "wasgeht-install-dismissed-v1";
@@ -1052,12 +1057,26 @@ export function DiscoverFeedV2({
           />
         ) : viewMode === "map" ? (
           partiesForMap.length > 0 ? (
-            <DiscoverMapLazy
-              parties={partiesForMap}
-              activeFilter={filter}
-              accentMarkers={filter === "clubs"}
-              containerClassName="h-[min(22rem,52vh)] w-full overflow-hidden rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815]"
-            />
+            <div className="space-y-4">
+              <DiscoverMapLazy
+                parties={partiesForMap}
+                activeFilter={filter}
+                accentMarkers={filter === "clubs"}
+                tone="discover"
+                containerClassName="h-[min(28rem,62vh)] w-full overflow-hidden rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815]"
+              />
+              <DiscoverMapEventListLazy
+                parties={partiesForMap}
+                formatEventDate={formatEventDate}
+                formatEventTime={formatEventTime}
+                venueLabel={venueLabel}
+              />
+              {searchFiltered.length > partiesForMap.length ? (
+                <p className="px-1 text-xs text-[#6f675f]">
+                  {searchFiltered.length - partiesForMap.length} Events ohne eindeutige Position — Filter oder Liste nutzen.
+                </p>
+              ) : null}
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-16 text-center">
               <div className="mb-3 flex h-14 w-14 items-center justify-center border border-[rgba(240,235,228,0.12)] bg-[#221e1a]">
