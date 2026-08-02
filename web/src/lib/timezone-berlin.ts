@@ -1,3 +1,47 @@
+/** Calendar day key (YYYY-MM-DD) for an instant in Europe/Berlin. */
+export function berlinDayKeyFromDate(date: Date): string {
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/**
+ * Parse schema.org / JSON-LD startDate / endDate strings.
+ * Offset-less datetimes are treated as Europe/Berlin wall clock (not UTC).
+ */
+export function parseSchemaOrgDateTime(value: string): Date | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  // Explicit timezone: Z or ±HH:MM / ±HHMM
+  if (/([zZ]|[+-]\d{2}:?\d{2})$/.test(raw)) {
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const dateTime = raw.match(
+    /^(\d{4}-\d{2}-\d{2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/,
+  );
+  if (dateTime) {
+    const [, isoDate, hour, minute] = dateTime;
+    const date = berlinWallTimeToUtc(isoDate, Number(hour), Number(minute));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const dateOnly = raw.match(/^(\d{4}-\d{2}-\d{2})$/);
+  if (dateOnly) {
+    const date = berlinWallTimeToUtc(dateOnly[1], 12, 0);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const fallback = new Date(raw);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
 /**
  * Convert a calendar date (YYYY-MM-DD) + wall-clock time interpreted in Europe/Berlin
  * to the corresponding UTC instant.

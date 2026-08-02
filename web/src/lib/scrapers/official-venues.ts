@@ -1,6 +1,12 @@
 import * as cheerio from "cheerio";
-import { berlinWallTimeToUtc, resolveYearlessBerlinDate } from "@/lib/timezone-berlin";
+import {
+  berlinDayKeyFromDate,
+  berlinWallTimeToUtc,
+  parseSchemaOrgDateTime,
+  resolveYearlessBerlinDate,
+} from "@/lib/timezone-berlin";
 import { sanitizeExternalEventTitle } from "@/lib/sanitize-event-title";
+import { ExternalSourceFetchError, fetchSourceText } from "@/lib/scrapers/source-fetch";
 import {
   resolveTuebingenVenueCoordsFromText,
   TUEBINGEN_VENUE_COORDS,
@@ -33,10 +39,10 @@ const REDDIT_SUBREDDITS = (process.env.EXTERNAL_EVENTS_REDDIT_SUBREDDITS ?? "tue
   .filter((value) => value.length > 0);
 
 /**
- * Generate a stable ID for an external event
+ * Generate a stable ID for an external event (Berlin calendar day, not UTC).
  */
 function generateEventId(venue: string, date: Date, title: string): string {
-  const dateKey = date.toISOString().split("T")[0];
+  const dateKey = berlinDayKeyFromDate(date) || date.toISOString().split("T")[0];
   const titleSlug = title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -232,20 +238,25 @@ function buildBerlinIsoDateTime(year: number, month: number, day: number, hour =
 function parseRedditEventDate(text: string, createdUtcSeconds: number): Date | null {
   const normalized = String(text ?? "").replace(/\u00a0/g, " ").trim().toLowerCase();
   const now = new Date();
+  const maxFutureMs = 120 * 24 * 60 * 60 * 1000;
 
   const absoluteDate = normalized.match(/(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?/);
   if (absoluteDate) {
     const day = Number(absoluteDate[1]);
     const month = Number(absoluteDate[2]);
+    if (!yearRawGuard(absoluteDate[3])) {
+      // yearless: use shared year-bump guard
+      return resolveYearlessBerlinDate(day, month, 19, 0, {
+        maxPastMs: 24 * 60 * 60 * 1000,
+        maxFutureMs,
+      });
+    }
     const yearRaw = absoluteDate[3];
-    const year = yearRaw ? (yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw)) : now.getFullYear();
-    let parsed = buildBerlinIsoDateTime(year, month, day, 19, 0);
-    if (!parsed) {
-      return null;
-    }
-    if (!yearRaw && parsed.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
-      parsed = buildBerlinIsoDateTime(year + 1, month, day, 19, 0);
-    }
+    const year = yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw);
+    const parsed = buildBerlinIsoDateTime(year, month, day, 19, 0);
+    if (!parsed) return null;
+    if (parsed.getTime() > now.getTime() + maxFutureMs) return null;
+    if (parsed.getTime() < now.getTime() - 24 * 60 * 60 * 1000) return null;
     return parsed;
   }
 
@@ -262,6 +273,10 @@ function parseRedditEventDate(text: string, createdUtcSeconds: number): Date | n
   }
 
   return null;
+}
+
+function yearRawGuard(yearRaw: string | undefined): yearRaw is string {
+  return typeof yearRaw === "string" && yearRaw.length > 0;
 }
 
 function isLikelyRedditEvent(text: string): boolean {
@@ -292,20 +307,12 @@ async function fetchGenericCalendarEvents(config: {
   const publicLat = resolved?.lat ?? null;
   const publicLng = resolved?.lng ?? null;
   try {
-    const response = await fetch(config.url, {
-      cache: "no-store",
+    const html = await fetchSourceText(config.source, config.url, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
-
-    if (!response.ok) {
-      console.warn(`${config.source} fetch failed with status:`, response.status);
-      return [];
-    }
-
-    const html = await response.text();
     const $ = cheerio.load(html);
     const now = Date.now();
     const events: PartyCard[] = [];
@@ -339,15 +346,15 @@ async function fetchGenericCalendarEvents(config: {
           const startRaw = item.startDate;
           const startStr = typeof startRaw === "string" ? startRaw : null;
           if (!startStr) continue;
-          const startsAtDate = new Date(startStr);
-          if (Number.isNaN(startsAtDate.getTime())) continue;
+          const startsAtDate = parseSchemaOrgDateTime(startStr);
+          if (!startsAtDate) continue;
           if (startsAtDate.getTime() < now - 24 * 60 * 60 * 1000) continue;
           if (startsAtDate.getTime() > now + 160 * 24 * 60 * 60 * 1000) continue;
 
           let endsAtMs = startsAtDate.getTime() + 2 * 60 * 60 * 1000;
           if (typeof item.endDate === "string") {
-            const parsedEnd = new Date(item.endDate);
-            if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd.getTime() > startsAtDate.getTime()) {
+            const parsedEnd = parseSchemaOrgDateTime(item.endDate);
+            if (parsedEnd && parsedEnd.getTime() > startsAtDate.getTime()) {
               endsAtMs = parsedEnd.getTime();
             }
           }
@@ -355,10 +362,6 @@ async function fetchGenericCalendarEvents(config: {
           const urlField = item.url;
           const externalLink =
             typeof urlField === "string" && urlField.startsWith("http") ? urlField : config.url;
-
-          const eventId = generateEventId(config.source, startsAtDate, name);
-          if (seenIds.has(eventId)) continue;
-          seenIds.add(eventId);
 
           const fallbackDescription = `${config.locationName} – ${config.categoryLabel}`;
           const rawDescription =
@@ -372,14 +375,20 @@ async function fetchGenericCalendarEvents(config: {
             .trim()
             .slice(0, 280);
 
+          const displayTitle = sanitizeExternalEventTitle(name, {
+            description: plainDescription || fallbackDescription,
+            externalLink,
+            fallback: config.vibeLabel,
+          }).slice(0, 140);
+
+          const eventId = generateEventId(config.source, startsAtDate, displayTitle);
+          if (seenIds.has(eventId)) continue;
+          seenIds.add(eventId);
+
           events.push({
             id: eventId,
             source: config.source,
-            title: sanitizeExternalEventTitle(name, {
-              description: plainDescription || fallbackDescription,
-              externalLink,
-              fallback: config.vibeLabel,
-            }).slice(0, 140),
+            title: displayTitle,
             description: plainDescription || fallbackDescription,
             starts_at: startsAtDate.toISOString(),
             ends_at: new Date(endsAtMs).toISOString(),
@@ -435,12 +444,18 @@ async function fetchGenericCalendarEvents(config: {
       if (startsAtDate.getTime() < now - 24 * 60 * 60 * 1000) continue;
       if (startsAtDate.getTime() > now + 160 * 24 * 60 * 60 * 1000) continue;
 
-      const title = candidate
+      const rawTitle = candidate
         .replace(/^\d{1,2}\.\d{1,2}\.(\d{2,4})?\s*[|:-]?\s*/g, "")
         .replace(/\b\d{1,2}[:.]\d{2}\b/g, "")
         .trim()
         .slice(0, 120);
-      if (!title || title.length < 4) continue;
+      if (!rawTitle || rawTitle.length < 4) continue;
+
+      const title = sanitizeExternalEventTitle(rawTitle, {
+        description: `${config.locationName} – ${config.categoryLabel}`,
+        externalLink: config.url,
+        fallback: config.vibeLabel,
+      }).slice(0, 140);
 
       const eventId = generateEventId(config.source, startsAtDate, title);
       if (seenIds.has(eventId)) continue;
@@ -473,8 +488,15 @@ async function fetchGenericCalendarEvents(config: {
 
     return events.slice(0, 40);
   } catch (error) {
+    if (error instanceof ExternalSourceFetchError) {
+      throw error;
+    }
     console.error(`Error fetching ${config.source} events:`, error);
-    return [];
+    throw new ExternalSourceFetchError(
+      config.source,
+      `Parse/fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
   }
 }
 
@@ -535,20 +557,12 @@ function parseSchlachthausLine(line: string): { day: number; month: number; titl
  */
 export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
   try {
-    const response = await fetch(SCHLACHTHAUS_URL, {
-      cache: "no-store",
+    const html = await fetchSourceText("schlachthaus", SCHLACHTHAUS_URL, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
-
-    if (!response.ok) {
-      console.warn("Schlachthaus fetch failed with status:", response.status);
-      return [];
-    }
-
-    const html = await response.text();
     const $ = cheerio.load(html);
     const events: PartyCard[] = [];
 
@@ -613,8 +627,13 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
     console.log("Schlachthaus: Parsed", eventCount, "events");
     return events;
   } catch (error) {
+    if (error instanceof ExternalSourceFetchError) throw error;
     console.error("Error fetching Schlachthaus events:", error);
-    return [];
+    throw new ExternalSourceFetchError(
+      "schlachthaus",
+      error instanceof Error ? error.message : String(error),
+      { cause: error },
+    );
   }
 }
 
@@ -713,26 +732,13 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
   }
 
   try {
-    const response = await fetch(DIGINIGHTS_URL, {
-      cache: "no-store",
+    const html = await fetchSourceText("diginights", DIGINIGHTS_URL, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         Accept: "text/html,application/xhtml+xml",
       },
     });
-
-    if (response.status === 404) {
-      console.warn("Diginights source returned 404.");
-      return [];
-    }
-
-    if (!response.ok) {
-      console.warn("Diginights fetch failed with status:", response.status);
-      return [];
-    }
-
-    const html = await response.text();
     const $ = cheerio.load(html);
     const events: PartyCard[] = [];
     const seen = new Set<string>();
@@ -775,18 +781,18 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
             continue;
           }
 
-          const startsAt = new Date(startStr);
-          if (Number.isNaN(startsAt.getTime())) {
+          const startsAt = parseSchemaOrgDateTime(startStr);
+          if (!startsAt) {
             continue;
           }
 
           let endsAt: Date;
           const endRaw = item.endDate;
           if (typeof endRaw === "string") {
-            const parsedEnd = new Date(endRaw);
-            endsAt = Number.isNaN(parsedEnd.getTime())
-              ? new Date(startsAt.getTime() + 4 * 60 * 60 * 1000)
-              : parsedEnd;
+            const parsedEnd = parseSchemaOrgDateTime(endRaw);
+            endsAt = parsedEnd && parsedEnd.getTime() > startsAt.getTime()
+              ? parsedEnd
+              : new Date(startsAt.getTime() + 4 * 60 * 60 * 1000);
           } else {
             endsAt = new Date(startsAt.getTime() + 4 * 60 * 60 * 1000);
           }
@@ -838,23 +844,31 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
 
           const urlField = item.url;
           const externalLink = typeof urlField === "string" && urlField.startsWith("http") ? urlField : DIGINIGHTS_URL;
-          const eventId = generateEventId("diginights", startsAt, name);
+          const displayTitle = sanitizeExternalEventTitle(name, {
+            description: desc,
+            externalLink,
+            fallback: locationName || "Diginights",
+          }).slice(0, 140);
+          const eventId = generateEventId("diginights", startsAt, displayTitle);
           if (seen.has(eventId)) {
             continue;
           }
 
           seen.add(eventId);
+          const resolved = resolveTuebingenVenueCoordsFromText(
+            `${locationName ?? ""} ${addressText} ${name}`,
+          );
           events.push({
             id: eventId,
             source: "diginights",
-            title: name,
+            title: displayTitle,
             description: desc,
             starts_at: startsAt.toISOString(),
             ends_at: endsAt.toISOString(),
             max_guests: 0,
             contribution_cents: 0,
-            public_lat: lat,
-            public_lng: lng,
+            public_lat: lat ?? resolved?.coords.lat ?? null,
+            public_lng: lng ?? resolved?.coords.lng ?? null,
             is_external: true,
             external_link: externalLink,
             vibe_label: "Diginights",
@@ -876,27 +890,24 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
 
     return events.slice(0, 80);
   } catch (error) {
+    if (error instanceof ExternalSourceFetchError) throw error;
     console.error("Error fetching Diginights source:", error);
-    return [];
+    throw new ExternalSourceFetchError(
+      "diginights",
+      error instanceof Error ? error.message : String(error),
+      { cause: error },
+    );
   }
 }
 
 export async function fetchEpplehausEvents(): Promise<PartyCard[]> {
   try {
-    const response = await fetch(EPPLEHAUS_ICAL_URL, {
-      cache: "no-store",
+    const ics = await fetchSourceText("epplehaus", EPPLEHAUS_ICAL_URL, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
-
-    if (!response.ok) {
-      console.warn("Epplehaus fetch failed with status:", response.status);
-      return [];
-    }
-
-    const ics = await response.text();
     const lines = unfoldIcsLines(ics);
     const rawEvents: Array<Record<string, string>> = [];
     let currentEvent: Record<string, string> | null = null;
@@ -963,27 +974,24 @@ export async function fetchEpplehausEvents(): Promise<PartyCard[]> {
       })
       .filter((event): event is PartyCard => Boolean(event));
   } catch (error) {
+    if (error instanceof ExternalSourceFetchError) throw error;
     console.error("Error fetching Epplehaus events:", error);
-    return [];
+    throw new ExternalSourceFetchError(
+      "epplehaus",
+      error instanceof Error ? error.message : String(error),
+      { cause: error },
+    );
   }
 }
 
 export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
   try {
-    const response = await fetch(TUEBINGEN_MARKETS_URL, {
-      cache: "no-store",
+    const html = await fetchSourceText("tuebingen-market", TUEBINGEN_MARKETS_URL, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
-
-    if (!response.ok) {
-      console.warn("Tuebingen markets fetch failed with status:", response.status);
-      return [];
-    }
-
-    const html = await response.text();
     const $ = cheerio.load(html);
 
     return $(".klappe a.kl")
@@ -1028,26 +1036,23 @@ export async function fetchTuebingenMarketEvents(): Promise<PartyCard[]> {
       .filter((event): event is PartyCard => Boolean(event));
   } catch (error) {
     console.error("Error fetching Tuebingen market events:", error);
-    return [];
+    if (error instanceof ExternalSourceFetchError) throw error;
+    throw new ExternalSourceFetchError(
+      "tuebingen-market",
+      error instanceof Error ? error.message : String(error),
+      { cause: error },
+    );
   }
 }
 
 export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
   try {
-    const response = await fetch(TUEBINGEN_FLEA_MARKETS_URL, {
-      cache: "no-store",
+    const html = await fetchSourceText("tuebingen-flohmarkt", TUEBINGEN_FLEA_MARKETS_URL, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
-
-    if (!response.ok) {
-      console.warn("Tuebingen flea market fetch failed with status:", response.status);
-      return [];
-    }
-
-    const html = await response.text();
     const $ = cheerio.load(html);
     const yearHeading = $("#content h4")
       .toArray()
@@ -1116,8 +1121,13 @@ export async function fetchTuebingenFleaMarketEvents(): Promise<PartyCard[]> {
       })
       .filter((event): event is PartyCard => Boolean(event));
   } catch (error) {
+    if (error instanceof ExternalSourceFetchError) throw error;
     console.error("Error fetching Tuebingen flea market events:", error);
-    return [];
+    throw new ExternalSourceFetchError(
+      "tuebingen-flohmarkt",
+      error instanceof Error ? error.message : String(error),
+      { cause: error },
+    );
   }
 }
 
@@ -1171,19 +1181,12 @@ export async function fetchDaiEvents(): Promise<PartyCard[]> {
 
 export async function fetchPartykelEvents(): Promise<PartyCard[]> {
   try {
-    const response = await fetch(PARTYKEL_URL, {
-      cache: "no-store",
+    const html = await fetchSourceText("partykel", PARTYKEL_URL, {
       headers: {
         "User-Agent": "wasgehttueb-events-bot/1.0",
         Accept: "text/html,application/xhtml+xml",
       },
     });
-    if (!response.ok) {
-      console.warn("partykel fetch failed with status:", response.status);
-      return [];
-    }
-
-    const html = await response.text();
     const $ = cheerio.load(html);
     const events: PartyCard[] = [];
     const seen = new Set<string>();
@@ -1203,24 +1206,33 @@ export async function fetchPartykelEvents(): Promise<PartyCard[]> {
       const dayAnchorMs = Number(dateMatch[1]) * 1000;
       if (!Number.isFinite(dayAnchorMs)) return;
 
-      const startsAt = new Date(dayAnchorMs);
+      const dayKey = berlinDayKeyFromDate(new Date(dayAnchorMs));
+      if (!dayKey) return;
+      const startsAt = berlinWallTimeToUtc(dayKey, 20, 0);
+      if (Number.isNaN(startsAt.getTime())) return;
       if (startsAt.getTime() < nowMs - 24 * 60 * 60 * 1000) return;
-
-      const eventId = generateEventId("partykel", startsAt, eventTitle);
-      if (seen.has(eventId)) return;
-      seen.add(eventId);
 
       const absoluteLink = eventLink.startsWith("http")
         ? eventLink
         : `https://www.partykel.info${eventLink.startsWith("/") ? "" : "/"}${eventLink}`;
 
+      const displayTitle = sanitizeExternalEventTitle(eventTitle, {
+        description: `Event-Hinweis via Partykel (${locationName})`,
+        externalLink: absoluteLink,
+        fallback: "Partykel",
+      }).slice(0, 140);
+
+      const eventId = generateEventId("partykel", startsAt, displayTitle);
+      if (seen.has(eventId)) return;
+      seen.add(eventId);
+
       events.push({
         id: eventId,
         source: "partykel",
-        title: eventTitle.slice(0, 140),
+        title: displayTitle,
         description: `Event-Hinweis via Partykel (${locationName})`,
         starts_at: startsAt.toISOString(),
-        ends_at: new Date(startsAt.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+        ends_at: new Date(startsAt.getTime() + 4 * 60 * 60 * 1000).toISOString(),
         max_guests: 0,
         contribution_cents: 0,
         public_lat: (resolveTuebingenVenueCoordsFromText(locationName)?.coords.lat ?? TUEBINGEN_VENUE_COORDS.tuebingenCenter.lat),
@@ -1241,37 +1253,50 @@ export async function fetchPartykelEvents(): Promise<PartyCard[]> {
 
     return events.slice(0, 40);
   } catch (error) {
+    if (error instanceof ExternalSourceFetchError) throw error;
     console.error("Error fetching Partykel events:", error);
-    return [];
+    throw new ExternalSourceFetchError(
+      "partykel",
+      error instanceof Error ? error.message : String(error),
+      { cause: error },
+    );
   }
 }
 
+export type SourceScrapeResult = {
+  source: string;
+  ok: boolean;
+  events: PartyCard[];
+  error?: string;
+};
+
 export async function fetchRedditEvents(): Promise<PartyCard[]> {
+  const batches = await fetchRedditEventBatches();
+  return batches.flatMap((batch) => batch.events).slice(0, 30);
+}
+
+export async function fetchRedditEventBatches(): Promise<SourceScrapeResult[]> {
   const now = Date.now();
   const maxPostAgeMs = 30 * 24 * 60 * 60 * 1000;
-  const events: PartyCard[] = [];
   const seenIds = new Set<string>();
+  const batches: SourceScrapeResult[] = [];
 
   for (const subreddit of REDDIT_SUBREDDITS) {
+    const source = `reddit-${subreddit}`;
     const url = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/new.json?limit=60`;
     try {
-      const response = await fetch(url, {
-        cache: "no-store",
+      const htmlOrJson = await fetchSourceText(source, url, {
         headers: {
           "User-Agent": "wasgehttueb-events-bot/1.0",
           Accept: "application/json",
         },
       });
 
-      if (!response.ok) {
-        console.warn(`reddit ${subreddit} fetch failed with status:`, response.status);
-        continue;
-      }
-
-      const payload = await response.json() as {
+      const payload = JSON.parse(htmlOrJson) as {
         data?: { children?: Array<{ data?: Record<string, unknown> }> };
       };
       const children = payload.data?.children ?? [];
+      const events: PartyCard[] = [];
 
       for (const child of children) {
         const post = child.data ?? {};
@@ -1302,23 +1327,31 @@ export async function fetchRedditEvents(): Promise<PartyCard[]> {
           continue;
         }
 
-        const eventId = generateEventId(`reddit-${subreddit}`, startsAtDate, title);
+        const eventId = generateEventId(source, startsAtDate, title);
         if (seenIds.has(eventId)) {
           continue;
         }
         seenIds.add(eventId);
 
+        const coords =
+          resolveTuebingenVenueCoordsFromText(haystack)?.coords ??
+          TUEBINGEN_VENUE_COORDS.tuebingenCenter;
+
         events.push({
           id: eventId,
-          source: `reddit-${subreddit}`,
-          title: title.slice(0, 140),
+          source,
+          title: sanitizeExternalEventTitle(title, {
+            description: selftext,
+            externalLink: permalink ? `https://www.reddit.com${permalink}` : null,
+            fallback: `Reddit r/${subreddit}`,
+          }).slice(0, 140),
           description: selftext.slice(0, 320) || `Event-Hinweis aus r/${subreddit}`,
           starts_at: startsAtDate.toISOString(),
           ends_at: new Date(startsAtDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
           max_guests: 0,
           contribution_cents: 0,
-          public_lat: null,
-          public_lng: null,
+          public_lat: coords.lat,
+          public_lng: coords.lng,
           is_external: true,
           external_link: permalink ? `https://www.reddit.com${permalink}` : `https://www.reddit.com/r/${subreddit}/new/`,
           vibe_label: `Reddit r/${subreddit}`,
@@ -1332,10 +1365,14 @@ export async function fetchRedditEvents(): Promise<PartyCard[]> {
           price_info: null,
         } as PartyCard);
       }
+
+      batches.push({ source, ok: true, events });
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       console.error(`Error fetching reddit events from r/${subreddit}:`, error);
+      batches.push({ source, ok: false, events: [], error: message });
     }
   }
 
-  return events.slice(0, 30);
+  return batches;
 }

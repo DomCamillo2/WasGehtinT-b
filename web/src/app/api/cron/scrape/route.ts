@@ -7,8 +7,13 @@ import {
   parseEventsFromCaptions,
   type InstagramPostCandidate,
 } from "@/lib/scrape-events";
+import { sanitizeExternalEventTitle } from "@/lib/sanitize-event-title";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
+import {
+  resolveTuebingenCityFallback,
+  resolveTuebingenVenueCoordsFromText,
+} from "@/lib/tuebingen-venues";
 
 export const runtime = "nodejs";
 
@@ -382,25 +387,35 @@ async function insertEventRow(input: {
   const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000);
   const scrapedAt = new Date().toISOString();
   const vibeLabel = instagramVenueVibeLabel(input.venue);
+  const safeTitle = sanitizeExternalEventTitle(input.title, {
+    description: input.description,
+    externalLink: input.post.sourceUrl,
+    fallback: vibeLabel || input.venue,
+  });
   const inferred = inferExternalCategoryFields({
-    title: input.title,
+    title: safeTitle,
     description: input.description,
     vibe_label: vibeLabel,
     location_name: input.location,
     starts_at: startsAt.toISOString(),
   });
+  const coords =
+    resolveTuebingenVenueCoordsFromText(`${input.location} ${vibeLabel} ${input.venue} ${safeTitle}`)
+      ?.coords ??
+    resolveTuebingenCityFallback(`${input.location} ${vibeLabel}`) ??
+    null;
 
   const extendedRow = {
-    id: buildEventId(input.venue, input.title, input.date, input.location),
+    id: buildEventId(input.venue, safeTitle, input.date, input.location),
     source: INSTAGRAM_SOURCE,
     external_id: input.post.externalId,
     source_url: input.post.sourceUrl,
-    title: input.title,
+    title: safeTitle,
     description: input.description,
     starts_at: startsAt.toISOString(),
     ends_at: endsAt.toISOString(),
-    public_lat: null,
-    public_lng: null,
+    public_lat: coords?.lat ?? null,
+    public_lng: coords?.lng ?? null,
     external_link: input.post.sourceUrl,
     vibe_label: vibeLabel,
     location_name: input.location,
@@ -440,14 +455,14 @@ async function insertEventRow(input: {
   }
 
   const fallbackRow = {
-    id: buildEventId(input.venue, input.title, input.date, input.location),
+    id: buildEventId(input.venue, safeTitle, input.date, input.location),
     source: INSTAGRAM_SOURCE,
-    title: input.title,
+    title: safeTitle,
     description: input.description,
     starts_at: startsAt.toISOString(),
     ends_at: endsAt.toISOString(),
-    public_lat: null,
-    public_lng: null,
+    public_lat: coords?.lat ?? null,
+    public_lng: coords?.lng ?? null,
     external_link: input.post.sourceUrl,
     vibe_label: vibeLabel,
     location_name: input.location,

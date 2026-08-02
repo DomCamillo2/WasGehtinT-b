@@ -4,7 +4,7 @@ import { externalEventsFetchStaleSourceKeys } from "@/lib/external-event-sources
 import { cronSecretMatches, normalizeEnvSecret } from "@/lib/cron-auth";
 import { safeEqualString } from "@/lib/security";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
+import { fetchExternalEventsBundle } from "@/services/events/external-events-fetch-service";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -81,8 +81,10 @@ export async function GET(request: Request) {
 
     revalidateTag("external-events", "max");
     revalidateTag("discover-public", "max");
-    const events = await fetchExternalEvents();
-    const syncResult = await syncExternalEventsToCache(events);
+    const bundle = await fetchExternalEventsBundle();
+    const syncResult = await syncExternalEventsToCache(bundle.events, {
+      sourcesSucceeded: bundle.sourcesSucceeded,
+    });
     revalidatePath("/discover");
     revalidatePath("/");
 
@@ -92,12 +94,18 @@ export async function GET(request: Request) {
       );
     }
 
+    const partial = bundle.sourcesFailed.length > 0;
+
     return Response.json({
       ok: true,
+      partial,
       refreshedAt: new Date().toISOString(),
-      count: events.length,
+      count: bundle.events.length,
       upserted: syncResult.upserted,
       usedBaseFallback: syncResult.usedBaseFallback,
+      sourcesSucceeded: bundle.sourcesSucceeded,
+      sourcesFailed: bundle.sourcesFailed,
+      sourcesSwept: syncResult.sourcesSwept,
       durationMs: Date.now() - startedAt,
     }, {
       status: 200,

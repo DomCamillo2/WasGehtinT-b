@@ -24,11 +24,17 @@ function stripTags(value: string): string {
     .trim();
 }
 
+function stripInvisiblePrefix(title: string): string {
+  return title.replace(/^[\s\u200b\u200c\u200d\ufeff"']+/g, "").trim();
+}
+
 function looksLikeUriTitle(title: string): boolean {
-  const t = title.trim();
+  const t = stripInvisiblePrefix(title);
   if (!t) return true;
-  // scheme://path  (next://exit_open, https://…, etc.)
+  // scheme://path anywhere near the start (next://exit_open, https://…, etc.)
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t)) return true;
+  // URI embedded in a longer scraped label: "next://exit_open – Party"
+  if (/\b[a-z][a-z0-9+.-]*:\/\/[^\s]+/i.test(t)) return true;
   // bare protocol fragments / file-like junk
   if (/^(https?:|mailto:|tel:|next:)/i.test(t)) return true;
   if (/^(undefined|null|n\/a|untitled)$/i.test(t)) return true;
@@ -101,9 +107,21 @@ export function sanitizeExternalEventTitle(
   title: string,
   options?: { description?: string | null; externalLink?: string | null; fallback?: string },
 ): string {
-  const raw = String(title ?? "").trim();
+  const raw = stripInvisiblePrefix(String(title ?? ""));
   if (!looksLikeUriTitle(raw)) {
     return raw.slice(0, 140);
+  }
+
+  // Prefer the non-URI remainder when title is "next://exit_open – Jam Session"
+  const uriMatch = raw.match(/\b[a-z][a-z0-9+.-]*:\/\/[^\s]+/i);
+  if (uriMatch && uriMatch.index != null) {
+    const remainder = raw
+      .replace(uriMatch[0], " ")
+      .replace(/^[\s|–—:-]+|[\s|–—:-]+$/g, "")
+      .trim();
+    if (remainder.length >= 8 && !looksLikeUriTitle(remainder)) {
+      return remainder.slice(0, 140);
+    }
   }
 
   const fromDescription = titleFromDescription(options?.description);
@@ -112,7 +130,7 @@ export function sanitizeExternalEventTitle(
   const fromLink = titleFromUrl(options?.externalLink ?? undefined);
   if (fromLink) return fromLink.slice(0, 140);
 
-  const humanized = humanizeUriTitle(raw);
+  const humanized = humanizeUriTitle(uriMatch?.[0] ?? raw);
   if (humanized && !looksLikeUriTitle(humanized)) return humanized.slice(0, 140);
 
   return (options?.fallback ?? "Event").slice(0, 140);
