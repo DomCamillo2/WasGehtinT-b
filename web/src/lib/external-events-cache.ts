@@ -73,40 +73,30 @@ async function deleteExpiredRows(nowIso: string): Promise<void> {
 async function deleteFarFutureGhostRows(maxStartsAtIso: string): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   const sources = externalEventsFetchStaleSourceKeys();
-  let deleted = false;
+  const { error, count } = await supabase
+    .from("external_events_cache")
+    .delete({ count: "exact" })
+    .in("source", sources)
+    .gt("starts_at", maxStartsAtIso);
 
-  for (const source of sources) {
-    const { error, count } = await supabase
-      .from("external_events_cache")
-      .delete({ count: "exact" })
-      .eq("source", source)
-      .gt("starts_at", maxStartsAtIso);
-
-    if (error) {
-      throw new Error(`Deleting far-future external events failed for source ${source}: ${error.message}`);
-    }
-
-    if ((count ?? 0) > 0) {
-      deleted = true;
-    }
+  if (error) {
+    throw new Error(`Deleting far-future external events failed: ${error.message}`);
   }
 
-  return deleted;
+  return (count ?? 0) > 0;
 }
 
 async function deleteStaleForKnownSources(scrapedAt: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   // Always sweep every official fetch source — empty scrapers must clear prior ghosts.
-  for (const source of externalEventsFetchStaleSourceKeys()) {
-    const { error } = await supabase
-      .from("external_events_cache")
-      .delete()
-      .eq("source", source)
-      .lt("scraped_at", scrapedAt);
+  const { error } = await supabase
+    .from("external_events_cache")
+    .delete()
+    .in("source", externalEventsFetchStaleSourceKeys())
+    .lt("scraped_at", scrapedAt);
 
-    if (error) {
-      throw new Error(`Deleting stale external events failed for source ${source}: ${error.message}`);
-    }
+  if (error) {
+    throw new Error(`Deleting stale external events failed: ${error.message}`);
   }
 }
 

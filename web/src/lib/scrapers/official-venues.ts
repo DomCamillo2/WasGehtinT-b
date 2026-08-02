@@ -333,7 +333,7 @@ async function fetchGenericCalendarEvents(config: {
           let endsAtMs = startsAtDate.getTime() + 2 * 60 * 60 * 1000;
           if (typeof item.endDate === "string") {
             const parsedEnd = new Date(item.endDate);
-            if (!Number.isNaN(parsedEnd.getTime())) {
+            if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd.getTime() > startsAtDate.getTime()) {
               endsAtMs = parsedEnd.getTime();
             }
           }
