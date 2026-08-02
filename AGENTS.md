@@ -30,6 +30,8 @@ Brand / UI direction: cool ink + muted Neckar green + copper accent (`#d48745`).
 
 | Task | Entry points |
 |---|---|
+| Welcome / landing | `web/src/app/page.tsx` → `components/landing/welcome-page.tsx` (light/dark) |
+| Auth splash | `web/src/app/auth/page.tsx` → `components/landing/splash-auth.tsx` |
 | Discover page | `web/src/app/discover/page.tsx` → `services/discover/discover-page-service.ts` → `components/discover/discover-experience-v2.tsx` |
 | Discover cards / feed | `web/src/components/discover/discover-feed-v2.tsx`, `discover-event-card-v2.tsx` |
 | Event DTO mapping | `web/src/services/discover/discover-view-model.ts` (snake_case → camelCase) |
