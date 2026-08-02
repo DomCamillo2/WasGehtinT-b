@@ -39,17 +39,20 @@ export function DiscoverEventListItemV2({
   const [savePressed, setSavePressed] = useState(false);
 
   const n = Math.max(0, upvoteCount);
+  const detailLabel = `${event.title} — Mehr Infos. ${venueLabel}, ${dateLabel} ${timeLabel}`;
 
   return (
     <article
       className="group event-card-hover relative flex w-full items-center gap-3 rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-3.5 py-3"
       role="article"
-      aria-label={`${event.title} in ${venueLabel}, ${dateLabel} ${timeLabel}`}
     >
       <Link
         href={event.detailHref}
-        className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[#3A312B] bg-[#171310]"
-      >
+        className="absolute inset-0 z-[1] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#c4783a]/50"
+        aria-label={detailLabel}
+      />
+
+      <div className="pointer-events-none relative z-[2] h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[#3A312B] bg-[#171310]">
         {showMedia && mediaSrc ? (
           <Image
             src={mediaSrc}
@@ -57,7 +60,11 @@ export function DiscoverEventListItemV2({
             width={56}
             height={56}
             sizes="56px"
-            className={hasHeroImage ? "h-full w-full object-cover saturate-125 contrast-110 brightness-95" : "h-full w-full object-contain p-1.5"}
+            className={
+              hasHeroImage
+                ? "h-full w-full object-cover saturate-125 contrast-110 brightness-95"
+                : "h-full w-full object-contain p-1.5"
+            }
             onError={() => setMediaFailed(true)}
           />
         ) : (
@@ -65,17 +72,12 @@ export function DiscoverEventListItemV2({
             {initial}
           </span>
         )}
-      </Link>
+      </div>
 
-      <div className="min-w-0 flex-1">
-        <Link
-          href={event.detailHref}
-          className="block rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-        >
-          <h3 className="line-clamp-2 text-[1.05rem] leading-snug font-wordmark text-[#F2ECE6] sm:text-[21px] sm:leading-snug">
-            {event.title}
-          </h3>
-        </Link>
+      <div className="pointer-events-none relative z-[2] min-w-0 flex-1">
+        <h3 className="line-clamp-2 text-[1.05rem] leading-snug font-wordmark text-[#F2ECE6] sm:text-[21px] sm:leading-snug">
+          {event.title}
+        </h3>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-[#c9beb4]">
           <span className="flex min-w-0 max-w-[58%] items-center gap-2 sm:max-w-none">
             {partnerLogo ? (
@@ -124,8 +126,8 @@ export function DiscoverEventListItemV2({
             onTouchStart={() => setSavePressed(true)}
             onTouchEnd={() => setSavePressed(false)}
             aria-pressed={upvotedByMe}
-            aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-            className={`inline-flex min-h-[40px] items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition-opacity duration-150 ${
+            aria-label={upvotedByMe ? "Zusagen entfernen" : "Merken / Ich bin dabei"}
+            className={`pointer-events-auto relative z-[3] inline-flex min-h-[40px] items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition-opacity duration-150 ${
               upvotedByMe
                 ? "border-[#d9a06a] bg-[#c4783a] text-[#1c1410]"
                 : "border-[rgba(240,235,228,0.14)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.28)]"
@@ -137,19 +139,18 @@ export function DiscoverEventListItemV2({
                 Dabei!
               </span>
             ) : (
-              "Ich bin dabei!"
+              "Merken"
             )}
           </button>
         </div>
       </div>
 
-      <Link
-        href={event.detailHref}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#9a9086] transition-colors hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
-        aria-label="Details anzeigen"
+      <span
+        className="pointer-events-none relative z-[2] flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#9a9086]"
+        aria-hidden
       >
-        <ChevronRight className="h-5 w-5" aria-hidden="true" />
-      </Link>
+        <ChevronRight className="h-5 w-5" />
+      </span>
     </article>
   );
 }

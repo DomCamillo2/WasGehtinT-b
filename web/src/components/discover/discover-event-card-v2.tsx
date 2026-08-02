@@ -48,10 +48,7 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
               {isFirst ? (
                 <Image src={hostAvatarUrl} alt="" width={28} height={28} className="h-full w-full object-cover" />
               ) : (
-                <div
-                  className="h-full w-full bg-[#221e1a]"
-                  aria-hidden="true"
-                />
+                <div className="h-full w-full bg-[#221e1a]" aria-hidden="true" />
               )}
             </div>
           );
@@ -94,17 +91,10 @@ export function DiscoverEventCardV2({
     return () => window.clearTimeout(timer);
   }, [showConfirmation]);
 
-  const detailLabel = `${event.title} — ${venueLabel}, ${dateLabel} ${timeLabel}`;
+  const detailLabel = `${event.title} — Mehr Infos. ${venueLabel}, ${dateLabel} ${timeLabel}`;
 
   return (
-    <article
-      className="group relative w-full overflow-hidden rounded-none card-lift"
-      role="article"
-    >
-      {/*
-        Media fills the card; copy is in-flow so tall titles expand height instead of
-        clipping against a flat aspect-ratio box (especially md two-column 5:1).
-      */}
+    <article className="group relative w-full overflow-hidden rounded-none card-lift" role="article">
       <div className="relative w-full min-h-[13.5rem] sm:min-h-[15rem] md:min-h-[14.5rem]">
         <div className="absolute inset-0 bg-[#221e1a]" aria-hidden="true" />
         <div
@@ -136,8 +126,10 @@ export function DiscoverEventCardV2({
             background:
               "linear-gradient(to top, rgba(20,17,15,0.94) 0%, rgba(20,17,15,0.55) 42%, rgba(20,17,15,0.2) 72%, rgba(20,17,15,0.05) 100%)",
           }}
+          aria-hidden
         />
 
+        {/* Full-card hit target for detail page — must sit above media, below upvote */}
         <Link
           href={event.detailHref}
           className="absolute inset-0 z-[4] outline-none focus-visible:ring-2 focus-visible:ring-white/55 focus-visible:ring-offset-0"
@@ -150,9 +142,10 @@ export function DiscoverEventCardV2({
           </div>
         ) : null}
 
-        <div className="relative z-[5] flex min-h-[13.5rem] flex-col justify-end p-3 pt-12 sm:min-h-[15rem] sm:p-4 sm:pt-14 md:min-h-[14.5rem]">
+        {/* pointer-events-none so clicks reach the detail Link; only Merken is interactive */}
+        <div className="pointer-events-none relative z-[5] flex min-h-[13.5rem] flex-col justify-end p-3 pt-12 sm:min-h-[15rem] sm:p-4 sm:pt-14 md:min-h-[14.5rem]">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-            <div className="pointer-events-none flex min-w-0 flex-1 flex-col gap-1.5 sm:gap-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:gap-2">
               <h3 className="min-w-0 break-words text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-white drop-shadow-sm [overflow-wrap:anywhere] sm:text-xl sm:leading-[1.25] md:text-[1.35rem]">
                 {event.title}
               </h3>
@@ -173,10 +166,14 @@ export function DiscoverEventCardV2({
                 <span className="truncate">{venueLabel}</span>
               </p>
               <InterestStack count={upvoteCount} hostAvatarUrl={event.hostAvatarUrl} />
+              <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[#d9a06a] sm:text-xs">
+                Mehr Infos
+                <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              </p>
             </div>
 
             <div className="flex w-full shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end sm:justify-start sm:gap-2.5 sm:flex-col">
-              <div className="pointer-events-none flex w-fit max-w-full items-center gap-1.5 self-end rounded-md border border-[rgba(240,235,228,0.18)] bg-[#14110f]/90 px-2 py-1 sm:gap-2 sm:px-3 sm:py-1.5 max-sm:self-stretch max-sm:justify-center">
+              <div className="flex w-fit max-w-full items-center gap-1.5 self-end rounded-md border border-[rgba(240,235,228,0.18)] bg-[#14110f]/90 px-2 py-1 sm:gap-2 sm:px-3 sm:py-1.5 max-sm:self-stretch max-sm:justify-center">
                 <time
                   className="text-[10px] font-semibold tabular-nums text-[#f0ebe4] sm:text-sm"
                   dateTime={event.startsAt}
@@ -184,7 +181,9 @@ export function DiscoverEventCardV2({
                   {dateLabel}
                 </time>
                 <span className="h-0.5 w-0.5 rounded-full bg-[#9a9086]" aria-hidden="true" />
-                <span className="text-[10px] font-semibold tabular-nums text-[#ebe4dd] sm:text-sm">{timeLabel}</span>
+                <span className="text-[10px] font-semibold tabular-nums text-[#ebe4dd] sm:text-sm">
+                  {timeLabel}
+                </span>
               </div>
               <button
                 type="button"
@@ -202,8 +201,8 @@ export function DiscoverEventCardV2({
                 onTouchStart={() => setCtaPressed(true)}
                 onTouchEnd={() => setCtaPressed(false)}
                 aria-pressed={upvotedByMe}
-                aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-                className={`pointer-events-auto relative z-[1] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-md px-2.5 py-1.5 text-[10px] font-semibold transition-opacity duration-150 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
+                aria-label={upvotedByMe ? "Zusagen entfernen" : "Merken / Ich bin dabei"}
+                className={`pointer-events-auto relative z-[6] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-md px-2.5 py-1.5 text-[10px] font-semibold transition-opacity duration-150 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
                   upvotedByMe
                     ? "bg-[#c4783a] text-[#1c1410] border border-[#d9a06a]"
                     : "bg-[#1c1815]/95 text-[#f0ebe4] border border-[rgba(240,235,228,0.14)] hover:border-[rgba(240,235,228,0.28)]"
@@ -216,7 +215,7 @@ export function DiscoverEventCardV2({
                   </>
                 ) : (
                   <>
-                    <span>Ich bin dabei!</span>
+                    <span>Merken</span>
                     <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" aria-hidden="true" />
                   </>
                 )}
@@ -227,13 +226,13 @@ export function DiscoverEventCardV2({
       </div>
       {showConfirmation ? (
         <div
-          className="wg-confirm-toast absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] sm:px-4 sm:py-2 sm:text-sm"
+          className="wg-confirm-toast pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] sm:px-4 sm:py-2 sm:text-sm"
           role="status"
           aria-live="polite"
         >
           <span className="inline-flex items-center gap-1.5">
             <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
-            Gespeichert
+            Gemerkt
           </span>
         </div>
       ) : null}
