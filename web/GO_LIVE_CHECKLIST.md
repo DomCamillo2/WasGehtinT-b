@@ -28,9 +28,19 @@ In Vercel unter **Project Settings → Environment Variables** eintragen:
 - `STRIPE_WEBHOOK_SECRET`
 - `INTERNAL_ADMIN_EMAILS` (kommagetrennt)
 - `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, aber empfohlen)
+- `CRON_SECRET` (**required** for GitHub Actions → `/api/external-events/refresh` and `/api/cron/scrape`)
+- `APIFY_API_TOKEN` (Instagram scrape)
+- `GEMINI_API_KEY` (Instagram caption parse + optional category enrichment)
+- `CLUBHAUS_EVENTS_URL` (override seasonal Clubhaus listing URL)
+- `DIGINIGHTS_URLS` (optional; city paths currently 404 — prefer `https://diginights.com`)
 - `PEXELS_API_KEY` (**empfohlen** für Discover: Stock-Herobilder server- und clientseitig; ohne Key bleiben viele Karten mit Buchstaben-Platzhalter. In Vercel als Secret für **Production** und ggf. **Preview** anlegen, danach **Redeploy**)
 
 Dann ersten Production Deploy starten.
+
+**Scheduling:** GitHub Actions workflow `External Events Sync` calls production:
+- `POST /api/external-events/refresh` every 6h (full scraper set via `fetchExternalEvents`)
+- `POST /api/cron/scrape` for Instagram
+Add repository secrets `CRON_SECRET` and optionally `APP_BASE_URL` (`https://www.wasgehttueb.app`).
 
 **PEXELS in Vercel hinterlegen:** [Project] → **Settings** → **Environment Variables** → Add: Name `PEXELS_API_KEY`, Wert = API-Key von [pexels.com/api](https://www.pexels.com/api/), Environments: Production (und optional Preview). Oder lokal mit Vercel CLI: `npx vercel env add PEXELS_API_KEY` (Anzeige/Import sensibler Werte in der interaktiven Eingabe).
 

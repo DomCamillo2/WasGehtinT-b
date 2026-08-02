@@ -59,3 +59,21 @@ Primary surfaces touched: tokens (`globals.css`, `tailwind.config.ts`), auth spl
 | instagram | stale (Apr) — needs separate cron scrape |
 | diginights | previously failing on `/city/tuebingen` 404 |
 
+
+## Full implementation pass (2026-08-02 #2)
+
+### Done in code
+- GH Actions: primary path is production `POST /api/external-events/refresh` (full scraper set); worker is failure fallback; Instagram cron job added.
+- Worker Berlin `+02:00` removed; ICS UTC/date-only supported.
+- `enrichExternalEventCategories` wired into `fetchExternalEvents` (env `EXTERNAL_EVENTS_ENRICH_CATEGORIES`).
+- Apify/Gemini secret trailing `\\n` stripping in `scrape-events.ts`.
+- Instagram insert falls back if category columns missing; live DB now has extended + dedupe columns; public view recreated.
+- Dead classic UI removed: `discover-premium`, `EventCard`, `Navbar`.
+- Purple leftovers restyled on requests/host/map/create-party/status-ui/admin.
+- German copy replaces “Stay tuned”.
+- Docs: GO_LIVE, DISCOVER review, ARCHITECTURE, root `.env.example` pointer.
+
+### Ops still on you
+- Add GitHub secrets: `CRON_SECRET`, optional `APP_BASE_URL`, `CLUBHAUS_EVENTS_URL`.
+- Re-save Apify/Gemini in Vercel without trailing newlines (local `.env.local` already cleaned).
+- Some Instagram handles 404 / blocked by Instagram — expected flaky.

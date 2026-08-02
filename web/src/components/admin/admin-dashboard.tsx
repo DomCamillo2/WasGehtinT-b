@@ -16,7 +16,7 @@ import { CheckCircle2, CircleX, Lightbulb, MessageSquareText, Trash2 } from "luc
 const FEEDBACK_STATUS_BADGE: Record<FeedbackEntry["status"], string> = {
   open: "bg-amber-50 text-amber-700",
   reviewing: "bg-blue-50 text-blue-700",
-  planned: "bg-violet-50 text-violet-700",
+  planned: "bg-amber-50 text-amber-800",
   closed: "bg-emerald-50 text-emerald-700",
 };
 

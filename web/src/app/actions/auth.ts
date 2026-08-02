@@ -131,7 +131,7 @@ export async function signUpAction(
   if (!signUpEnabled) {
     void formData;
     return {
-      error: "Kontoerstellung ist vorübergehend pausiert. Stay tuned - dieses Feature kommt später.",
+      error: "Kontoerstellung ist vorübergehend pausiert. Dieses Feature kommt später.",
     };
   }
 

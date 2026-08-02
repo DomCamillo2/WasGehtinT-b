@@ -156,9 +156,7 @@ function parseGermanMonthName(name) {
 function buildBerlinIsoDate(year, month, day, hour = 9, minute = 0) {
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
-  const hh = String(hour).padStart(2, "0");
-  const min = String(minute).padStart(2, "0");
-  const date = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00+02:00`);
+  const date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, hour, minute);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
@@ -217,14 +215,28 @@ function unfoldIcsLines(ics) {
 
 function parseIcsDate(value) {
   const raw = String(value ?? "").trim();
+
+  const utcMatch = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/i);
+  if (utcMatch) {
+    const [, year, month, day, hour, minute, second] = utcMatch;
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)));
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  const dateOnly = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    const date = berlinWallTimeToUtc(`${year}-${month}-${day}`, 12, 0);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
   const match = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
   if (!match) {
     return null;
   }
 
-  const [, year, month, day, hour, minute, second] = match;
-  const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}+02:00`;
-  const date = new Date(iso);
+  const [, year, month, day, hour, minute] = match;
+  const date = berlinWallTimeToUtc(`${year}-${month}-${day}`, Number(hour), Number(minute));
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 

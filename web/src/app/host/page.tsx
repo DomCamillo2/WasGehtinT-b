@@ -110,7 +110,7 @@ export default async function HostPage() {
                 <p className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">
                   Freie Plätze: {row.spotsLeft}
                 </p>
-                <p className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-violet-700">
+                <p className="rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--accent-soft)] px-2 py-1 text-[color:var(--accent-strong)]">
                   Beitrag: {formatEuroFromCents(row.paidTotalCents)}
                 </p>
               </div>

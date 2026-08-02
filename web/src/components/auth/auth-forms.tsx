@@ -93,7 +93,7 @@ export function AuthForms() {
       <Card className="space-y-4 border-zinc-200 bg-zinc-50 p-5 sm:p-4">
         <div>
           <h2 className="text-xl font-semibold text-zinc-500">Registrieren</h2>
-          <p className="text-sm text-zinc-500">Feature auf Eis gelegt. Stay tuned.</p>
+          <p className="text-sm text-zinc-500">Feature auf Eis gelegt. Kommt bald.</p>
         </div>
         <fieldset disabled className="space-y-3 opacity-60">
           <input
@@ -115,7 +115,7 @@ export function AuthForms() {
             Kontoerstellung bald verfügbar
           </PrimaryButton>
         </fieldset>
-        <p className="text-xs text-zinc-500">Neuregistrierung ist aktuell deaktiviert. Stay tuned.</p>
+        <p className="text-xs text-zinc-500">Neuregistrierung ist aktuell deaktiviert. Kommt bald.</p>
       </Card>
       </div>
     </div>

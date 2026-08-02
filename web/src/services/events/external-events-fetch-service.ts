@@ -2,6 +2,7 @@ import "server-only";
 
 import * as cheerio from "cheerio";
 import { unstable_cache } from "next/cache";
+import { enrichExternalEventCategories } from "@/lib/external-event-categorization";
 import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
 import { PartyCard } from "@/lib/types";
 import {
@@ -28,6 +29,12 @@ const FSRVV_CLUBHAUS_URL = (
 );
 const CLUBHAUS_LAT = 48.5243852;
 const CLUBHAUS_LNG = 9.0605991;
+
+if (!process.env.CLUBHAUS_EVENTS_URL?.trim()) {
+  console.warn(
+    "[external-events] CLUBHAUS_EVENTS_URL unset — using seasonal fallback URL that will go stale.",
+  );
+}
 
 function logExternalSourceWarning(source: string, message: string, details?: unknown): void {
   if (details === undefined) {
@@ -515,5 +522,16 @@ const getCachedExternalEvents = unstable_cache(
 );
 
 export async function fetchExternalEvents(): Promise<PartyCard[]> {
-  return getCachedExternalEvents();
+  const events = await getCachedExternalEvents();
+  const enrichEnabled =
+    (process.env.EXTERNAL_EVENTS_ENRICH_CATEGORIES ?? "true").trim().toLowerCase() !== "false";
+  if (!enrichEnabled) {
+    return events;
+  }
+  try {
+    return await enrichExternalEventCategories(events);
+  } catch (error) {
+    console.warn("[external-events] Category enrichment failed; returning base events.", error);
+    return events;
+  }
 }

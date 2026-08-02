@@ -9,7 +9,10 @@ alter table public.external_events_cache
   add column if not exists audience_label text,
   add column if not exists price_info text;
 
-create or replace view public.v_external_events_public as
+-- Recreate view so new columns are exposed (CREATE OR REPLACE cannot drop/reorder columns).
+drop view if exists public.v_external_events_public;
+
+create view public.v_external_events_public as
 select
   id,
   source,

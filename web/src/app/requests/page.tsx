@@ -57,7 +57,7 @@ export default async function RequestsPage() {
                           name="partyRequestId"
                           value={request.id}
                         />
-                        <button className="h-10 w-full rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 text-xs font-semibold text-white transition active:scale-[0.99]">
+                        <button className="h-10 w-full rounded-lg bg-[var(--accent)] text-xs font-semibold text-[var(--accent-dark-text,#2e1f1a)] transition-opacity hover:opacity-90 active:opacity-80">
                           Beitrag zahlen
                         </button>
                       </form>

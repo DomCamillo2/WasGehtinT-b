@@ -421,7 +421,20 @@ async function insertEventRow(input: {
     return true;
   }
 
-  if (!isMissingColumnError(extendedInsert.error.message, "external_id", "source_url")) {
+  const missingExtended =
+    isMissingColumnError(
+      extendedInsert.error.message,
+      "external_id",
+      "source_url",
+      "category_slug",
+      "category_label",
+      "event_scope",
+      "is_all_day",
+      "audience_label",
+      "price_info",
+    );
+
+  if (!missingExtended) {
     throw new Error(`Insert failed: ${extendedInsert.error.message}`);
   }
 

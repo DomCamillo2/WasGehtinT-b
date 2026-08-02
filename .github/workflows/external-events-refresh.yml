@@ -13,7 +13,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  sync:
+  # Full source set via production Next scrapers (uni, sudhaus, club-voltaire, dai, …).
+  refresh-via-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Refresh external events cache
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        run: |
+          set -euo pipefail
+          BASE_URL="${APP_BASE_URL:-https://www.wasgehttueb.app}"
+          BASE_URL="${BASE_URL%/}"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is required"
+            exit 1
+          fi
+          curl -fsS -X POST "${BASE_URL}/api/external-events/refresh" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json"
+
+  # Offline fallback worker (subset of sources) if API refresh is unavailable.
+  sync-worker-fallback:
+    if: ${{ failure() }}
+    needs: refresh-via-api
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -33,7 +57,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run external events worker
+      - name: Run external events worker fallback
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets['NEXT_PUBLIC_SUPABASE_URL'] }}
           SUPABASE_SECRET_KEY: ${{ secrets['SUPABASE_SECRET_KEY'] }}
@@ -41,4 +65,24 @@ jobs:
           DIGINIGHTS_URLS: ${{ secrets['DIGINIGHTS_URLS'] }}
           CLUBHAUS_EVENTS_URL: ${{ secrets['CLUBHAUS_EVENTS_URL'] }}
           EXTERNAL_EVENTS_REDDIT_SUBREDDITS: ${{ secrets['EXTERNAL_EVENTS_REDDIT_SUBREDDITS'] }}
-        run: npm run external-events:sync
+        run: npm run external-events:sync:ci
+
+  instagram-scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Scrape Instagram venues
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        run: |
+          set -euo pipefail
+          BASE_URL="${APP_BASE_URL:-https://www.wasgehttueb.app}"
+          BASE_URL="${BASE_URL%/}"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is required"
+            exit 1
+          fi
+          curl -fsS -X POST "${BASE_URL}/api/cron/scrape" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json"

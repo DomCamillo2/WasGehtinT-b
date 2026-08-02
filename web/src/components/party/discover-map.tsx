@@ -104,7 +104,7 @@ function resolveMarkerTheme(party: DiscoverEvent, accentMarkers = false) {
     return { background: "#1e40af", foreground: "#ffffff", glyph: "BT", venue: "Blauer Turm" };
   }
   if (location.includes("top10")) {
-    return { background: "#7c3aed", foreground: "#ffffff", glyph: "T10", venue: "Top10" };
+    return { background: "#c96f2e", foreground: "#ffffff", glyph: "T10", venue: "Top10" };
   }
   if (location.includes("sudhaus")) {
     return { background: "#334155", foreground: "#ffffff", glyph: "SH", venue: "Sudhaus" };
