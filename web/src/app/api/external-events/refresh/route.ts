@@ -2,6 +2,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { syncExternalEventsToCache } from "@/lib/external-events-cache";
 import { externalEventsFetchStaleSourceKeys } from "@/lib/external-event-sources";
 import { cronSecretMatches, normalizeEnvSecret } from "@/lib/cron-auth";
+import { safeEqualString } from "@/lib/security";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
 
@@ -21,16 +22,13 @@ function isAuthorized(request: Request) {
   }
 
   const expected = normalizeEnvSecret(process.env.EXTERNAL_EVENTS_REFRESH_TOKEN);
-
   if (!expected) {
     return false;
   }
 
-  const headerToken = request.headers.get("x-refresh-token")?.trim();
-  const url = new URL(request.url);
-  const queryToken = url.searchParams.get("token")?.trim();
-
-  return headerToken === expected || queryToken === expected;
+  // Header-only — never accept ?token= (logs / Referer leakage).
+  const headerToken = request.headers.get("x-refresh-token")?.trim() ?? "";
+  return headerToken.length > 0 && safeEqualString(headerToken, expected);
 }
 
 export async function GET(request: Request) {

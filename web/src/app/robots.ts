@@ -7,22 +7,27 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
+        disallow: ["/admin", "/admin/", "/debug", "/debug/", "/api/", "/host/webhooks", "/host/reports"],
       },
       {
         userAgent: "Googlebot",
         allow: "/",
+        disallow: ["/admin", "/admin/", "/debug", "/debug/", "/api/"],
       },
       {
         userAgent: "Google-Extended",
         allow: "/",
+        disallow: ["/admin", "/admin/", "/debug", "/debug/", "/api/"],
       },
       {
         userAgent: "OAI-SearchBot",
         allow: "/",
+        disallow: ["/admin", "/admin/", "/debug", "/debug/", "/api/"],
       },
       {
         userAgent: "GPTBot",
         allow: "/",
+        disallow: ["/admin", "/admin/", "/debug", "/debug/", "/api/"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

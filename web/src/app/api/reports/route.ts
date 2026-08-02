@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getInternalAdminUserOrNull } from "@/lib/admin-guard";
 import { moderateContent } from "@/lib/moderation";
+import { clientIpFromRequest, consumeRateLimit } from "@/lib/security";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,6 +21,11 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const ip = clientIpFromRequest(request);
+  if (!consumeRateLimit(`reports:${user.id}:${ip}`, 20, 60_000)) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
 
   const payload = (await request.json().catch(() => null)) as

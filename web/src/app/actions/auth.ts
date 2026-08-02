@@ -8,6 +8,7 @@ import {
   sendPasswordResetMail,
   sendWelcomeMail,
 } from "@/lib/resend";
+import { safeInternalPath } from "@/lib/security";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -315,7 +316,7 @@ export async function signInAction(
   const rawIdentifier = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const requestedRedirect = String(formData.get("redirectTo") ?? "").trim();
-  const redirectTarget = requestedRedirect.startsWith("/") ? requestedRedirect : "/discover";
+  const redirectTarget = safeInternalPath(requestedRedirect, "/discover");
   const email =
     redirectTarget === "/admin" || redirectTarget.startsWith("/admin/")
       ? resolveAdminSignInEmail(rawIdentifier)
@@ -331,6 +332,13 @@ export async function signInAction(
   }
 
   const supabase = await createClient();
+
+  // Best-effort auth rate limit (per email + coarse key).
+  const { consumeRateLimit } = await import("@/lib/security");
+  if (!consumeRateLimit(`signin:${email}`, 10, 60_000)) {
+    return { error: "Zu viele Login-Versuche. Bitte kurz warten." };
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {

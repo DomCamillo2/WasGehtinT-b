@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { getMissingSupabaseEnv, getSupabasePublicKey } from "@/lib/env";
+import { getMissingSupabaseEnv, getSupabasePublicKey, getSupabaseUrl } from "@/lib/env";
 
 export function createClient() {
   const missing = getMissingSupabaseEnv();
@@ -8,9 +8,7 @@ export function createClient() {
   }
 
   const publicKey = getSupabasePublicKey();
+  const url = getSupabaseUrl();
 
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    publicKey!,
-  );
+  return createBrowserClient(url!, publicKey!);
 }

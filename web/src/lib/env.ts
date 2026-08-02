@@ -1,21 +1,35 @@
+import { normalizeEnvSecret } from "@/lib/security";
+
 const SUPABASE_URL_KEY = "NEXT_PUBLIC_SUPABASE_URL" as const;
 const SUPABASE_ANON_KEY = "NEXT_PUBLIC_SUPABASE_ANON_KEY" as const;
 const SUPABASE_PUBLISHABLE_KEY = "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" as const;
 const SUPABASE_SECRET_KEY = "SUPABASE_SECRET_KEY" as const;
 const SUPABASE_SERVICE_ROLE_KEY = "SUPABASE_SERVICE_ROLE_KEY" as const;
 
+export function getSupabaseUrl() {
+  return normalizeEnvSecret(process.env[SUPABASE_URL_KEY] || process.env.SUPABASE_URL) || null;
+}
+
 export function getSupabasePublicKey() {
-  return process.env[SUPABASE_PUBLISHABLE_KEY] || process.env[SUPABASE_ANON_KEY] || null;
+  return (
+    normalizeEnvSecret(process.env[SUPABASE_PUBLISHABLE_KEY]) ||
+    normalizeEnvSecret(process.env[SUPABASE_ANON_KEY]) ||
+    null
+  );
 }
 
 export function getSupabaseAdminKey() {
-  return process.env[SUPABASE_SECRET_KEY] || process.env[SUPABASE_SERVICE_ROLE_KEY] || null;
+  return (
+    normalizeEnvSecret(process.env[SUPABASE_SECRET_KEY]) ||
+    normalizeEnvSecret(process.env[SUPABASE_SERVICE_ROLE_KEY]) ||
+    null
+  );
 }
 
 export function getMissingSupabaseEnv() {
   const missing: string[] = [];
 
-  if (!process.env[SUPABASE_URL_KEY]) {
+  if (!getSupabaseUrl()) {
     missing.push(SUPABASE_URL_KEY);
   }
 

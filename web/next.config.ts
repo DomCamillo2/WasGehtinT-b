@@ -1,6 +1,31 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+const supabaseHost = (() => {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+  try {
+    return raw ? new URL(raw.replace(/\\n$/g, "").replace(/^"|"$/g, "")).host : null;
+  } catch {
+    return null;
+  }
+})();
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "img-src 'self' data: blob: https://images.pexels.com https://images.unsplash.com https://*.supabase.co",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // Next.js + Supabase auth require inline/eval in practice for App Router hydration.
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval'${supabaseHost ? ` https://${supabaseHost}` : ""}`,
+  `connect-src 'self' https://api.stripe.com https://*.supabase.co wss://*.supabase.co${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""} https://images.pexels.com`,
+  "frame-src https://js.stripe.com https://hooks.stripe.com",
+  "upgrade-insecure-requests",
+].join("; ");
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["apify-client"],
   images: {
@@ -53,6 +78,10 @@ const nextConfig: NextConfig = {
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy,
           },
         ],
       },

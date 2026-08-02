@@ -3,6 +3,11 @@ import {
   MAX_DISCOVER_HERO_LOOKUPS_DEFAULT,
   resolveDiscoverHeroImagesForParties,
 } from "@/lib/discover-event-images";
+import {
+  clientIpFromRequest,
+  consumeRateLimit,
+  isSameOriginRequest,
+} from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +29,15 @@ function isPartyCardLiteBody(value: unknown): value is Record<string, unknown> {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return Response.json({ ok: false, error: "forbidden_origin" }, { status: 403 });
+  }
+
+  const ip = clientIpFromRequest(request);
+  if (!consumeRateLimit(`hero-images:${ip}`, 30, 60_000)) {
+    return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
+
   let body: HeroImagesBody;
   try {
     body = (await request.json()) as HeroImagesBody;
