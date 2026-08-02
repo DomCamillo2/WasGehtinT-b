@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { berlinWallTimeToUtc, resolveYearlessBerlinDate } from "@/lib/timezone-berlin";
+import { sanitizeExternalEventTitle } from "@/lib/sanitize-event-title";
 import {
   resolveTuebingenVenueCoordsFromText,
   TUEBINGEN_VENUE_COORDS,
@@ -359,11 +360,27 @@ async function fetchGenericCalendarEvents(config: {
           if (seenIds.has(eventId)) continue;
           seenIds.add(eventId);
 
+          const fallbackDescription = `${config.locationName} – ${config.categoryLabel}`;
+          const rawDescription =
+            typeof item.description === "string" && item.description.trim().length > 0
+              ? item.description
+              : fallbackDescription;
+          const plainDescription = String(rawDescription)
+            .replace(/<[^>]+>/g, " ")
+            .replace(/&[a-z#0-9]+;/gi, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 280);
+
           events.push({
             id: eventId,
             source: config.source,
-            title: name.slice(0, 140),
-            description: `${config.locationName} – ${config.categoryLabel}`,
+            title: sanitizeExternalEventTitle(name, {
+              description: plainDescription || fallbackDescription,
+              externalLink,
+              fallback: config.vibeLabel,
+            }).slice(0, 140),
+            description: plainDescription || fallbackDescription,
             starts_at: startsAtDate.toISOString(),
             ends_at: new Date(endsAtMs).toISOString(),
             max_guests: 0,
