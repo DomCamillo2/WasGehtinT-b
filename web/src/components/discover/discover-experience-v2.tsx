@@ -26,7 +26,8 @@ export function DiscoverExperienceV2(props: Props) {
     <div className="discover-ui-v2 relative min-h-screen bg-background text-foreground">
       <div className="relative z-10">
         <Suspense fallback={<DiscoverFeedSkeleton />}>
-          <DiscoverFeedV2 key={props.currentWeeks} {...props} />
+          {/* Do not key on weeks — remounting resets scroll, visibleCount, and heroes (laggy “load more”). */}
+          <DiscoverFeedV2 {...props} />
         </Suspense>
       </div>
     </div>

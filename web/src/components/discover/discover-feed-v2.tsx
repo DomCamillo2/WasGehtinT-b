@@ -180,7 +180,13 @@ export function DiscoverFeedV2({
   );
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const weeksSentinelRef = useRef<HTMLDivElement | null>(null);
+  const clientLoadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
+  /** Prevents double weeks navigation while RSC soft-nav is in flight. */
+  const weeksLoadTargetRef = useRef<number | null>(null);
+  const clientHeroUrlsRef = useRef<Record<string, string>>({});
+  const partiesLenRef = useRef(parties.length);
+  const lastClientRevealAtRef = useRef(0);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
     const raw = searchParams.get("view");
@@ -319,65 +325,38 @@ export function DiscoverFeedV2({
     }
   }, [parties]);
 
+  clientHeroUrlsRef.current = clientHeroUrls;
+
+  /** Merge server upvote counts for newly fetched parties (weeks expand) without wiping local toggles. */
   useEffect(() => {
-    const missing = parties.filter(
-      (p) => !p.heroImageUrl && !clientHeroUrls[p.id] && !heroImageRequestRef.current.has(p.id),
-    );
-    const batch = missing.slice(0, 48);
-    if (!batch.length) return;
-
-    for (const p of batch) {
-      heroImageRequestRef.current.add(p.id);
-    }
-
-    const ac = new AbortController();
-    const releaseBatch = () => {
-      for (const p of batch) {
-        heroImageRequestRef.current.delete(p.id);
-      }
-    };
-
-    void (async () => {
-      try {
-        const res = await fetch("/api/discover/hero-images", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ parties: batch.map(discoverEventToPartyCardForHero) }),
-          signal: ac.signal,
-        });
-        if (!res.ok) {
-          releaseBatch();
-          return;
-        }
-        const data = (await res.json()) as { ok?: boolean; heroes?: Record<string, string> };
-        const heroes = data.heroes;
-        if (!data.ok || !heroes) {
-          releaseBatch();
-          return;
-        }
-        setClientHeroUrls((prev) => {
-          const next = { ...prev };
-          let changed = false;
-          for (const [id, url] of Object.entries(heroes)) {
-            if (typeof url === "string" && url.length > 0 && next[id] !== url) {
-              next[id] = url;
-              changed = true;
-            }
-          }
-          return changed ? next : prev;
-        });
-      } catch {
-        if (!ac.signal.aborted) {
-          releaseBatch();
+    setUpvoteCounts((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const party of parties) {
+        if (next[party.id] === undefined) {
+          next[party.id] = Math.max(0, Number(party.upvoteCount ?? 0));
+          changed = true;
         }
       }
-    })();
+      return changed ? next : prev;
+    });
+  }, [parties]);
 
-    return () => {
-      ac.abort();
-      releaseBatch();
-    };
-  }, [parties, clientHeroUrls]);
+  /** After weeks expand, keep the user at the fold — reveal the next batch instead of trapping behind “Mehr”. */
+  useEffect(() => {
+    const prevLen = partiesLenRef.current;
+    const nextLen = parties.length;
+    partiesLenRef.current = nextLen;
+    if (nextLen <= prevLen) return;
+    startTransition(() => {
+      setVisibleCount((c) => {
+        if (c < prevLen) return c;
+        return Math.min(nextLen, c + LOAD_MORE_STEP);
+      });
+    });
+  }, [parties.length]);
+
+  // Hero images for the visible window are loaded in a later effect (after `visibleEvents`).
 
   useEffect(() => {
     try {
@@ -439,7 +418,31 @@ export function DiscoverFeedV2({
 
   useEffect(() => {
     setWeeksNavPending(false);
+    if (weeksLoadTargetRef.current != null && weeksLoadTargetRef.current <= currentWeeks) {
+      weeksLoadTargetRef.current = null;
+    }
   }, [currentWeeks]);
+
+  const requestMoreWeeks = useCallback(() => {
+    if (weeksNavPending || !canLoadMore) return;
+    const nextWeeks = Math.min(24, currentWeeks + 4);
+    if (nextWeeks <= currentWeeks) return;
+    if (weeksLoadTargetRef.current === nextWeeks) return;
+    weeksLoadTargetRef.current = nextWeeks;
+    setWeeksNavPending(true);
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    params.set("ui", "new");
+    params.set("weeks", String(nextWeeks));
+    startTransition(() => {
+      router.replace(`/discover?${params.toString()}`, { scroll: false });
+    });
+  }, [canLoadMore, currentWeeks, router, weeksNavPending]);
+
+  const revealMoreVisible = useCallback(() => {
+    startTransition(() => {
+      setVisibleCount((c) => c + LOAD_MORE_STEP);
+    });
+  }, []);
 
   const sortedParties = useMemo(
     () => sortDiscoverByUpvotesThenDate(parties, upvoteCounts),
@@ -501,6 +504,96 @@ export function DiscoverFeedV2({
 
   const hasMoreVisible = searchFiltered.length > visibleCount;
 
+  /** Progressive client reveal — one batch per approach; cooldown avoids dumping the whole list. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (viewMode === "map" || viewMode === "calendar") return;
+    if (!hasMoreVisible) return;
+    const el = clientLoadMoreSentinelRef.current;
+    if (!el) return;
+
+    let cancelled = false;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (cancelled || !entries.some((e) => e.isIntersecting)) return;
+        const now = Date.now();
+        if (now - lastClientRevealAtRef.current < 520) return;
+        lastClientRevealAtRef.current = now;
+        revealMoreVisible();
+      },
+      { root: null, rootMargin: "180px 0px", threshold: 0 },
+    );
+    obs.observe(el);
+    return () => {
+      cancelled = true;
+      obs.disconnect();
+    };
+  }, [hasMoreVisible, revealMoreVisible, viewMode, visibleCount]);
+
+  /**
+   * Fetch missing heroes for currently rendered cards only.
+   * Avoid depending on `clientHeroUrls` state (that aborted in-flight batches on every paint).
+   */
+  useEffect(() => {
+    const missing = visibleEvents.filter(
+      (p) => !p.heroImageUrl && !clientHeroUrlsRef.current[p.id] && !heroImageRequestRef.current.has(p.id),
+    );
+    const batch = missing.slice(0, 24);
+    if (!batch.length) return;
+
+    for (const p of batch) {
+      heroImageRequestRef.current.add(p.id);
+    }
+
+    const ac = new AbortController();
+    const releaseBatch = () => {
+      for (const p of batch) {
+        heroImageRequestRef.current.delete(p.id);
+      }
+    };
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/discover/hero-images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parties: batch.map(discoverEventToPartyCardForHero) }),
+          signal: ac.signal,
+        });
+        if (!res.ok) {
+          releaseBatch();
+          return;
+        }
+        const data = (await res.json()) as { ok?: boolean; heroes?: Record<string, string> };
+        const heroes = data.heroes;
+        if (!data.ok || !heroes) {
+          releaseBatch();
+          return;
+        }
+        setClientHeroUrls((prev) => {
+          const next = { ...prev };
+          let changed = false;
+          for (const [id, url] of Object.entries(heroes)) {
+            if (typeof url === "string" && url.length > 0 && next[id] !== url) {
+              next[id] = url;
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      } catch {
+        if (!ac.signal.aborted) {
+          releaseBatch();
+        }
+      }
+    })();
+
+    return () => {
+      ac.abort();
+      window.setTimeout(releaseBatch, 0);
+    };
+  }, [visibleEvents]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (viewMode === "map" || viewMode === "calendar") return;
@@ -510,22 +603,16 @@ export function DiscoverFeedV2({
     const obs = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
-        setWeeksNavPending(true);
-        const nextWeeks = Math.min(24, currentWeeks + 4);
-        const p = new URLSearchParams(window.location.search);
-        p.set("ui", "new");
-        p.set("weeks", String(nextWeeks));
-        router.replace(`/discover?${p.toString()}`, { scroll: false });
+        requestMoreWeeks();
       },
-      { root: null, rootMargin: "160px 0px", threshold: 0 },
+      { root: null, rootMargin: "120px 0px", threshold: 0 },
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, [
     canLoadMore,
-    currentWeeks,
     hasMoreVisible,
-    router,
+    requestMoreWeeks,
     searchFiltered.length,
     viewMode,
     weeksNavPending,
@@ -643,14 +730,6 @@ export function DiscoverFeedV2({
     },
     [parties, showToast, upvoteCounts, upvotedPartyIds],
   );
-
-  function buildLoadMoreHref() {
-    const nextWeeks = Math.min(24, currentWeeks + 4);
-    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    params.set("ui", "new");
-    params.set("weeks", String(nextWeeks));
-    return `/discover?${params.toString()}`;
-  }
 
   async function handleInstallApp() {
     if (installPromptEvent) {
@@ -1026,10 +1105,13 @@ export function DiscoverFeedV2({
         )}
 
         {viewMode !== "map" && viewMode !== "calendar" && hasMoreVisible ? (
-          <div className="flex justify-center scroll-mt-8 pt-4 pb-2 max-sm:scroll-mb-40 max-sm:pb-6">
+          <div
+            ref={clientLoadMoreSentinelRef}
+            className="flex justify-center scroll-mt-8 pt-4 pb-2 max-sm:scroll-mb-40 max-sm:pb-6"
+          >
             <button
               type="button"
-              onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
+              onClick={revealMoreVisible}
               className="min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-5 py-2.5 text-sm font-medium text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
             >
               Mehr anzeigen
@@ -1044,10 +1126,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               disabled={weeksNavPending}
-              onClick={() => {
-                setWeeksNavPending(true);
-                router.replace(buildLoadMoreHref(), { scroll: false });
-              }}
+              onClick={requestMoreWeeks}
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[#c4783a] px-5 py-2.5 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90 disabled:opacity-70"
             >
               {weeksNavPending ? (
