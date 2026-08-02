@@ -22,9 +22,10 @@ Priority: **Discover + external events pipeline** (scrape → cache → Discover
 
 Deprioritize: chat, payments, requests — unless the change touches shared auth/data.
 
-Brand / UI direction: cool ink + muted Neckar green + copper accent (`#d48745`). Fonts: Figtree + Bricolage. Avoid purple SaaS defaults, glass blur, glow CTAs.
+Brand / UI direction: cool ink + muted Neckar green + copper accent (`#c4783a` in CSS; avoid inventing a second accent). Fonts: Figtree + Bricolage. Avoid purple SaaS defaults, glass blur, glow CTAs.
 
-**Design / motion toolkit (MCPs + repos):** `web/docs/DESIGN_MOTION_TOOLKIT.md`
+**Design / motion toolkit (MCPs + repos):** `web/docs/DESIGN_MOTION_TOOLKIT.md`  
+**UI/UX audit (2026-08-02):** `web/docs/UI_UX_AUDIT.md`
 
 ## Start here by task
 

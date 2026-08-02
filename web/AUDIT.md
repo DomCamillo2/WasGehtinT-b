@@ -23,7 +23,9 @@ Scope: production app in `web/` only. Agent map: root `AGENTS.md`.
 
 ## UI direction
 
-**Neckar Night** — cool ink `#0e1110`, muted Neckar green brand, copper signal `#d48745`. Fonts: **Figtree** + **Bricolage**. Avoid purple SaaS defaults / glass blur / glow CTAs.
+**Neckar Night** — cool ink `#0e1110`, muted Neckar green brand, copper signal `#c4783a` (CSS source of truth). Fonts: **Figtree** + **Bricolage**. Avoid purple SaaS defaults / glass blur / glow CTAs.
+
+UI/UX audit: `web/docs/UI_UX_AUDIT.md` (score 6.5/10 — Welcome/Discover strong; secondary IA/theme debt).
 
 ## Ops still on you
 
