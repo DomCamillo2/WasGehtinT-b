@@ -32,25 +32,15 @@ import {
 } from "@/lib/discover-filters";
 import { filterPartiesWithMapCoords } from "@/lib/discover-map-coords";
 import { asServiceError } from "@/services/service-error";
-import type { PartyCard } from "@/lib/types";
 import type { DiscoverViewMode } from "@/services/discover/discover-page-service";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { SITE_LOGO_SRC } from "@/lib/site-config";
 import { togglePartyUpvote } from "@/services/events/upvotes-service";
 import { LegalLinks } from "@/components/layout/legal-links";
 import { DiscoverBottomNavV2 } from "./discover-bottom-nav-v2";
-import { DiscoverCalendarPanelV2 } from "./discover-calendar-panel-v2";
 import { DiscoverEventCardV2 } from "./discover-event-card-v2";
 import { DiscoverEventListItemV2 } from "./discover-event-list-item-v2";
 import { DiscoverFeedScrollItem } from "./discover-feed-scroll-item";
-import {
-  AnimatePresence,
-  DiscoverMotionRoot,
-  enterTransition,
-  exitTransition,
-  m,
-  useReducedMotion,
-} from "@/lib/discover-motion";
 
 const DiscoverMapLazy = dynamic(
   () => import("@/components/party/discover-map").then((m) => m.DiscoverMap),
@@ -60,6 +50,11 @@ const DiscoverMapLazy = dynamic(
 const DiscoverMapEventListLazy = dynamic(
   () => import("@/components/party/discover-map").then((m) => m.DiscoverMapEventList),
   { ssr: false },
+);
+
+const DiscoverCalendarPanelLazy = dynamic(
+  () => import("./discover-calendar-panel-v2").then((m) => m.DiscoverCalendarPanelV2),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-[#1c1815]" aria-hidden="true" /> },
 );
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
@@ -142,30 +137,6 @@ function buildClassicDiscoverHref(): string {
   return q ? `/discover?${q}` : "/discover";
 }
 
-function discoverEventToPartyCardForHero(e: DiscoverEvent): PartyCard {
-  return {
-    id: e.id,
-    title: e.title,
-    description: e.description,
-    starts_at: e.startsAt,
-    ends_at: e.endsAt,
-    max_guests: e.maxGuests,
-    contribution_cents: e.contributionCents,
-    public_lat: e.publicLat,
-    public_lng: e.publicLng,
-    is_external: e.isExternal,
-    external_link: e.externalLink,
-    vibe_label: e.vibeLabel ?? "",
-    spots_left: e.spotsLeft,
-    location_name: e.locationName,
-    music_genre: e.musicGenre,
-    category_slug: e.categorySlug,
-    category_label: e.categoryLabel,
-    event_scope: e.eventScope ?? undefined,
-    is_community: e.isCommunity,
-    hero_image_url: e.heroImageUrl,
-  };
-}
 
 export function DiscoverFeedV2({
   parties,
@@ -194,7 +165,6 @@ export function DiscoverFeedV2({
   const headerRef = useRef<HTMLElement | null>(null);
   /** Prevents double weeks navigation while RSC soft-nav is in flight. */
   const weeksLoadTargetRef = useRef<number | null>(null);
-  const clientHeroUrlsRef = useRef<Record<string, string>>({});
   const partiesLenRef = useRef(parties.length);
   const lastClientRevealAtRef = useRef(0);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -206,9 +176,6 @@ export function DiscoverFeedV2({
     return initialView;
   });
   const [visibleCount, setVisibleCount] = useState(LOAD_MORE_STEP);
-  /** Pexels hero URLs loaded after first paint so discover SSR is not blocked. */
-  const [clientHeroUrls, setClientHeroUrls] = useState<Record<string, string>>({});
-  const heroImageRequestRef = useRef(new Set<string>());
 
   const todayKey = useMemo(() => berlinDayKeyFromIso(new Date().toISOString()), []);
 
@@ -340,8 +307,6 @@ export function DiscoverFeedV2({
       /* ignore */
     }
   }, [parties]);
-
-  clientHeroUrlsRef.current = clientHeroUrls;
 
   /** Merge server upvote counts for newly fetched parties (weeks expand) without wiping local toggles. */
   useEffect(() => {
@@ -578,69 +543,6 @@ export function DiscoverFeedV2({
     };
   }, [hasMoreVisible, revealMoreVisible, viewMode, visibleCount]);
 
-  /**
-   * Fetch missing heroes for currently rendered cards only.
-   * Avoid depending on `clientHeroUrls` state (that aborted in-flight batches on every paint).
-   */
-  useEffect(() => {
-    const missing = visibleEvents.filter(
-      (p) => !p.heroImageUrl && !clientHeroUrlsRef.current[p.id] && !heroImageRequestRef.current.has(p.id),
-    );
-    const batch = missing.slice(0, 24);
-    if (!batch.length) return;
-
-    for (const p of batch) {
-      heroImageRequestRef.current.add(p.id);
-    }
-
-    const ac = new AbortController();
-    const releaseBatch = () => {
-      for (const p of batch) {
-        heroImageRequestRef.current.delete(p.id);
-      }
-    };
-
-    void (async () => {
-      try {
-        const res = await fetch("/api/discover/hero-images", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ parties: batch.map(discoverEventToPartyCardForHero) }),
-          signal: ac.signal,
-        });
-        if (!res.ok) {
-          releaseBatch();
-          return;
-        }
-        const data = (await res.json()) as { ok?: boolean; heroes?: Record<string, string> };
-        const heroes = data.heroes;
-        if (!data.ok || !heroes) {
-          releaseBatch();
-          return;
-        }
-        setClientHeroUrls((prev) => {
-          const next = { ...prev };
-          let changed = false;
-          for (const [id, url] of Object.entries(heroes)) {
-            if (typeof url === "string" && url.length > 0 && next[id] !== url) {
-              next[id] = url;
-              changed = true;
-            }
-          }
-          return changed ? next : prev;
-        });
-      } catch {
-        if (!ac.signal.aborted) {
-          releaseBatch();
-        }
-      }
-    })();
-
-    return () => {
-      ac.abort();
-      window.setTimeout(releaseBatch, 0);
-    };
-  }, [visibleEvents]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -806,10 +708,7 @@ export function DiscoverFeedV2({
     }
   }
 
-  const reduceMotion = useReducedMotion();
-
   return (
-    <DiscoverMotionRoot>
     <div className="min-h-screen pb-28 max-sm:pb-[9.5rem]">
       <div className="overflow-x-clip">
       <a href="#events-feed-v2" className="skip-to-content">
@@ -1045,7 +944,7 @@ export function DiscoverFeedV2({
         }
       >
         {viewMode === "calendar" ? (
-          <DiscoverCalendarPanelV2
+          <DiscoverCalendarPanelLazy
             events={searchFiltered}
             todayKey={todayKey}
             selectedDate={calendarDate}
@@ -1099,8 +998,8 @@ export function DiscoverFeedV2({
               {visibleEvents.map((event, index) => (
                 <DiscoverFeedScrollItem key={event.id} variant="card" scrollSnap>
                   <DiscoverEventCardV2
-                    event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
-                    imagePriority={index < 4}
+                    event={event}
+                    imagePriority={index < 2}
                     isHot={hotPartyIds.has(event.id)}
                     upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
                     upvotedByMe={upvotedPartyIds.includes(event.id)}
@@ -1117,7 +1016,7 @@ export function DiscoverFeedV2({
               {visibleEvents.map((event) => (
                 <DiscoverFeedScrollItem key={event.id} variant="list">
                   <DiscoverEventListItemV2
-                    event={{ ...event, heroImageUrl: clientHeroUrls[event.id] ?? event.heroImageUrl }}
+                    event={event}
                     isHot={hotPartyIds.has(event.id)}
                     upvoteCount={upvoteCounts[event.id] ?? event.upvoteCount ?? 0}
                     upvotedByMe={upvotedPartyIds.includes(event.id)}
@@ -1224,18 +1123,12 @@ export function DiscoverFeedV2({
         <Search className="h-5 w-5" aria-hidden="true" />
       </button>
 
-      <AnimatePresence>
       {filterSheetOpen ? (
-        <m.div
-          key="discover-filter-sheet"
+        <div
           className="fixed inset-0 z-[60] sm:hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="discover-filter-sheet-title"
-          initial={reduceMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={exitTransition(reduceMotion)}
         >
           <button
             type="button"
@@ -1243,13 +1136,7 @@ export function DiscoverFeedV2({
             aria-label="Schließen"
             onClick={() => setFilterSheetOpen(false)}
           />
-          <m.div
-            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[rgba(240,235,228,0.12)] bg-[#14110f] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
-            initial={reduceMotion ? false : { y: 28 }}
-            animate={{ y: 0 }}
-            exit={{ y: 18 }}
-            transition={enterTransition(reduceMotion)}
-          >
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[rgba(240,235,228,0.12)] bg-[#14110f] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div className="mx-auto mb-3 h-0.5 w-10 bg-[#3a312b]" aria-hidden="true" />
             <h2 id="discover-filter-sheet-title" className="font-wordmark text-lg text-[#f0ebe4]">
               Mehr Optionen
@@ -1271,10 +1158,9 @@ export function DiscoverFeedV2({
             >
               Schließen
             </button>
-          </m.div>
-        </m.div>
+          </div>
+        </div>
       ) : null}
-      </AnimatePresence>
 
       <div className="mx-auto max-w-md px-4 pb-3 pt-6">
         <LegalLinks className="text-[#6f675f] [&_a]:text-[#9a9086] [&_a]:decoration-[#6f675f]/50 [&_a:hover]:text-[#f0ebe4]" />
@@ -1286,6 +1172,5 @@ export function DiscoverFeedV2({
         onSelectSaved={navigateBottomNavSaved}
       />
     </div>
-    </DiscoverMotionRoot>
   );
 }

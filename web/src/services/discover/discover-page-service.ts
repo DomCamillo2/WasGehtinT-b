@@ -10,8 +10,7 @@ import {
 } from "@/lib/discover-calendar";
 import { applyTrafficBasedUpvoteEstimates } from "@/lib/discover-traffic-upvotes";
 import {
-  MAX_DISCOVER_HERO_LOOKUPS_DEFAULT,
-  resolveDiscoverHeroImagesForParties,
+  pickDiscoverFallbackHeroUrlForParty,
 } from "@/lib/discover-event-images";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { createClient } from "@/lib/supabase/server";
@@ -20,7 +19,6 @@ import { DiscoverEvent, mapPartyCardToDiscoverEvent } from "@/services/discover/
 
 const DEFAULT_WEEKS = 8;
 const MAX_WEEKS = 24;
-const MIN_DISCOVER_EVENTS_ON_ENTRY = 12;
 
 function isMissingColumnError(code: string | undefined) {
   return code === "42703" || code === "PGRST204";
@@ -170,28 +168,13 @@ type DiscoverPublicData = {
   communityHangouts: PartyCard[];
 };
 
-function mergeUniqueById(items: PartyCard[]): PartyCard[] {
-  const seen = new Set<string>();
-  const merged: PartyCard[] = [];
-  for (const item of items) {
-    if (seen.has(item.id)) continue;
-    seen.add(item.id);
-    merged.push(item);
-  }
-  return merged;
-}
-
-function mergeDiscoverPublicData(left: DiscoverPublicData, right: DiscoverPublicData): DiscoverPublicData {
-  return {
-    dbParties: mergeUniqueById([...left.dbParties, ...right.dbParties]),
-    externalParties: mergeUniqueById([...left.externalParties, ...right.externalParties]),
-    communityHangouts: mergeUniqueById([...left.communityHangouts, ...right.communityHangouts]),
-  };
-}
-
 const loadDiscoverPublicDataCached = unstable_cache(
-  async (fromIso: string, untilIso: string): Promise<DiscoverPublicData> => {
+  async (fromDay: string, weeksKey: string): Promise<DiscoverPublicData> => {
+    const weeks = Number(weeksKey);
     const publicSupabase = getSupabasePublicServerClient();
+    // Stable civil-day bucket (not per-ms) so the 300s cache actually hits.
+    const fromIso = `${fromDay}T00:00:00.000Z`;
+    const untilIso = addWeeks(new Date(fromIso), Number.isFinite(weeks) ? weeks : DEFAULT_WEEKS).toISOString();
 
     const [dbParties, externalParties, communityHangouts] = await Promise.all([
       getPublicParties({ fromIso, untilIso }, publicSupabase),
@@ -205,7 +188,7 @@ const loadDiscoverPublicDataCached = unstable_cache(
       communityHangouts,
     };
   },
-  ["discover-public-data-v1"],
+  ["discover-public-data-v2"],
   {
     revalidate: 300,
     tags: ["discover-public"],
@@ -225,10 +208,8 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
       weeks = Math.max(DEFAULT_WEEKS, Math.min(MAX_WEEKS, needed));
     }
   }
-  const windowStart = new Date();
-  const windowEnd = addWeeks(windowStart, weeks);
-  const windowStartIso = windowStart.toISOString();
-  const windowEndIso = windowEnd.toISOString();
+
+  const todayBerlin = berlinDayKeyFromIso(new Date().toISOString());
 
   const supabase = await createClient();
   const cookieStore = await cookies();
@@ -240,23 +221,11 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
     ? supabase.auth.getUser().then((result) => result.data.user)
     : Promise.resolve(null);
 
-  const [initialPublicData, user] = await Promise.all([
-    loadDiscoverPublicDataCached(windowStartIso, windowEndIso),
+  // One cached fetch for the requested window — no sequential +4 week expansion (that stacked TTFB).
+  const [publicData, user] = await Promise.all([
+    loadDiscoverPublicDataCached(todayBerlin, String(weeks)),
     userPromise,
   ]);
-  let publicData = initialPublicData;
-  // Ensure enough discover content on first load: grow window until at least 12 events (unless liked-only).
-  if (!likedOnly) {
-    let fetchWeeks = weeks;
-    while (fetchWeeks < MAX_WEEKS) {
-      const total = publicData.dbParties.length + publicData.externalParties.length + publicData.communityHangouts.length;
-      if (total >= MIN_DISCOVER_EVENTS_ON_ENTRY) break;
-      fetchWeeks = Math.min(MAX_WEEKS, fetchWeeks + 4);
-      const expandedEndIso = addWeeks(windowStart, fetchWeeks).toISOString();
-      const expanded = await loadDiscoverPublicDataCached(windowStartIso, expandedEndIso);
-      publicData = mergeDiscoverPublicData(publicData, expanded);
-    }
-  }
 
   const { dbParties, externalParties, communityHangouts } = publicData;
 
@@ -272,16 +241,16 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
     eventIds.length
       ? supabase
           .from("event_upvotes")
-          .select("event_id, user_id")
+          .select(user ? "event_id, user_id" : "event_id")
           .in("event_id", eventIds)
       : Promise.resolve({
-          data: [] as Array<{ event_id: string; user_id: string | null }>,
+          data: [] as Array<{ event_id: string; user_id?: string | null }>,
           error: null as null,
         }),
   ]);
 
   if (!upvotesResult.error) {
-    for (const row of (upvotesResult.data ?? []) as Array<{ event_id: string; user_id: string | null }>) {
+    for (const row of (upvotesResult.data ?? []) as Array<{ event_id: string; user_id?: string | null }>) {
       const current = upvoteCountMap.get(row.event_id) ?? 0;
       upvoteCountMap.set(row.event_id, current + 1);
 
@@ -308,20 +277,15 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
       ? partiesWithUpvotes.filter((party) => party.upvoted_by_me === true)
       : partiesWithUpvotes;
 
-  /** Stock heroes (Pexels) on the server so cards paint with images without relying on client `/api/discover/hero-images`. */
-  let partiesWithHeroes = scopedParties;
-  try {
-    const heroById = await resolveDiscoverHeroImagesForParties(
-      scopedParties,
-      MAX_DISCOVER_HERO_LOOKUPS_DEFAULT,
-    );
-    partiesWithHeroes = scopedParties.map((party) => ({
-      ...party,
-      hero_image_url: heroById[party.id] ?? party.hero_image_url ?? null,
-    }));
-  } catch {
-    partiesWithHeroes = scopedParties;
-  }
+  // Sync curated Unsplash heroes only — never await Pexels on Discover SSR (TTFB killer).
+  // Client may still upgrade via `/api/discover/hero-images` when a card has no hero.
+  const partiesWithHeroes = scopedParties.map((party) => ({
+    ...party,
+    hero_image_url:
+      party.hero_image_url && party.hero_image_url.length > 0
+        ? party.hero_image_url
+        : pickDiscoverFallbackHeroUrlForParty(party),
+  }));
 
   const discoverEvents = partiesWithHeroes.map(mapPartyCardToDiscoverEvent);
 
