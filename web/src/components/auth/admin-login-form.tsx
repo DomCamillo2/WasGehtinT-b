@@ -15,10 +15,12 @@ export function AdminLoginForm() {
 
       <input
         name="email"
-        type="email"
-        placeholder="admin@..."
-        autoComplete="email"
-        inputMode="email"
+        type="text"
+        placeholder="Benutzername oder E-Mail"
+        autoComplete="username"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
         required
         className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3.5 text-base text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400"
       />

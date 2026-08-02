@@ -35,7 +35,7 @@ export default async function AdminLoginPage() {
       <Card className="space-y-3 p-5 sm:p-4">
         <h1 className="text-2xl font-bold text-zinc-900">Admin Login</h1>
         <p className="text-sm text-zinc-600">
-          Melde dich mit einem Admin-Account an, um Einreichungen freizugeben.
+          Melde dich mit Admin-Benutzername und Passwort an, um Einreichungen freizugeben.
         </p>
 
         {user ? (
