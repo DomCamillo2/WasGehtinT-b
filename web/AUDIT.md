@@ -40,12 +40,22 @@ Removed / reduced: purple–fuchsia SaaS tokens, glass blur chrome, floating blo
 
 Primary surfaces touched: tokens (`globals.css`, `tailwind.config.ts`), auth splash, discover experience/feed/cards/nav/calendar, shared primary buttons, bottom-nav accents.
 
-## Verify locally
+## Live verification (2026-08-02, Vercel env pull)
 
-```bash
-cd web
-cp .env.example .env.local   # fill secrets
-npm run lint
-npm run build
-npm run external-events:sync # needs Supabase admin key
-```
+- Linked Vercel project `was-gehtin-t-b`, pulled development + selected production secrets into `.env.local` (gitignored).
+- Supabase REST connection test: **passed** (`v_external_events_public` readable).
+- Applied migration `20260802120000_external_events_cache_dedupe_columns.sql` → columns `external_id`, `source_url` present.
+- Worker sync: **18 upserted** (Diginights city URLs were 404; root `diginights.com` returns 200 — defaults updated).
+- API refresh (`/api/external-events/refresh` with `CRON_SECRET`): **ok, count=18, upserted=18**.
+- Dev smoke: `/`, `/discover`, `/auth` → 200; auth shows Neckar Night copy (`Was geht heut’`, copper accent).
+- Supabase MCP not used (cloud agent cannot complete plugin OAuth); Postgres via Vercel URL used instead.
+
+### Cache snapshot after sync
+
+| source | notes |
+|---|---|
+| kuckuck / schlachthaus / markets | refreshed same day |
+| club-voltaire | stale (May) — not in GH worker set |
+| instagram | stale (Apr) — needs separate cron scrape |
+| diginights | previously failing on `/city/tuebingen` 404 |
+

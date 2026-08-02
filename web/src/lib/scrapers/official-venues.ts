@@ -10,7 +10,7 @@ const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
   sudhaus: { lat: 48.5065, lng: 9.0625 },
 };
 
-const DIGINIGHTS_URL = "https://diginights.com/city/tuebingen";
+const DIGINIGHTS_URL = (process.env.DIGINIGHTS_URL || process.env.DIGINIGHTS_URLS?.split(",")[0] || "https://diginights.com").trim();
 const DIGINIGHTS_DISABLED =
   (process.env.EXTERNAL_EVENTS_ENABLE_DIGINIGHTS ?? "true").trim().toLowerCase() === "false";
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";

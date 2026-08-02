@@ -4,9 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 /** Fallback if a scraped event omits `source` */
 const DEFAULT_SOURCE = "official-scraper";
 const DEFAULT_DIGINIGHTS_URLS = [
-  "https://diginights.com/city/tuebingen",
-  "https://diginights.com/city/tubingen",
   "https://diginights.com",
+  "https://www.diginights.com",
 ];
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
