@@ -11,6 +11,7 @@ This is the canonical Next.js app. Full agent instructions live at the **repo ro
 Quick links:
 
 - Architecture rules: `ARCHITECTURE.md`
+- Design & motion MCPs/repos: `docs/DESIGN_MOTION_TOOLKIT.md`
 - Scraper index: `src/lib/scrapers/README.md`
 - Env knobs: `.env.example`
 - Go-live: `GO_LIVE_CHECKLIST.md`
