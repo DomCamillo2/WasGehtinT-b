@@ -1,7 +1,6 @@
-import { Card } from "@/components/ui/card";
 import { WelcomePage } from "@/components/landing/welcome-page";
+import { Card } from "@/components/ui/card";
 import { getMissingSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
-import { getCurrentUserOrNull } from "@/services/auth/session-service";
 
 export default async function Home() {
   if (!hasSupabaseEnv()) {
@@ -35,6 +34,5 @@ export default async function Home() {
     );
   }
 
-  const user = await getCurrentUserOrNull();
-  return <WelcomePage isAuthenticated={Boolean(user)} />;
+  return <WelcomePage />;
 }

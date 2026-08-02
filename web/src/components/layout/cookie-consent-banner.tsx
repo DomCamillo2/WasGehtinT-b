@@ -17,38 +17,26 @@ export function CookieConsentBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-2 z-50 px-3">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-50 px-3 sm:bottom-[5.5rem]">
       <div
-        className="mx-auto max-w-md rounded-[24px] border p-3 shadow-[0_18px_40px_-24px_rgba(2,6,23,0.75)] backdrop-blur-xl"
-        style={{
-          borderColor: "var(--border-soft)",
-          background:
-            "linear-gradient(180deg, color-mix(in srgb, var(--surface-card) 94%, transparent), color-mix(in srgb, var(--surface-elevated) 92%, transparent))",
-        }}
+        className="pointer-events-auto mx-auto max-w-md rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)] p-3 shadow-[0_12px_32px_-20px_rgba(0,0,0,0.55)]"
       >
-        <p className="text-sm leading-6 text-foreground/95">
-          {"Wir verwenden technisch notwendige Cookies fuer Login/Sicherheit. Optionale externe Dienste und Analytics (z. B. Karten, Google Analytics) laden wir nur mit deiner Einwilligung."}
+        <p className="text-sm leading-6 text-[color:var(--foreground)]">
+          Technisch nötige Cookies für die App. Optionale Dienste (Karten, Analytics) nur mit
+          Einwilligung.
         </p>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={() => saveConsent("rejected")}
-            className="min-h-[44px] flex-1 rounded-xl border text-sm font-medium outline-none transition-[color,background,border-color] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color-mix(in_srgb,var(--surface-card)_96%,transparent)]"
-            style={{
-              borderColor: "var(--border-strong)",
-              backgroundColor: "color-mix(in srgb, var(--surface-soft) 74%, transparent)",
-              color: "var(--foreground)",
-            }}
+            className="min-h-[44px] flex-1 rounded-xl border border-[color:var(--border-strong)] bg-[color:var(--surface-soft)] text-sm font-medium text-[color:var(--foreground)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]"
           >
             Ablehnen
           </button>
           <button
             type="button"
             onClick={() => saveConsent("accepted")}
-            className="min-h-[44px] flex-1 rounded-xl text-sm font-semibold text-white outline-none transition-[filter] focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-[color-mix(in_srgb,var(--surface-card)_96%,transparent)]"
-            style={{
-              background: "linear-gradient(135deg, var(--accent-strong), var(--accent))",
-            }}
+            className="min-h-[44px] flex-1 rounded-xl bg-[color:var(--accent)] text-sm font-semibold text-[color:var(--accent-dark-text)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]"
           >
             Akzeptieren
           </button>

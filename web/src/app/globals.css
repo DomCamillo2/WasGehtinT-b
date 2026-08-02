@@ -192,7 +192,7 @@ body::before {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Discover UI — Altstadt Nacht (Tübingen / Studis): warm ink, brick accent, no glow */
+/* Discover UI — Neckar Night defaults; honors html.light from theme toggle */
 html.discover-ui-new {
   --bg-page: #0e1110;
   --bg-surface: #151918;
@@ -251,6 +251,65 @@ html.discover-ui-new {
   --nav-bg: #0e1110;
   --nav-border: rgba(232, 236, 234, 0.1);
   color-scheme: dark;
+}
+
+/* Light mode on Discover shell pages (token surfaces; feed chrome still night-tinted in places) */
+html.discover-ui-new.light {
+  --bg-page: #eef2f0;
+  --bg-surface: #f7faf8;
+  --bg-surface-2: #e2e9e5;
+  --border-soft: rgba(18, 24, 22, 0.1);
+  --text-main: #121816;
+  --text-muted: #5c6863;
+  --accent: #c4783a;
+  --accent-strong: #9a5624;
+  --accent-dark-text: #1c1410;
+  --background: #eef2f0;
+  --foreground: #121816;
+  --card: #ffffff;
+  --card-foreground: #121816;
+  --popover: #ffffff;
+  --popover-foreground: #121816;
+  --primary: #c4783a;
+  --primary-foreground: #1c1410;
+  --secondary: #4f7669;
+  --secondary-foreground: #e8ecea;
+  --muted: #e2e9e5;
+  --muted-foreground: #5c6863;
+  --accent-foreground: #1c1410;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: rgba(18, 24, 22, 0.1);
+  --input: #ffffff;
+  --ring: #c4783a;
+  --color-background: #eef2f0;
+  --color-foreground: #121816;
+  --color-card: #ffffff;
+  --color-card-foreground: #121816;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #121816;
+  --color-primary: #c4783a;
+  --color-primary-foreground: #1c1410;
+  --color-secondary: #4f7669;
+  --color-secondary-foreground: #e8ecea;
+  --color-muted: #e2e9e5;
+  --color-muted-foreground: #5c6863;
+  --color-accent: #c4783a;
+  --color-accent-foreground: #1c1410;
+  --color-destructive: #b42318;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(18, 24, 22, 0.1);
+  --color-input: #ffffff;
+  --color-ring: #c4783a;
+  --surface: #f7faf8;
+  --surface-elevated: #ffffff;
+  --surface-card: #ffffff;
+  --surface-soft: #e2e9e5;
+  --surface-strong: #cfd8d3;
+  --border-strong: rgba(18, 24, 22, 0.18);
+  --nav-bg: rgba(238, 242, 240, 0.96);
+  --nav-border: rgba(18, 24, 22, 0.1);
+  color-scheme: light;
 }
 
 html.discover-ui-new body {
