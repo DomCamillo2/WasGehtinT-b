@@ -3,18 +3,21 @@
 import { useActionState, useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { requestPasswordResetAction, signInAction } from "@/app/actions/auth";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { SITE_LOGO_SRC } from "@/lib/site-config";
 
 type SheetMode = "login" | null;
 
 const initialState = { error: "", success: "" };
+const easeOut: [number, number, number, number] = [0, 0, 0.2, 1];
 
 export function SplashAuth() {
   const [sheet, setSheet] = useState<SheetMode>(null);
   const [showReset, setShowReset] = useState(false);
   const resetPanelId = useId();
+  const reduce = useReducedMotion();
 
   const [signInState, signInFormAction, signInPending] = useActionState(
     signInAction,
@@ -27,67 +30,102 @@ export function SplashAuth() {
 
   return (
     <>
-      <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#0e1110] text-[#e8ecea]">
+      <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)]">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(79,118,105,0.18) 0%, transparent 38%, rgba(201,111,46,0.08) 100%)",
+              "radial-gradient(ellipse 70% 45% at 50% 0%, var(--brand-green-soft), transparent 60%), linear-gradient(180deg, transparent 50%, var(--accent-soft) 100%)",
           }}
+          aria-hidden
         />
 
-        <section className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-40 pt-14">
-          <div className="relative mx-auto mb-8 mt-2 w-[200px]">
+        <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6">
+          <Link
+            href="/"
+            className="rounded-md text-sm font-medium text-[color:var(--muted-foreground)] outline-none hover:text-[color:var(--foreground)] focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]"
+          >
+            ← Willkommen
+          </Link>
+          <ThemeToggle />
+        </header>
+
+        <section className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-44 pt-10">
+          <motion.div
+            className="mx-auto w-[168px]"
+            initial={reduce ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduce ? 0 : 0.4, ease: easeOut }}
+          >
             <Image
               src={SITE_LOGO_SRC}
               alt="WasGehtTüb Logo"
-              width={400}
-              height={400}
-              className="relative h-auto w-full"
+              width={336}
+              height={336}
+              className="h-auto w-full"
               priority
             />
-          </div>
+          </motion.div>
 
-          <p className="font-wordmark text-center text-3xl tracking-tight text-[#e8ecea] sm:text-4xl">
+          <motion.p
+            className="font-wordmark mt-6 text-center text-3xl tracking-tight sm:text-4xl"
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: reduce ? 0 : 0.35, delay: reduce ? 0 : 0.1, ease: easeOut }}
+          >
             WasGehtTüb
-          </p>
+          </motion.p>
 
-          <h1 className="mt-4 text-center text-xl font-semibold leading-snug tracking-tight text-[#e8ecea] sm:text-2xl">
-            Was geht heut’ in Tübingen?
+          <h1 className="mt-4 text-center text-xl font-semibold leading-snug tracking-tight sm:text-2xl">
+            Schön, dass du da bist.
           </h1>
 
-          <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-[#8a9390]">
-            Clubs, Tagesevents und Community — nur mit{" "}
-            <span className="text-[#e8ecea]">@student.uni-tuebingen.de</span>
+          <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-[color:var(--muted-foreground)]">
+            Mit deiner{" "}
+            <span className="text-[color:var(--foreground)]">@student.uni-tuebingen.de</span>{" "}
+            Mail einloggen — und direkt sehen, was heute läuft.
           </p>
         </section>
 
-        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-[rgba(232,236,234,0.1)] bg-[#0e1110] px-5 pb-5 pt-4">
-          <button
-            type="button"
-            disabled
-            className="h-11 w-full cursor-not-allowed rounded-lg border border-[rgba(232,236,234,0.12)] bg-[#181c1b] px-4 text-sm font-semibold text-[#8a9390]"
+        <div
+          className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+          style={{
+            borderColor: "var(--border-soft)",
+            background: "color-mix(in srgb, var(--background) 92%, transparent)",
+          }}
+        >
+          <Link
+            href="/discover?ui=new"
+            className="flex h-11 w-full items-center justify-center rounded-xl border px-4 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{
+              borderColor: "var(--border-soft)",
+              background: "var(--surface-elevated)",
+              color: "var(--foreground)",
+            }}
           >
-            Kontoerstellung kommt später
-          </button>
+            Erst mal nur stöbern
+          </Link>
           <button
             type="button"
             onClick={() => setSheet("login")}
-            className="mt-2 h-11 w-full rounded-md bg-[#c4783a] px-4 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90"
+            className="mt-2 h-11 w-full rounded-xl bg-[color:var(--accent)] px-4 text-sm font-semibold text-[color:var(--accent-dark-text)] transition-opacity hover:opacity-90 active:scale-[0.98]"
           >
-            Bereits dabei? Einloggen
+            Einloggen
           </button>
 
-          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-[#8a9390]">
-            <Link href="/impressum" className="underline decoration-[#8a9390]/40 underline-offset-2">
+          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-[color:var(--muted-foreground)]">
+            <Link href="/impressum" className="underline decoration-current/40 underline-offset-2">
               Impressum
             </Link>
             <span>·</span>
-            <Link href="/nutzungsbedingungen" className="underline decoration-[#8a9390]/40 underline-offset-2">
+            <Link
+              href="/nutzungsbedingungen"
+              className="underline decoration-current/40 underline-offset-2"
+            >
               AGB
             </Link>
             <span>·</span>
-            <Link href="/datenschutz" className="underline decoration-[#8a9390]/40 underline-offset-2">
+            <Link href="/datenschutz" className="underline decoration-current/40 underline-offset-2">
               Datenschutz
             </Link>
           </div>
@@ -111,18 +149,18 @@ export function SplashAuth() {
 
             <motion.section
               key="sheet"
-              initial={{ opacity: 0.85 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0.85 }}
-              transition={{ duration: 0.15 }}
-              className="fixed inset-x-0 bottom-0 z-50 mx-auto h-[62vh] w-full max-w-md rounded-t-xl border border-zinc-200 bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+              initial={{ y: 24, opacity: 0.9 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 16, opacity: 0.9 }}
+              transition={{ duration: 0.22, ease: easeOut }}
+              className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[72vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)] p-4 shadow-[0_8px_32px_var(--shadow-color)]"
             >
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-zinc-900">Einloggen</h2>
+                <h2 className="text-lg font-semibold text-[color:var(--foreground)]">Einloggen</h2>
                 <button
                   type="button"
                   onClick={() => setSheet(null)}
-                  className="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100"
+                  className="rounded-lg px-2 py-1 text-sm text-[color:var(--muted-foreground)] hover:bg-[color:var(--surface-soft)]"
                 >
                   Schließen
                 </button>
@@ -130,76 +168,80 @@ export function SplashAuth() {
 
               {!showReset ? (
                 <form action={signInFormAction} className="space-y-3">
-                  <label className="block text-sm font-medium text-zinc-700">
+                  <label className="block text-sm font-medium text-[color:var(--foreground)]">
                     Uni-Mail
                     <input
                       name="email"
                       type="email"
                       required
                       autoComplete="email"
-                      className="mt-1 h-11 w-full rounded-lg border border-zinc-300 px-3 text-sm text-zinc-900 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c96f2e]"
+                      className="field-surface mt-1 h-11 w-full rounded-xl px-3 text-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]"
                     />
                   </label>
-                  <label className="block text-sm font-medium text-zinc-700">
+                  <label className="block text-sm font-medium text-[color:var(--foreground)]">
                     Passwort
                     <input
                       name="password"
                       type="password"
                       required
                       autoComplete="current-password"
-                      className="mt-1 h-11 w-full rounded-lg border border-zinc-300 px-3 text-sm text-zinc-900 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c96f2e]"
+                      className="field-surface mt-1 h-11 w-full rounded-xl px-3 text-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]"
                     />
                   </label>
                   {signInState.error ? (
-                    <p className="text-sm text-red-600">{signInState.error}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{signInState.error}</p>
                   ) : null}
                   {signInState.success ? (
-                    <p className="text-sm text-emerald-700">{signInState.success}</p>
+                    <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                      {signInState.success}
+                    </p>
                   ) : null}
                   <button
                     type="submit"
                     disabled={signInPending}
-                    className="h-11 w-full rounded-lg bg-[#c96f2e] text-sm font-semibold text-white disabled:opacity-60"
+                    className="h-11 w-full rounded-xl bg-[color:var(--accent)] text-sm font-semibold text-[color:var(--accent-dark-text)] disabled:opacity-60"
                   >
                     {signInPending ? "…" : "Einloggen"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowReset(true)}
-                    className="w-full text-center text-sm text-zinc-600 underline underline-offset-2"
+                    className="w-full text-center text-sm text-[color:var(--muted-foreground)] underline underline-offset-2"
                   >
                     Passwort vergessen?
                   </button>
                 </form>
               ) : (
                 <form action={resetFormAction} className="space-y-3" id={resetPanelId}>
-                  <label className="block text-sm font-medium text-zinc-700">
+                  <label className="block text-sm font-medium text-[color:var(--foreground)]">
                     Uni-Mail für Reset
                     <input
                       name="email"
                       type="email"
                       required
                       autoComplete="email"
-                      className="mt-1 h-11 w-full rounded-lg border border-zinc-300 px-3 text-sm text-zinc-900 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c96f2e]"
+                      className="field-surface mt-1 h-11 w-full rounded-xl px-3 text-sm outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]"
                     />
                   </label>
                   {resetState.error ? (
-                    <p className="text-sm text-red-600">{resetState.error}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{resetState.error}</p>
                   ) : null}
                   {resetState.success ? (
-                    <p className="text-sm text-emerald-700">{resetState.success}</p>
+                    <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                      {resetState.success}
+                    </p>
                   ) : null}
                   <button
                     type="submit"
                     disabled={resetPending}
-                    className="h-11 w-full rounded-lg bg-[#c96f2e] text-sm font-semibold text-white disabled:opacity-60"
+                    className="h-11 w-full rounded-xl bg-[color:var(--accent)] text-sm font-semibold text-[color:var(--accent-dark-text)] disabled:opacity-60"
                   >
                     {resetPending ? "…" : "Reset-Link senden"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowReset(false)}
-                    className="w-full text-center text-sm text-zinc-600 underline underline-offset-2"
+                    className="w-full text-center text-sm text-[color:var(--muted-foreground)] underline underline-offset-2"
                   >
                     Zurück zum Login
                   </button>

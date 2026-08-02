@@ -1,82 +1,130 @@
 @import "tailwindcss";
 
-/* Altstadt Nacht — warm timber ink + brick accent. No teal glow, no purple wash. */
+/* Neckar Night — cool ink + mist + copper. Not cream/terracotta AI defaults. */
 :root {
-  --background: #f4f0ea;
-  --foreground: #1c1410;
-  --surface: #ffffff;
+  --background: #eef2f0;
+  --foreground: #121816;
+  --surface: #f7faf8;
   --surface-elevated: #ffffff;
   --surface-card: #ffffff;
-  --surface-soft: #ebe4db;
-  --surface-strong: #d9d0c4;
-  --muted-foreground: #6f675f;
-  --border-soft: rgba(28, 20, 16, 0.12);
-  --border-strong: rgba(28, 20, 16, 0.22);
-  --nav-bg: rgba(244, 240, 234, 0.94);
-  --nav-border: rgba(28, 20, 16, 0.12);
+  --surface-soft: #e2e9e5;
+  --surface-strong: #cfd8d3;
+  --muted-foreground: #5c6863;
+  --border-soft: rgba(18, 24, 22, 0.1);
+  --border-strong: rgba(18, 24, 22, 0.18);
+  --nav-bg: rgba(238, 242, 240, 0.94);
+  --nav-border: rgba(18, 24, 22, 0.1);
   --accent: #c4783a;
-  --accent-strong: #924320;
+  --accent-strong: #9a5624;
   --accent-soft: rgba(196, 120, 58, 0.14);
   --accent-dark-text: #1c1410;
+  --brand-green: #4f7669;
+  --brand-green-soft: rgba(79, 118, 105, 0.14);
   --success-soft: rgba(16, 185, 129, 0.12);
   --warning-soft: rgba(249, 115, 22, 0.14);
-  --shadow-color: rgba(28, 20, 16, 0.1);
-  --brand-700: #4a3f36;
-  --brand-800: #2f2822;
-  --secondary-700: #6b4535;
+  --shadow-color: rgba(18, 24, 22, 0.08);
+  --brand-700: #2a3833;
+  --brand-800: #1a2420;
+  --secondary-700: #4f7669;
   --accent-500: #c4783a;
+  --hero-scrim: linear-gradient(
+    180deg,
+    rgba(238, 242, 240, 0.15) 0%,
+    rgba(18, 24, 22, 0.45) 42%,
+    rgba(18, 24, 22, 0.88) 100%
+  );
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light):not(.dark) {
-    --background: #14110f;
-    --foreground: #f0ebe4;
-    --surface: #1c1815;
-    --surface-elevated: #221e1a;
-    --surface-card: #1c1815;
-    --surface-soft: #221e1a;
-    --surface-strong: #2a2520;
-    --muted-foreground: #9a9086;
-    --border-soft: rgba(240, 235, 228, 0.12);
-    --border-strong: rgba(240, 235, 228, 0.18);
-    --nav-bg: #14110f;
-    --nav-border: rgba(240, 235, 228, 0.12);
+    --background: #0e1110;
+    --foreground: #e8ecea;
+    --surface: #151918;
+    --surface-elevated: #1a1f1e;
+    --surface-card: #151918;
+    --surface-soft: #1a1f1e;
+    --surface-strong: #242a28;
+    --muted-foreground: #8a9390;
+    --border-soft: rgba(232, 236, 234, 0.1);
+    --border-strong: rgba(232, 236, 234, 0.16);
+    --nav-bg: #0e1110;
+    --nav-border: rgba(232, 236, 234, 0.1);
     --accent: #c4783a;
     --accent-strong: #d9a06a;
     --accent-soft: rgba(196, 120, 58, 0.16);
     --accent-dark-text: #1c1410;
+    --brand-green: #6a9486;
+    --brand-green-soft: rgba(79, 118, 105, 0.22);
     --success-soft: rgba(16, 185, 129, 0.16);
     --warning-soft: rgba(249, 115, 22, 0.18);
-    --shadow-color: rgba(0, 0, 0, 0.35);
+    --shadow-color: rgba(0, 0, 0, 0.4);
+    --hero-scrim: linear-gradient(
+      180deg,
+      rgba(14, 17, 16, 0.35) 0%,
+      rgba(14, 17, 16, 0.55) 40%,
+      rgba(14, 17, 16, 0.92) 100%
+    );
     color-scheme: dark;
   }
 }
 
 :root.dark {
-  --background: #14110f;
-  --foreground: #f0ebe4;
-  --surface: #1c1815;
-  --surface-elevated: #221e1a;
-  --surface-card: #1c1815;
-  --surface-soft: #221e1a;
-  --surface-strong: #2a2520;
-  --muted-foreground: #9a9086;
-  --border-soft: rgba(240, 235, 228, 0.12);
-  --border-strong: rgba(240, 235, 228, 0.18);
-  --nav-bg: #14110f;
-  --nav-border: rgba(240, 235, 228, 0.12);
+  --background: #0e1110;
+  --foreground: #e8ecea;
+  --surface: #151918;
+  --surface-elevated: #1a1f1e;
+  --surface-card: #151918;
+  --surface-soft: #1a1f1e;
+  --surface-strong: #242a28;
+  --muted-foreground: #8a9390;
+  --border-soft: rgba(232, 236, 234, 0.1);
+  --border-strong: rgba(232, 236, 234, 0.16);
+  --nav-bg: #0e1110;
+  --nav-border: rgba(232, 236, 234, 0.1);
   --accent: #c4783a;
   --accent-strong: #d9a06a;
   --accent-soft: rgba(196, 120, 58, 0.16);
   --accent-dark-text: #1c1410;
+  --brand-green: #6a9486;
+  --brand-green-soft: rgba(79, 118, 105, 0.22);
   --success-soft: rgba(16, 185, 129, 0.16);
   --warning-soft: rgba(249, 115, 22, 0.18);
-  --shadow-color: rgba(0, 0, 0, 0.35);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --hero-scrim: linear-gradient(
+    180deg,
+    rgba(14, 17, 16, 0.35) 0%,
+    rgba(14, 17, 16, 0.55) 40%,
+    rgba(14, 17, 16, 0.92) 100%
+  );
   color-scheme: dark;
 }
 
 :root.light {
+  --background: #eef2f0;
+  --foreground: #121816;
+  --surface: #f7faf8;
+  --surface-elevated: #ffffff;
+  --surface-card: #ffffff;
+  --surface-soft: #e2e9e5;
+  --surface-strong: #cfd8d3;
+  --muted-foreground: #5c6863;
+  --border-soft: rgba(18, 24, 22, 0.1);
+  --border-strong: rgba(18, 24, 22, 0.18);
+  --nav-bg: rgba(238, 242, 240, 0.94);
+  --nav-border: rgba(18, 24, 22, 0.1);
+  --accent: #c4783a;
+  --accent-strong: #9a5624;
+  --accent-soft: rgba(196, 120, 58, 0.14);
+  --accent-dark-text: #1c1410;
+  --brand-green: #4f7669;
+  --brand-green-soft: rgba(79, 118, 105, 0.14);
+  --hero-scrim: linear-gradient(
+    180deg,
+    rgba(238, 242, 240, 0.15) 0%,
+    rgba(18, 24, 22, 0.45) 42%,
+    rgba(18, 24, 22, 0.88) 100%
+  );
   color-scheme: light;
 }
 
@@ -146,62 +194,62 @@ body::before {
 /* -------------------------------------------------------------------------- */
 /* Discover UI — Altstadt Nacht (Tübingen / Studis): warm ink, brick accent, no glow */
 html.discover-ui-new {
-  --bg-page: #14110f;
-  --bg-surface: #1c1815;
-  --bg-surface-2: #221e1a;
-  --border-soft: rgba(240, 235, 228, 0.12);
-  --text-main: #f0ebe4;
-  --text-muted: #9a9086;
+  --bg-page: #0e1110;
+  --bg-surface: #151918;
+  --bg-surface-2: #1a1f1e;
+  --border-soft: rgba(232, 236, 234, 0.1);
+  --text-main: #e8ecea;
+  --text-muted: #8a9390;
   --accent: #c4783a;
   --accent-strong: #d9a06a;
   --accent-dark-text: #1c1410;
   --shadow-accent: none;
   --shadow-soft: none;
-  --background: #14110f;
-  --foreground: #f0ebe4;
-  --card: #1c1815;
-  --card-foreground: #f0ebe4;
-  --popover: #1c1815;
-  --popover-foreground: #f0ebe4;
+  --background: #0e1110;
+  --foreground: #e8ecea;
+  --card: #151918;
+  --card-foreground: #e8ecea;
+  --popover: #151918;
+  --popover-foreground: #e8ecea;
   --primary: #c4783a;
   --primary-foreground: #1c1410;
-  --secondary: #6b635a;
-  --secondary-foreground: #f0ebe4;
-  --muted: #221e1a;
-  --muted-foreground: #9a9086;
+  --secondary: #4f7669;
+  --secondary-foreground: #e8ecea;
+  --muted: #1a1f1e;
+  --muted-foreground: #8a9390;
   --accent-foreground: #1c1410;
   --destructive: #c45c5c;
-  --destructive-foreground: #f0ebe4;
-  --border: rgba(240, 235, 228, 0.12);
-  --input: #221e1a;
+  --destructive-foreground: #e8ecea;
+  --border: rgba(232, 236, 234, 0.1);
+  --input: #1a1f1e;
   --ring: #c4783a;
-  --color-background: #14110f;
-  --color-foreground: #f0ebe4;
-  --color-card: #1c1815;
-  --color-card-foreground: #f0ebe4;
-  --color-popover: #1c1815;
-  --color-popover-foreground: #f0ebe4;
+  --color-background: #0e1110;
+  --color-foreground: #e8ecea;
+  --color-card: #151918;
+  --color-card-foreground: #e8ecea;
+  --color-popover: #151918;
+  --color-popover-foreground: #e8ecea;
   --color-primary: #c4783a;
   --color-primary-foreground: #1c1410;
-  --color-secondary: #6b635a;
-  --color-secondary-foreground: #f0ebe4;
-  --color-muted: #221e1a;
-  --color-muted-foreground: #9a9086;
+  --color-secondary: #4f7669;
+  --color-secondary-foreground: #e8ecea;
+  --color-muted: #1a1f1e;
+  --color-muted-foreground: #8a9390;
   --color-accent: #c4783a;
   --color-accent-foreground: #1c1410;
   --color-destructive: #c45c5c;
-  --color-destructive-foreground: #f0ebe4;
-  --color-border: rgba(240, 235, 228, 0.12);
-  --color-input: #221e1a;
+  --color-destructive-foreground: #e8ecea;
+  --color-border: rgba(232, 236, 234, 0.1);
+  --color-input: #1a1f1e;
   --color-ring: #c4783a;
-  --surface: #1c1815;
-  --surface-elevated: #221e1a;
-  --surface-card: #1c1815;
-  --surface-soft: #221e1a;
-  --surface-strong: #2a2520;
-  --border-strong: rgba(240, 235, 228, 0.18);
-  --nav-bg: #14110f;
-  --nav-border: rgba(240, 235, 228, 0.12);
+  --surface: #151918;
+  --surface-elevated: #1a1f1e;
+  --surface-card: #151918;
+  --surface-soft: #1a1f1e;
+  --surface-strong: #242a28;
+  --border-strong: rgba(232, 236, 234, 0.16);
+  --nav-bg: #0e1110;
+  --nav-border: rgba(232, 236, 234, 0.1);
   color-scheme: dark;
 }
 
@@ -248,8 +296,8 @@ html.discover-ui-new body::before {
 
 .discover-ui-v2 .discover-header-glass {
   backdrop-filter: none !important;
-  background: #14110f !important;
-  border-bottom: 1px solid rgba(240, 235, 228, 0.12);
+  background: #0e1110 !important;
+  border-bottom: 1px solid rgba(232, 236, 234, 0.1);
   contain: layout style;
   padding-bottom: 0.75rem;
   transition: padding-bottom 160ms ease-out;

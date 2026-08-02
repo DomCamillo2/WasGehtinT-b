@@ -39,7 +39,8 @@ Needed GitHub secrets: `CRON_SECRET`, Supabase keys, optional `CLUBHAUS_EVENTS_U
 
 ## Screens
 
-- `/` / `/auth` — login
+- `/` — friendly welcome (light/dark), CTAs to Discover + Auth
+- `/auth` — Uni-Mail login
 - `/discover` — feed, calendar, map
 - `/event/[id]` — external event detail
 - `/host`, `/requests`, `/chat` — lower priority than Discover/events
