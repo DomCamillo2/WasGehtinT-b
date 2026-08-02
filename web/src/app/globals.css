@@ -1,51 +1,51 @@
 @import "tailwindcss";
 
-/* Neckar Night — cool ink + one copper signal. No purple, no glass glow kit. */
+/* Altstadt Nacht — warm timber ink + brick accent. No teal glow, no purple wash. */
 :root {
-  --background: #f3f4f3;
-  --foreground: #151918;
+  --background: #f4f0ea;
+  --foreground: #1c1410;
   --surface: #ffffff;
   --surface-elevated: #ffffff;
   --surface-card: #ffffff;
-  --surface-soft: #e9ebea;
-  --surface-strong: #d3d7d5;
-  --muted-foreground: #545c59;
-  --border-soft: rgba(58, 63, 61, 0.14);
-  --border-strong: rgba(58, 63, 61, 0.24);
-  --nav-bg: rgba(243, 244, 243, 0.92);
-  --nav-border: rgba(58, 63, 61, 0.14);
-  --accent: #c96f2e;
+  --surface-soft: #ebe4db;
+  --surface-strong: #d9d0c4;
+  --muted-foreground: #6f675f;
+  --border-soft: rgba(28, 20, 16, 0.12);
+  --border-strong: rgba(28, 20, 16, 0.22);
+  --nav-bg: rgba(244, 240, 234, 0.94);
+  --nav-border: rgba(28, 20, 16, 0.12);
+  --accent: #c4783a;
   --accent-strong: #924320;
-  --accent-soft: rgba(201, 111, 46, 0.12);
-  --accent-dark-text: #2e1f1a;
+  --accent-soft: rgba(196, 120, 58, 0.14);
+  --accent-dark-text: #1c1410;
   --success-soft: rgba(16, 185, 129, 0.12);
   --warning-soft: rgba(249, 115, 22, 0.14);
-  --shadow-color: rgba(21, 25, 24, 0.1);
-  --brand-700: #334c45;
-  --brand-800: #2b3e39;
+  --shadow-color: rgba(28, 20, 16, 0.1);
+  --brand-700: #4a3f36;
+  --brand-800: #2f2822;
   --secondary-700: #6b4535;
-  --accent-500: #c96f2e;
+  --accent-500: #c4783a;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light):not(.dark) {
-    --background: #0e1110;
-    --foreground: #e8ecea;
-    --surface: #151918;
-    --surface-elevated: #181c1b;
-    --surface-card: #181c1b;
-    --surface-soft: #1f2422;
-    --surface-strong: #2a312e;
-    --muted-foreground: #8a9390;
-    --border-soft: rgba(232, 236, 234, 0.1);
-    --border-strong: rgba(232, 236, 234, 0.18);
-    --nav-bg: rgba(14, 17, 16, 0.94);
-    --nav-border: rgba(232, 236, 234, 0.1);
-    --accent: #d48745;
-    --accent-strong: #eac79f;
-    --accent-soft: rgba(212, 135, 69, 0.16);
-    --accent-dark-text: #2e1f1a;
+    --background: #14110f;
+    --foreground: #f0ebe4;
+    --surface: #1c1815;
+    --surface-elevated: #221e1a;
+    --surface-card: #1c1815;
+    --surface-soft: #221e1a;
+    --surface-strong: #2a2520;
+    --muted-foreground: #9a9086;
+    --border-soft: rgba(240, 235, 228, 0.12);
+    --border-strong: rgba(240, 235, 228, 0.18);
+    --nav-bg: #14110f;
+    --nav-border: rgba(240, 235, 228, 0.12);
+    --accent: #c4783a;
+    --accent-strong: #d9a06a;
+    --accent-soft: rgba(196, 120, 58, 0.16);
+    --accent-dark-text: #1c1410;
     --success-soft: rgba(16, 185, 129, 0.16);
     --warning-soft: rgba(249, 115, 22, 0.18);
     --shadow-color: rgba(0, 0, 0, 0.35);
@@ -54,22 +54,22 @@
 }
 
 :root.dark {
-  --background: #0e1110;
-  --foreground: #e8ecea;
-  --surface: #151918;
-  --surface-elevated: #181c1b;
-  --surface-card: #181c1b;
-  --surface-soft: #1f2422;
-  --surface-strong: #2a312e;
-  --muted-foreground: #8a9390;
-  --border-soft: rgba(232, 236, 234, 0.1);
-  --border-strong: rgba(232, 236, 234, 0.18);
-  --nav-bg: rgba(14, 17, 16, 0.94);
-  --nav-border: rgba(232, 236, 234, 0.1);
-  --accent: #d48745;
-  --accent-strong: #eac79f;
-  --accent-soft: rgba(212, 135, 69, 0.16);
-  --accent-dark-text: #2e1f1a;
+  --background: #14110f;
+  --foreground: #f0ebe4;
+  --surface: #1c1815;
+  --surface-elevated: #221e1a;
+  --surface-card: #1c1815;
+  --surface-soft: #221e1a;
+  --surface-strong: #2a2520;
+  --muted-foreground: #9a9086;
+  --border-soft: rgba(240, 235, 228, 0.12);
+  --border-strong: rgba(240, 235, 228, 0.18);
+  --nav-bg: #14110f;
+  --nav-border: rgba(240, 235, 228, 0.12);
+  --accent: #c4783a;
+  --accent-strong: #d9a06a;
+  --accent-soft: rgba(196, 120, 58, 0.16);
+  --accent-dark-text: #1c1410;
   --success-soft: rgba(16, 185, 129, 0.16);
   --warning-soft: rgba(249, 115, 22, 0.18);
   --shadow-color: rgba(0, 0, 0, 0.35);
@@ -109,23 +109,12 @@ body {
 
 /* Subtle atmosphere — solid-first, no purple wash */
 body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--background) 92%, #4f7669 8%) 0%,
-      var(--background) 42%,
-      color-mix(in srgb, var(--background) 96%, #c96f2e 4%) 100%
-    );
+  content: none;
 }
 
 ::selection {
-  background: rgba(201, 111, 46, 0.28);
-  color: #151918;
+  background: rgba(196, 120, 58, 0.32);
+  color: #1c1410;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -138,7 +127,7 @@ body::before {
 }
 
 .brand-gradient {
-  background-image: linear-gradient(135deg, #334c45 0%, #4f7669 48%, #c96f2e 100%);
+  background: #c4783a;
 }
 
 .glass-surface {
@@ -168,77 +157,82 @@ body::before {
   color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
-/* Hot card: static border cue — no glow animation */
+/* Hot card: static border cue — no glow */
 .hot-card-glow {
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: none;
 }
 
 .hot-card-glow::after {
   content: none;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Discover UI — Neckar Night tokens                                          */
-/* -------------------------------------------------------------------------- */
+.wg-cta-attention,
+.wg-cta-confirmed {
+  will-change: auto;
+  animation: none !important;
+  box-shadow: none;
+}
 
+/* -------------------------------------------------------------------------- */
+/* Discover UI — Altstadt Nacht (Tübingen / Studis): warm ink, brick accent, no glow */
 html.discover-ui-new {
-  --bg-page: #0e1110;
-  --bg-surface: #151918;
-  --bg-surface-2: #1a1f1d;
-  --border-soft: rgba(232, 236, 234, 0.1);
-  --text-main: #e8ecea;
-  --text-muted: #8a9390;
-  --accent: #d48745;
-  --accent-strong: #dea46b;
-  --accent-dark-text: #2e1f1a;
-  --shadow-accent: 0 2px 8px rgba(201, 111, 46, 0.28);
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.28);
-  --background: #0e1110;
-  --foreground: #e8ecea;
-  --card: #181c1b;
-  --card-foreground: #e8ecea;
-  --popover: #151918;
-  --popover-foreground: #e8ecea;
-  --primary: #d48745;
-  --primary-foreground: #2e1f1a;
-  --secondary: #4f7669;
-  --secondary-foreground: #e8ecea;
-  --muted: #1f2422;
-  --muted-foreground: #8a9390;
-  --accent-foreground: #2e1f1a;
-  --destructive: #ef476f;
-  --destructive-foreground: #e8ecea;
-  --border: rgba(232, 236, 234, 0.12);
-  --input: #1a1f1d;
-  --ring: #d48745;
-  --color-background: #0e1110;
-  --color-foreground: #e8ecea;
-  --color-card: #181c1b;
-  --color-card-foreground: #e8ecea;
-  --color-popover: #151918;
-  --color-popover-foreground: #e8ecea;
-  --color-primary: #d48745;
-  --color-primary-foreground: #2e1f1a;
-  --color-secondary: #4f7669;
-  --color-secondary-foreground: #e8ecea;
-  --color-muted: #1f2422;
-  --color-muted-foreground: #8a9390;
-  --color-accent: #d48745;
-  --color-accent-foreground: #2e1f1a;
-  --color-destructive: #ef476f;
-  --color-destructive-foreground: #e8ecea;
-  --color-border: rgba(232, 236, 234, 0.12);
-  --color-input: #1a1f1d;
-  --color-ring: #d48745;
-  --surface: #151918;
-  --surface-elevated: #181c1b;
-  --surface-card: #181c1b;
-  --surface-soft: #1f2422;
-  --surface-strong: #2a312e;
-  --border-strong: rgba(232, 236, 234, 0.18);
-  --nav-bg: rgba(14, 17, 16, 0.96);
-  --nav-border: rgba(232, 236, 234, 0.1);
+  --bg-page: #14110f;
+  --bg-surface: #1c1815;
+  --bg-surface-2: #221e1a;
+  --border-soft: rgba(240, 235, 228, 0.12);
+  --text-main: #f0ebe4;
+  --text-muted: #9a9086;
+  --accent: #c4783a;
+  --accent-strong: #d9a06a;
+  --accent-dark-text: #1c1410;
+  --shadow-accent: none;
+  --shadow-soft: none;
+  --background: #14110f;
+  --foreground: #f0ebe4;
+  --card: #1c1815;
+  --card-foreground: #f0ebe4;
+  --popover: #1c1815;
+  --popover-foreground: #f0ebe4;
+  --primary: #c4783a;
+  --primary-foreground: #1c1410;
+  --secondary: #6b635a;
+  --secondary-foreground: #f0ebe4;
+  --muted: #221e1a;
+  --muted-foreground: #9a9086;
+  --accent-foreground: #1c1410;
+  --destructive: #c45c5c;
+  --destructive-foreground: #f0ebe4;
+  --border: rgba(240, 235, 228, 0.12);
+  --input: #221e1a;
+  --ring: #c4783a;
+  --color-background: #14110f;
+  --color-foreground: #f0ebe4;
+  --color-card: #1c1815;
+  --color-card-foreground: #f0ebe4;
+  --color-popover: #1c1815;
+  --color-popover-foreground: #f0ebe4;
+  --color-primary: #c4783a;
+  --color-primary-foreground: #1c1410;
+  --color-secondary: #6b635a;
+  --color-secondary-foreground: #f0ebe4;
+  --color-muted: #221e1a;
+  --color-muted-foreground: #9a9086;
+  --color-accent: #c4783a;
+  --color-accent-foreground: #1c1410;
+  --color-destructive: #c45c5c;
+  --color-destructive-foreground: #f0ebe4;
+  --color-border: rgba(240, 235, 228, 0.12);
+  --color-input: #221e1a;
+  --color-ring: #c4783a;
+  --surface: #1c1815;
+  --surface-elevated: #221e1a;
+  --surface-card: #1c1815;
+  --surface-soft: #221e1a;
+  --surface-strong: #2a2520;
+  --border-strong: rgba(240, 235, 228, 0.18);
+  --nav-bg: #14110f;
+  --nav-border: rgba(240, 235, 228, 0.12);
   color-scheme: dark;
 }
 
@@ -294,25 +288,13 @@ html.discover-ui-new body::before {
 }
 
 .discover-ui-v2 .editorial-shadow {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  box-shadow: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .discover-ui-v2 .card-lift {
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .discover-ui-v2 .card-lift:hover {
-    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  }
-}
-
-.wg-cta-attention,
-.wg-cta-confirmed {
-  will-change: auto;
-  animation: none !important;
-  box-shadow: 0 2px 8px rgba(201, 111, 46, 0.28);
+.discover-ui-v2 .discover-header-glass {
+  backdrop-filter: none !important;
+  background: #14110f !important;
+  border-bottom: 1px solid rgba(240, 235, 228, 0.12);
 }
 
 .discover-ui-v2 .animate-float-1,
@@ -344,12 +326,6 @@ html.discover-ui-new body::before {
   width: 100%;
   background: var(--border-strong);
   opacity: 1;
-}
-
-.discover-ui-v2 .discover-header-glass {
-  backdrop-filter: none !important;
-  background: var(--nav-bg) !important;
-  border-bottom: 1px solid var(--nav-border);
 }
 
 @media (prefers-reduced-motion: reduce) {

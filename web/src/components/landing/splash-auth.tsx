@@ -73,7 +73,7 @@ export function SplashAuth() {
           <button
             type="button"
             onClick={() => setSheet("login")}
-            className="mt-2 h-11 w-full rounded-lg bg-[#d48745] px-4 text-sm font-semibold text-[#2e1f1a] transition-opacity hover:opacity-90"
+            className="mt-2 h-11 w-full rounded-md bg-[#c4783a] px-4 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90"
           >
             Bereits dabei? Einloggen
           </button>

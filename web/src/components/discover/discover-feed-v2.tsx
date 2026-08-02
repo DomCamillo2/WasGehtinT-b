@@ -536,8 +536,8 @@ export function DiscoverFeedV2({
   ];
 
   const viewModeToggleActive =
-    "border border-[#dea46b] bg-[#d48745] text-[#2e1f1a] shadow-[0_2px_8px_rgba(201,111,46,0.28)]";
-  const viewModeToggleInactive = "border border-transparent text-[#8C8178] hover:text-[#E9DFD6]";
+    "bg-[#221e1a] text-[#c4783a] border border-[rgba(240,235,228,0.14)]";
+  const viewModeToggleInactive = "border border-transparent text-[#9a9086] hover:text-[#f0ebe4]";
 
   const toggleLikedFilter = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -692,15 +692,15 @@ export function DiscoverFeedV2({
                 priority
               />
               <div className="min-w-0">
-                <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[#e8ecea] sm:text-2xl">
-                  WasGehtTüb
+                <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[#f0ebe4] sm:text-2xl">
+                  WasGeht<span className="text-[#c4783a]">Tüb</span>
                 </p>
                 <p
-                  className={`mt-1 hidden truncate text-[12px] text-[#8a9390] sm:block motion-safe:transition-opacity motion-safe:duration-200 ${
+                  className={`mt-1 hidden truncate text-[12px] text-[#9a9086] sm:block motion-safe:transition-opacity motion-safe:duration-200 ${
                     headerCompact ? "sm:opacity-0 sm:pointer-events-none sm:h-0 sm:overflow-hidden sm:mt-0" : ""
                   }`}
                 >
-                  Was geht heut’?
+                  Was geht heut’ in Tübingen?
                 </p>
               </div>
             </div>
@@ -714,11 +714,11 @@ export function DiscoverFeedV2({
                   event.preventDefault();
                   dismissInstallHint();
                 }}
-                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-[rgba(232,236,234,0.12)] bg-[#181c1b] px-3 text-xs font-semibold text-[#e8ecea] transition-colors hover:bg-[#1f2422]"
+                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-3 text-xs font-semibold text-[#f0ebe4] transition-colors hover:bg-[#221e1a]"
                 aria-label="App installieren"
                 title="App installieren (Rechtsklick/Langdruck zum Ausblenden)"
               >
-                <Download className="h-4 w-4 text-[#d48745]" aria-hidden="true" />
+                <Download className="h-4 w-4 text-[#c4783a]" aria-hidden="true" />
                 <span className="hidden sm:inline">App</span>
               </button>
             ) : null}
@@ -728,12 +728,12 @@ export function DiscoverFeedV2({
               aria-label={isAuthenticated ? "Profil" : "Anmelden"}
             >
               {isAuthenticated ? (
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(232,236,234,0.14)] bg-[#1f2422] text-sm font-semibold text-foreground">
+                <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[rgba(240,235,228,0.14)] bg-[#221e1a] text-sm font-semibold text-foreground">
                   {avatarFallback}
                 </span>
               ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(232,236,234,0.12)] bg-[#181c1b]">
-                  <User className="h-5 w-5 text-[#8a9390]" aria-hidden="true" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815]">
+                  <User className="h-5 w-5 text-[#9a9086]" aria-hidden="true" />
                 </span>
               )}
             </Link>
@@ -741,8 +741,8 @@ export function DiscoverFeedV2({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex-1 min-w-[min(100%,12rem)] flex items-center gap-3 px-4 py-3 bg-[#141210]/90 border border-[#2A2521] rounded-xl transition-all duration-200 focus-within:bg-[#1b1714] focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20">
-            <Search className="w-4 h-4 text-[#8C8178] flex-shrink-0" aria-hidden="true" />
+          <div className="flex min-w-[min(100%,12rem)] flex-1 items-center gap-3 rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-3 transition-colors duration-150 focus-within:border-[rgba(196,120,58,0.45)]">
+            <Search className="h-4 w-4 shrink-0 text-[#9a9086]" aria-hidden="true" />
             <input
               ref={searchInputRef}
               type="search"
@@ -751,23 +751,23 @@ export function DiscoverFeedV2({
               placeholder="Events oder Locations suchen…"
               aria-label="Events suchen"
               id="discover-v2-search"
-              className="flex-1 bg-transparent text-sm text-[#E9DFD6] placeholder:text-[#6F655D] focus:outline-none min-w-0"
+              className="min-w-0 flex-1 bg-transparent text-sm text-[#f0ebe4] placeholder:text-[#6f675f] focus:outline-none"
             />
             {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="text-[#8C8178] hover:text-[#E9DFD6] text-xs shrink-0"
+                className="shrink-0 text-xs text-[#9a9086] hover:text-[#f0ebe4]"
               >
                 Leeren
               </button>
             ) : null}
           </div>
-          <div className="flex items-center bg-[#1A1715]/90 border border-[#2B2623] rounded-xl p-1" role="group" aria-label="Ansicht">
+          <div className="flex items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-0.5" role="group" aria-label="Ansicht">
             <button
               type="button"
               onClick={() => setViewMode("cards")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md transition-colors duration-150 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "cards" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Kartenansicht"
@@ -778,7 +778,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md transition-colors duration-150 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "list" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Listenansicht"
@@ -789,7 +789,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("calendar")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md transition-colors duration-150 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "calendar" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Kalender"
@@ -800,7 +800,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setViewMode("map")}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-all duration-200 sm:min-h-[36px] sm:min-w-[36px] ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md transition-colors duration-150 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "map" ? viewModeToggleActive : viewModeToggleInactive
               }`}
               aria-label="Karte"
@@ -812,14 +812,14 @@ export function DiscoverFeedV2({
           <button
             type="button"
             onClick={() => setFilterSheetOpen(true)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:hidden"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] text-[#9a9086] transition-colors duration-150 hover:border-[rgba(240,235,228,0.22)] hover:text-[#c4783a] sm:hidden"
             aria-label="Mehr Filter und klassische Ansicht"
           >
             <SlidersHorizontal className="w-5 h-5" />
           </button>
           <Link
             href={buildClassicDiscoverHref()}
-            className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-all duration-200 hover:border-primary/40 hover:text-primary sm:flex"
+            className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] text-[#9a9086] transition-colors duration-150 hover:border-[rgba(240,235,228,0.22)] hover:text-[#c4783a] sm:flex"
             aria-label="Klassische Discover-Ansicht mit erweiterten Filtern öffnen"
           >
             <SlidersHorizontal className="w-5 h-5" />
@@ -843,16 +843,16 @@ export function DiscoverFeedV2({
               }}
               role="tab"
               aria-selected={filter === item.id}
-              className={`snap-start shrink-0 flex min-h-[44px] items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
+              className={`snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:text-sm ${
                 filter === item.id
-                  ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
-                  : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
+                  ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
+                  : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
               }`}
             >
               <span>{item.label}</span>
               <span
-                className={`rounded-full px-1 py-0.5 text-[10px] leading-none tabular-nums sm:text-[11px] ${
-                  filter === item.id ? "bg-[#2D1D10]/20 text-[#2D1D10]" : "bg-[#24201D] text-[#8C8178]"
+                className={`text-[10px] leading-none tabular-nums sm:text-[11px] ${
+                  filter === item.id ? "text-[#c4783a]" : "text-[#6f675f]"
                 }`}
               >
                 {filterCounts[item.id]}
@@ -864,16 +864,16 @@ export function DiscoverFeedV2({
             onClick={() => toggleLikedFilter()}
             role="tab"
             aria-selected={likedOnly}
-            className={`snap-start shrink-0 flex min-h-[44px] items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:gap-1 sm:px-2.5 sm:py-1 sm:text-sm lg:h-6 lg:min-h-0 lg:gap-1 lg:px-2 lg:py-0 ${
+            className={`snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:text-sm ${
               likedOnly
-                ? "bg-[#e86c14] text-[#2D1D10] border border-[#d9854c] shadow-[0_2px_8px_rgba(232,108,20,0.22)] sm:shadow-[0_2px_8px_rgba(232,108,20,0.22)]"
-                : "bg-[#1A1715]/90 border border-[#2B2623] text-[#A69A91] hover:text-[#E9DFD6] hover:border-[#3A312B]"
+                ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
+                : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
             }`}
           >
-            <Heart className={`h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 ${likedOnly ? "fill-current" : ""}`} aria-hidden="true" />
+            <Heart className={`h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 ${likedOnly ? "fill-current text-[#c4783a]" : ""}`} aria-hidden="true" />
             <span>Gespeichert</span>
             <span
-              className={`rounded-full px-1 py-0.5 text-[10px] leading-none tabular-nums sm:text-[11px] ${likedOnly ? "bg-[#2D1D10]/20 text-[#2D1D10]" : "bg-[#24201D] text-[#8C8178]"}`}
+              className={`text-[10px] leading-none tabular-nums sm:text-[11px] ${likedOnly ? "text-[#c4783a]" : "text-[#6f675f]"}`}
             >
               {savedCount}
             </span>
@@ -884,7 +884,7 @@ export function DiscoverFeedV2({
         <div className={`mt-2 motion-safe:transition-opacity motion-safe:duration-200 ${headerCompact ? "max-sm:opacity-0 max-sm:h-0 max-sm:mt-0 max-sm:overflow-hidden max-sm:pointer-events-none" : ""}`}>
             <Link
               href={hottestParty.detailHref}
-              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-[#dea46b] bg-[#d48745] px-3 py-1.5 text-xs font-semibold text-[#2e1f1a] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d48745]/50 sm:min-h-[38px] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-md border border-[#c4783a] bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4783a]/40 sm:min-h-[38px] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
               aria-label={`Im Trend: ${hottestParty.title}`}
             >
               <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
@@ -930,17 +930,16 @@ export function DiscoverFeedV2({
               parties={partiesForMap}
               activeFilter={filter}
               accentMarkers={filter === "clubs"}
-              containerClassName="h-[min(22rem,52vh)] w-full overflow-hidden rounded-2xl border border-border/60 bg-card/20"
+              containerClassName="h-[min(22rem,52vh)] w-full overflow-hidden rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815]"
             />
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-border/50 bg-card/30">
-              <div className="w-14 h-14 rounded-full bg-card flex items-center justify-center mb-3 border border-border">
-                <MapPin className="w-7 h-7 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-16 text-center">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center border border-[rgba(240,235,228,0.12)] bg-[#221e1a]">
+                <MapPin className="h-7 w-7 text-[#9a9086]" />
               </div>
-              <h2 className="text-base font-semibold tracking-tight text-foreground mb-2">Keine Karteneinträge</h2>
-              <p className="text-sm text-muted-foreground max-w-[280px]">
-                Für die aktuelle Auswahl haben wir keine Position auf der Karte. Passe Suche oder Filter an, oder nutze die
-                Listenansicht.
+              <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[#f0ebe4]">Keine Karteneinträge</h2>
+              <p className="max-w-[280px] text-sm text-[#9a9086]">
+                Für diese Auswahl gibt’s keine Position — Filter anpassen oder die Liste nutzen.
               </p>
             </div>
           )
@@ -987,17 +986,17 @@ export function DiscoverFeedV2({
             role="status"
             aria-live="polite"
           >
-            <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center mb-4 border border-border">
-              <Heart className="w-8 h-8 text-muted-foreground" aria-hidden="true" />
+            <div className="mb-4 flex h-14 w-14 items-center justify-center border border-[rgba(240,235,228,0.12)] bg-[#1c1815]">
+              <Heart className="h-7 w-7 text-[#9a9086]" aria-hidden="true" />
             </div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Noch nichts gemerkt</h2>
-            <p className="text-sm text-muted-foreground max-w-[280px]">
-              Tippe bei einem Event auf „Ich bin dabei!“, um es hier zu speichern — oder stöbere neu in allen Events.
+            <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[#f0ebe4]">Noch nichts gemerkt</h2>
+            <p className="max-w-[280px] text-sm text-[#9a9086]">
+              Tippe bei einem Event auf „Ich bin dabei!“ — so findest du deinen Abend in Tübingen wieder.
             </p>
             <button
               type="button"
               onClick={() => navigateBottomNavDiscover()}
-              className="mt-6 min-h-[44px] px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity"
+              className="mt-6 min-h-[44px] rounded-md bg-[#c4783a] px-5 py-2.5 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90"
             >
               Events entdecken
             </button>
@@ -1008,17 +1007,17 @@ export function DiscoverFeedV2({
             role="status"
             aria-live="polite"
           >
-            <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center mb-4 border border-border">
-              <Search className="w-8 h-8 text-muted-foreground" />
+            <div className="mb-4 flex h-14 w-14 items-center justify-center border border-[rgba(240,235,228,0.12)] bg-[#1c1815]">
+              <Search className="h-7 w-7 text-[#9a9086]" />
             </div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2">Keine Events gefunden</h2>
-            <p className="text-sm text-muted-foreground max-w-[280px]">
-              Passe Suche oder Filter an, nutze die Kalender- oder Kartenansicht oben, oder setze alle Filter zurück.
+            <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[#f0ebe4]">Keine Events gefunden</h2>
+            <p className="max-w-[280px] text-sm text-[#9a9086]">
+              Filter lockern, Kalender oder Karte nutzen — oder zurück zu allen Abenden in Tübingen.
             </p>
             <button
               type="button"
               onClick={() => resetDiscoverV2Filters()}
-              className="mt-6 min-h-[44px] px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity"
+              className="mt-6 min-h-[44px] rounded-md bg-[#c4783a] px-5 py-2.5 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90"
             >
               Filter zurücksetzen
             </button>
@@ -1030,7 +1029,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
-              className="min-h-[44px] px-5 py-2.5 rounded-full border border-border bg-card/50 text-sm font-medium text-foreground hover:bg-card"
+              className="min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-5 py-2.5 text-sm font-medium text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
             >
               Mehr anzeigen
             </button>
@@ -1048,7 +1047,7 @@ export function DiscoverFeedV2({
                 setWeeksNavPending(true);
                 router.replace(buildLoadMoreHref(), { scroll: false });
               }}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full editorial-shadow hover:opacity-90 transition-opacity text-sm disabled:opacity-70"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[#c4783a] px-5 py-2.5 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90 disabled:opacity-70"
             >
               {weeksNavPending ? (
                 <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
@@ -1063,7 +1062,7 @@ export function DiscoverFeedV2({
 
       <button
         type="button"
-        className="fixed bottom-[7.25rem] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/95 text-[#E9DFD6] shadow-lg backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:hidden"
+        className="fixed bottom-[7.25rem] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-md border border-[rgba(240,235,228,0.14)] bg-[#1c1815] text-[#f0ebe4] transition-colors hover:border-[rgba(196,120,58,0.45)] hover:text-[#c4783a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4783a]/40 sm:hidden"
         onClick={() => {
           searchInputRef.current?.focus();
           window.requestAnimationFrame(() => {
@@ -1079,28 +1078,28 @@ export function DiscoverFeedV2({
         <div className="fixed inset-0 z-[60] sm:hidden" role="dialog" aria-modal="true" aria-labelledby="discover-filter-sheet-title">
           <button
             type="button"
-            className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/70"
             aria-label="Schließen"
             onClick={() => setFilterSheetOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-[#2B2623] bg-[#141210] p-4 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#3a312b]" aria-hidden="true" />
-            <h2 id="discover-filter-sheet-title" className="text-base font-semibold text-[#f2ece6]">
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[rgba(240,235,228,0.12)] bg-[#14110f] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto mb-3 h-0.5 w-10 bg-[#3a312b]" aria-hidden="true" />
+            <h2 id="discover-filter-sheet-title" className="font-wordmark text-lg text-[#f0ebe4]">
               Mehr Optionen
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#a89b90]">
+            <p className="mt-2 text-sm leading-relaxed text-[#9a9086]">
               Erweiterte Filter und die klassische Discover-Ansicht mit allen Steuerungen.
             </p>
             <Link
               href={buildClassicDiscoverHref()}
               onClick={() => setFilterSheetOpen(false)}
-              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#d48745] px-4 text-sm font-semibold text-[#2e1f1a]"
+              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-md bg-[#c4783a] px-4 text-sm font-semibold text-[#1c1410]"
             >
               Klassische Discover-Ansicht
             </Link>
             <button
               type="button"
-              className="mt-3 w-full min-h-[44px] rounded-xl border border-[#2B2623] bg-[#1A1715]/90 py-3 text-sm font-medium text-[#E9DFD6]"
+              className="mt-3 w-full min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] py-3 text-sm font-medium text-[#f0ebe4]"
               onClick={() => setFilterSheetOpen(false)}
             >
               Schließen

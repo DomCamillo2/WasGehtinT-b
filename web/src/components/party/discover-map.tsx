@@ -110,7 +110,7 @@ function resolveMarkerTheme(party: DiscoverEvent, accentMarkers = false) {
     return { background: "#334155", foreground: "#ffffff", glyph: "SH", venue: "Sudhaus" };
   }
   if (location.includes("uhlandstraße") || location.includes("uhlandstrasse") || location.includes("flohmarkt")) {
-    return { background: "#0f766e", foreground: "#ffffff", glyph: "FM", venue: "Flohmarkt" };
+    return { background: "#5a6b52", foreground: "#ffffff", glyph: "FM", venue: "Flohmarkt" };
   }
   if (location.includes("marktplatz") || location.includes("rathaus") || location.includes("markt")) {
     return { background: "#b45309", foreground: "#ffffff", glyph: "M", venue: "Markt" };

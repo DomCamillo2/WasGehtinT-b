@@ -42,7 +42,7 @@ export function DiscoverEventListItemV2({
 
   return (
     <article
-      className="group relative flex w-full items-center gap-3 rounded-2xl border border-[#2B2623] bg-[linear-gradient(180deg,#151210_0%,#12100e_100%)] px-3.5 py-3 shadow-[0_12px_32px_-26px_rgba(255,122,24,0.5)] [contain-intrinsic-size:auto_4.5rem] transition-[border-color,box-shadow] duration-150 hover:border-[#3A312B] hover:shadow-[0_20px_44px_-28px_rgba(255,122,24,0.7)]"
+      className="group relative flex w-full items-center gap-3 rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-3.5 py-3 transition-colors duration-150 hover:border-[rgba(240,235,228,0.22)]"
       role="article"
       aria-label={`${event.title} in ${venueLabel}, ${dateLabel} ${timeLabel}`}
     >
@@ -99,15 +99,15 @@ export function DiscoverEventListItemV2({
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           {n > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[13px] leading-none font-semibold tabular-nums text-primary">
+            <span className="inline-flex items-center gap-1 text-[13px] leading-none font-semibold tabular-nums text-[#c4783a]">
               <span className="text-[14px] font-bold">{n}</span>
-              <span className="text-[12px] font-medium text-[#EAA16B]">dabei</span>
+              <span className="text-[12px] font-medium text-[#9a9086]">dabei</span>
             </span>
           ) : (
-            <span className="text-xs font-medium tabular-nums text-[#aea396]">0 dabei</span>
+            <span className="text-xs font-medium tabular-nums text-[#6f675f]">0 dabei</span>
           )}
           {isHot ? (
-            <span className="rounded-md border border-[#dea46b]/80 bg-[#d48745] px-1.5 py-0.5 text-[10px] font-semibold text-[#2e1f1a] sm:px-2 sm:text-[11px]">
+            <span className="rounded-md border border-[#c4783a]/70 bg-[#c4783a] px-1.5 py-0.5 text-[10px] font-semibold text-[#1c1410] sm:px-2 sm:text-[11px]">
               Im Trend
             </span>
           ) : null}
@@ -125,10 +125,10 @@ export function DiscoverEventListItemV2({
             onTouchEnd={() => setSavePressed(false)}
             aria-pressed={upvotedByMe}
             aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-            className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-opacity duration-150 ${
+            className={`inline-flex min-h-[40px] items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition-opacity duration-150 ${
               upvotedByMe
-                ? "border-[#dea46b] bg-[#d48745] text-[#2e1f1a]"
-                : "border-[rgba(232,236,234,0.14)] bg-[#181c1b] text-[#e8ecea] hover:border-[rgba(232,236,234,0.28)]"
+                ? "border-[#d9a06a] bg-[#c4783a] text-[#1c1410]"
+                : "border-[rgba(240,235,228,0.14)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.28)]"
             } ${savePressed ? "opacity-80" : ""}`}
           >
             {upvotedByMe ? (
@@ -145,7 +145,7 @@ export function DiscoverEventListItemV2({
 
       <Link
         href={event.detailHref}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 text-[#8C8178] transition-colors hover:border-[#3A312B] hover:text-[#E9DFD6]"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#9a9086] transition-colors hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
         aria-label="Details anzeigen"
       >
         <ChevronRight className="h-5 w-5" aria-hidden="true" />

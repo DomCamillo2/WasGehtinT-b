@@ -49,7 +49,7 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
                 <Image src={hostAvatarUrl} alt="" width={28} height={28} className="h-full w-full object-cover" />
               ) : (
                 <div
-                  className="h-full w-full bg-gradient-to-br from-primary/55 to-secondary/45"
+                  className="h-full w-full bg-[#221e1a]"
                   aria-hidden="true"
                 />
               )}
@@ -103,7 +103,7 @@ export function DiscoverEventCardV2({
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-none sm:aspect-[3/1] md:aspect-[5/1]">
         <div
-          className="absolute inset-0 bg-gradient-to-br from-primary/25 via-muted to-secondary/20"
+          className="absolute inset-0 bg-[#221e1a]"
           aria-hidden="true"
         />
         <div
@@ -133,15 +133,8 @@ export function DiscoverEventCardV2({
           className="absolute inset-0 z-[2]"
           style={{
             background:
-              "linear-gradient(to top, rgba(12,10,9,0.95) 0%, rgba(12,10,9,0.55) 45%, rgba(12,10,9,0.1) 100%)",
+              "linear-gradient(to top, rgba(20,17,15,0.92) 0%, rgba(20,17,15,0.45) 48%, rgba(20,17,15,0) 100%)",
           }}
-        />
-        <div
-          className="absolute bottom-0 left-0 right-0 z-[2] max-sm:h-[72px] sm:h-[96px]"
-          style={{
-            background: "linear-gradient(to top, rgba(14,17,16,0.55) 0%, rgba(14,17,16,0) 100%)",
-          }}
-          aria-hidden="true"
         />
 
         <Link
@@ -151,7 +144,7 @@ export function DiscoverEventCardV2({
         />
 
         {isHot ? (
-          <div className="pointer-events-none absolute left-3 top-3 z-[6] border-l-2 border-[#d48745] bg-[#0e1110]/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#dea46b] sm:left-4 sm:top-4 sm:text-[11px]">
+          <div className="pointer-events-none absolute left-3 top-3 z-[6] border-l-2 border-[#c4783a] bg-[#14110f]/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#d9a06a] sm:left-4 sm:top-4 sm:text-[11px]">
             Trend
           </div>
         ) : null}
@@ -183,14 +176,14 @@ export function DiscoverEventCardV2({
             </div>
 
             <div className="flex w-full shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end sm:justify-start sm:gap-2.5 sm:flex-col">
-              <div className="pointer-events-none flex w-fit max-w-full items-center gap-1 self-end rounded-full border border-stone-500/60 bg-stone-950/90 px-2 py-1 sm:gap-2 sm:px-3.5 sm:py-2 max-sm:self-stretch max-sm:justify-center">
+              <div className="pointer-events-none flex w-fit max-w-full items-center gap-1.5 self-end rounded-md border border-[rgba(240,235,228,0.18)] bg-[#14110f]/90 px-2 py-1 sm:gap-2 sm:px-3 sm:py-1.5 max-sm:self-stretch max-sm:justify-center">
                 <time
-                  className="text-[10px] font-semibold tabular-nums text-[#f2ece6] sm:text-sm"
+                  className="text-[10px] font-semibold tabular-nums text-[#f0ebe4] sm:text-sm"
                   dateTime={event.startsAt}
                 >
                   {dateLabel}
                 </time>
-                <span className="h-0.5 w-0.5 rounded-full bg-stone-300/90" aria-hidden="true" />
+                <span className="h-0.5 w-0.5 rounded-full bg-[#9a9086]" aria-hidden="true" />
                 <span className="text-[10px] font-semibold tabular-nums text-[#ebe4dd] sm:text-sm">{timeLabel}</span>
               </div>
               <button
@@ -210,10 +203,10 @@ export function DiscoverEventCardV2({
                 onTouchEnd={() => setCtaPressed(false)}
                 aria-pressed={upvotedByMe}
                 aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-                className={`pointer-events-auto relative z-[1] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold transition-opacity duration-150 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
+                className={`pointer-events-auto relative z-[1] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-md px-2.5 py-1.5 text-[10px] font-semibold transition-opacity duration-150 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
                   upvotedByMe
-                    ? "bg-[#d48745] text-[#2e1f1a] border border-[#dea46b]"
-                    : "bg-[#181c1b]/95 text-[#e8ecea] border border-[rgba(232,236,234,0.14)] hover:border-[rgba(232,236,234,0.28)]"
+                    ? "bg-[#c4783a] text-[#1c1410] border border-[#d9a06a]"
+                    : "bg-[#1c1815]/95 text-[#f0ebe4] border border-[rgba(240,235,228,0.14)] hover:border-[rgba(240,235,228,0.28)]"
                 } ${ctaPressed ? "opacity-80" : ""}`}
               >
                 {upvotedByMe ? (
@@ -234,7 +227,7 @@ export function DiscoverEventCardV2({
       </div>
       {showConfirmation ? (
         <div
-          className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-2xl animate-bounce-in sm:rounded-xl sm:px-4 sm:py-2 sm:text-sm"
+          className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] animate-bounce-in sm:px-4 sm:py-2 sm:text-sm"
           role="status"
           aria-live="polite"
         >

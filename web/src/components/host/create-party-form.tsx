@@ -64,7 +64,7 @@ function SubmitPartyButton() {
     <PrimaryButton
       type="submit"
       disabled={pending}
-      className="h-12 w-full rounded-lg bg-[var(--accent)] text-base font-semibold text-[var(--accent-dark-text,#2e1f1a)] shadow-[0_2px_8px_rgba(201,111,46,0.28)] transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-70"
+      className="h-12 w-full rounded-md bg-[var(--accent)] text-base font-semibold text-[var(--accent-dark-text,#1c1410)] transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-70"
     >
       {pending ? "Wird eingereicht..." : "Event zur Freigabe einreichen"}
     </PrimaryButton>
@@ -157,7 +157,7 @@ export function CreatePartyForm({ vibes, isAuthenticated = true }: Props) {
       markerElement.style.width = "24px";
       markerElement.style.height = "24px";
       markerElement.style.borderRadius = "9999px";
-      markerElement.style.background = "radial-gradient(circle at 30% 30%, #dea46b 0%, #c96f2e 45%, #924320 100%)";
+      markerElement.style.background = "#c4783a";
       markerElement.style.border = "2px solid #ffffff";
       markerElement.style.boxShadow = "0 10px 22px rgba(124,58,237,0.45), 0 0 0 8px rgba(124,58,237,0.16)";
       markerElement.style.transform = "translateZ(0)";
