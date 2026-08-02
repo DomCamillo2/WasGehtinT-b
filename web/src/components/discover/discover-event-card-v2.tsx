@@ -227,7 +227,7 @@ export function DiscoverEventCardV2({
       </div>
       {showConfirmation ? (
         <div
-          className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] animate-bounce-in sm:px-4 sm:py-2 sm:text-sm"
+          className="wg-confirm-toast absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] sm:px-4 sm:py-2 sm:text-sm"
           role="status"
           aria-live="polite"
         >

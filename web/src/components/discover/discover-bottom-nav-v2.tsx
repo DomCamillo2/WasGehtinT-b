@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Bookmark, Compass, User, Zap } from "lucide-react";
+import { m, useReducedMotion } from "@/lib/discover-motion";
 
 export type DiscoverV2NavTab = "discover" | "saved";
 
@@ -29,6 +30,22 @@ function NavLabel({
   );
 }
 
+function NavUnderline() {
+  const reduce = useReducedMotion();
+  return (
+    <m.span
+      layoutId="discover-bottom-nav-underline"
+      className="absolute inset-x-3 bottom-0 h-0.5 bg-[#c4783a]"
+      transition={
+        reduce
+          ? { duration: 0 }
+          : { type: "spring", stiffness: 420, damping: 36, mass: 0.6 }
+      }
+      aria-hidden="true"
+    />
+  );
+}
+
 export function DiscoverBottomNavV2({
   activeTab,
   onSelectDiscover,
@@ -53,7 +70,7 @@ export function DiscoverBottomNavV2({
             role="tab"
             aria-selected={activeTab === "discover"}
             aria-label="Events entdecken"
-            className={itemBase}
+            className={`${itemBase} wg-pressable`}
           >
             <Compass
               className={`h-5 w-5 shrink-0 ${activeTab === "discover" ? "text-[#c4783a]" : "text-[#9a9086]"}`}
@@ -61,9 +78,7 @@ export function DiscoverBottomNavV2({
               aria-hidden="true"
             />
             <NavLabel active={activeTab === "discover"}>Entdecken</NavLabel>
-            {activeTab === "discover" ? (
-              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#c4783a]" aria-hidden="true" />
-            ) : null}
+            {activeTab === "discover" ? <NavUnderline /> : null}
           </button>
 
           <button
@@ -73,7 +88,7 @@ export function DiscoverBottomNavV2({
             aria-selected={activeTab === "saved"}
             aria-label="Gemerkte Events"
             title="Gemerkt / Merkliste"
-            className={itemBase}
+            className={`${itemBase} wg-pressable`}
           >
             <Bookmark
               className={`h-5 w-5 shrink-0 ${
@@ -83,12 +98,10 @@ export function DiscoverBottomNavV2({
               aria-hidden="true"
             />
             <NavLabel active={activeTab === "saved"}>Gemerkt</NavLabel>
-            {activeTab === "saved" ? (
-              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#c4783a]" aria-hidden="true" />
-            ) : null}
+            {activeTab === "saved" ? <NavUnderline /> : null}
           </button>
 
-          <Link href="/spontan" className={`${itemBase} text-[#9a9086]`} aria-label="Spontane Events">
+          <Link href="/spontan" className={`${itemBase} text-[#9a9086] wg-pressable`} aria-label="Spontane Events">
             <Zap className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
             <NavLabel>Spontan</NavLabel>
           </Link>

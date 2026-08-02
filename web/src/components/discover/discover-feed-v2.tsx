@@ -38,6 +38,14 @@ import { DiscoverCalendarPanelV2 } from "./discover-calendar-panel-v2";
 import { DiscoverEventCardV2 } from "./discover-event-card-v2";
 import { DiscoverEventListItemV2 } from "./discover-event-list-item-v2";
 import { DiscoverFeedScrollItem } from "./discover-feed-scroll-item";
+import {
+  AnimatePresence,
+  DiscoverMotionRoot,
+  enterTransition,
+  exitTransition,
+  m,
+  useReducedMotion,
+} from "@/lib/discover-motion";
 
 const DiscoverMapLazy = dynamic(
   () => import("@/components/party/discover-map").then((m) => m.DiscoverMap),
@@ -662,7 +670,10 @@ export function DiscoverFeedV2({
     }
   }
 
+  const reduceMotion = useReducedMotion();
+
   return (
+    <DiscoverMotionRoot>
     <div className="min-h-screen pb-28 max-sm:pb-[9.5rem]">
       <div className="overflow-x-clip">
       <a href="#events-feed-v2" className="skip-to-content">
@@ -833,7 +844,7 @@ export function DiscoverFeedV2({
           role="tablist"
           aria-label="Kategorien"
         >
-          {filterItems.map((item, i) => (
+          {filterItems.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -843,16 +854,28 @@ export function DiscoverFeedV2({
               }}
               role="tab"
               aria-selected={filter === item.id}
-              className={`snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:text-sm ${
-                filter === item.id
-                  ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
+              className={`wg-interactive wg-pressable relative snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium sm:min-h-[32px] sm:text-sm ${
+                !likedOnly && filter === item.id
+                  ? "border-transparent bg-[#221e1a] text-[#f0ebe4]"
                   : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
               }`}
             >
-              <span>{item.label}</span>
+              {!likedOnly && filter === item.id ? (
+                <m.span
+                  layoutId="discover-filter-ring"
+                  className="pointer-events-none absolute inset-0 rounded-md border border-[#c4783a]"
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { type: "spring", stiffness: 420, damping: 36, mass: 0.55 }
+                  }
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span className="relative">{item.label}</span>
               <span
-                className={`text-[10px] leading-none tabular-nums sm:text-[11px] ${
-                  filter === item.id ? "text-[#c4783a]" : "text-[#6f675f]"
+                className={`relative text-[10px] leading-none tabular-nums sm:text-[11px] ${
+                  !likedOnly && filter === item.id ? "text-[#c4783a]" : "text-[#6f675f]"
                 }`}
               >
                 {filterCounts[item.id]}
@@ -864,16 +887,28 @@ export function DiscoverFeedV2({
             onClick={() => toggleLikedFilter()}
             role="tab"
             aria-selected={likedOnly}
-            className={`snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:min-h-[32px] sm:text-sm ${
+            className={`wg-interactive wg-pressable relative snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium sm:min-h-[32px] sm:text-sm ${
               likedOnly
-                ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
+                ? "border-transparent bg-[#221e1a] text-[#f0ebe4]"
                 : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
             }`}
           >
-            <Heart className={`h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 ${likedOnly ? "fill-current text-[#c4783a]" : ""}`} aria-hidden="true" />
-            <span>Gespeichert</span>
+            {likedOnly ? (
+              <m.span
+                layoutId="discover-filter-ring"
+                className="pointer-events-none absolute inset-0 rounded-md border border-[#c4783a]"
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { type: "spring", stiffness: 420, damping: 36, mass: 0.55 }
+                }
+                aria-hidden="true"
+              />
+            ) : null}
+            <Heart className={`relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 ${likedOnly ? "fill-current text-[#c4783a]" : ""}`} aria-hidden="true" />
+            <span className="relative">Gespeichert</span>
             <span
-              className={`text-[10px] leading-none tabular-nums sm:text-[11px] ${likedOnly ? "text-[#c4783a]" : "text-[#6f675f]"}`}
+              className={`relative text-[10px] leading-none tabular-nums sm:text-[11px] ${likedOnly ? "text-[#c4783a]" : "text-[#6f675f]"}`}
             >
               {savedCount}
             </span>
@@ -982,7 +1017,7 @@ export function DiscoverFeedV2({
           )
         ) : likedOnly && filteredByType.length === 0 ? (
           <div
-            className="flex flex-col items-center justify-center py-20 px-4 text-center"
+            className="wg-empty-enter flex flex-col items-center justify-center py-20 px-4 text-center"
             role="status"
             aria-live="polite"
           >
@@ -1003,7 +1038,7 @@ export function DiscoverFeedV2({
           </div>
         ) : (
           <div
-            className="flex flex-col items-center justify-center py-20 px-4 text-center"
+            className="wg-empty-enter flex flex-col items-center justify-center py-20 px-4 text-center"
             role="status"
             aria-live="polite"
           >
@@ -1074,15 +1109,32 @@ export function DiscoverFeedV2({
         <Search className="h-5 w-5" aria-hidden="true" />
       </button>
 
+      <AnimatePresence>
       {filterSheetOpen ? (
-        <div className="fixed inset-0 z-[60] sm:hidden" role="dialog" aria-modal="true" aria-labelledby="discover-filter-sheet-title">
+        <m.div
+          key="discover-filter-sheet"
+          className="fixed inset-0 z-[60] sm:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="discover-filter-sheet-title"
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={exitTransition(reduceMotion)}
+        >
           <button
             type="button"
             className="absolute inset-0 bg-black/70"
             aria-label="Schließen"
             onClick={() => setFilterSheetOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[rgba(240,235,228,0.12)] bg-[#14110f] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <m.div
+            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[rgba(240,235,228,0.12)] bg-[#14110f] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            initial={reduceMotion ? false : { y: 28 }}
+            animate={{ y: 0 }}
+            exit={{ y: 18 }}
+            transition={enterTransition(reduceMotion)}
+          >
             <div className="mx-auto mb-3 h-0.5 w-10 bg-[#3a312b]" aria-hidden="true" />
             <h2 id="discover-filter-sheet-title" className="font-wordmark text-lg text-[#f0ebe4]">
               Mehr Optionen
@@ -1093,20 +1145,21 @@ export function DiscoverFeedV2({
             <Link
               href={buildClassicDiscoverHref()}
               onClick={() => setFilterSheetOpen(false)}
-              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-md bg-[#c4783a] px-4 text-sm font-semibold text-[#1c1410]"
+              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-md bg-[#c4783a] px-4 text-sm font-semibold text-[#1c1410] wg-pressable"
             >
               Klassische Discover-Ansicht
             </Link>
             <button
               type="button"
-              className="mt-3 w-full min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] py-3 text-sm font-medium text-[#f0ebe4]"
+              className="mt-3 w-full min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] py-3 text-sm font-medium text-[#f0ebe4] wg-pressable"
               onClick={() => setFilterSheetOpen(false)}
             >
               Schließen
             </button>
-          </div>
-        </div>
+          </m.div>
+        </m.div>
       ) : null}
+      </AnimatePresence>
 
       <DiscoverBottomNavV2
         activeTab={likedOnly ? "saved" : "discover"}
@@ -1114,5 +1167,6 @@ export function DiscoverFeedV2({
         onSelectSaved={navigateBottomNavSaved}
       />
     </div>
+    </DiscoverMotionRoot>
   );
 }

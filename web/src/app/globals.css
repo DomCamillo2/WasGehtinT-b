@@ -328,14 +328,77 @@ html.discover-ui-new body::before {
   opacity: 1;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Motion tokens — intentional state feedback (Anti-AI-UI / animations.dev)   */
+/* Animate ≤30% of UI. transform+opacity only. No fade-up-everywhere.         */
+/* -------------------------------------------------------------------------- */
+html.discover-ui-new {
+  --dur-micro: 120ms;
+  --dur-hover: 150ms;
+  --dur-panel: 250ms;
+  --dur-exit: 180ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-energetic: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.discover-ui-v2 .wg-interactive {
+  transition:
+    color var(--dur-hover) var(--ease-out),
+    background-color var(--dur-hover) var(--ease-out),
+    border-color var(--dur-hover) var(--ease-out),
+    opacity var(--dur-hover) var(--ease-out);
+}
+
+.discover-ui-v2 .wg-pressable:active {
+  transform: scale(0.98);
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+
+.discover-ui-v2 .wg-empty-enter {
+  animation: wg-empty-in var(--dur-panel) var(--ease-out) both;
+}
+
+@keyframes wg-empty-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes wg-confirm-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 6px)) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.discover-ui-v2 .wg-confirm-toast {
+  animation: wg-confirm-in var(--dur-panel) var(--ease-energetic) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.discover-v2-scroll-enhanced {
     scroll-behavior: auto !important;
     scroll-snap-type: none !important;
   }
 
-  .discover-ui-v2 .squishy:active {
+  .discover-ui-v2 .squishy:active,
+  .discover-ui-v2 .wg-pressable:active {
     transform: none;
+  }
+
+  .discover-ui-v2 .wg-empty-enter,
+  .discover-ui-v2 .wg-confirm-toast {
+    animation: none !important;
   }
 
   .discover-ui-v2 .discover-feed-scroll-item {
