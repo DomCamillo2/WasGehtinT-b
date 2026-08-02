@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "external-events:sync": "node --env-file=.env.local scripts/sync-external-events-to-supabase.mjs",
     "external-events:sync:ci": "node scripts/sync-external-events-to-supabase.mjs",
     "cronjob:setup": "node scripts/setup-cronjob-org.mjs",
@@ -40,6 +42,7 @@
     "eslint-config-next": "16.2.1",
     "pg": "^8.20.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

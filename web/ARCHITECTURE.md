@@ -2,6 +2,8 @@
 
 Dieses Dokument ist ein verbindliches Architektur-Regelwerk für zukünftige Änderungen und KI-generierten Code. Die produktive Next.js-App und dieses versionierte Regelwerk liegen in `web/`. Behandle dieses Dokument als harte System-Constraints, nicht als lose Empfehlung.
 
+**Agent-Einstieg:** Repo-Root `AGENTS.md` (Karte der Entry Points). Scrapers: `src/lib/scrapers/README.md`.
+
 ## Aktueller Produktfokus
 
 Stand jetzt liegt der Fokus auf der External-Events-Pipeline:

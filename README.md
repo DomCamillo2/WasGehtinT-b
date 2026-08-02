@@ -19,6 +19,8 @@ web/                 ← canonical Next.js app (Vercel rootDirectory = web)
 
 There is **no** Next.js app at the repository root — only `web/`.
 
+**Agents:** start at root [`AGENTS.md`](./AGENTS.md) (entry points, do/don’t, scraper rules).
+
 ## Develop
 
 ```bash

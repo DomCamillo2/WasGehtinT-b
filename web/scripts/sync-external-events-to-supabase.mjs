@@ -1,6 +1,16 @@
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
 
+/**
+ * ⚠️ FALLBACK ONLY — incomplete scraper set.
+ *
+ * Canonical ingest: production `POST /api/external-events/refresh`
+ * (TypeScript scrapers in `src/lib/scrapers/` + `external-events-fetch-service.ts`).
+ *
+ * This worker omits Club Voltaire / DAI / Uni / Sudhaus / Partykel / Reddit.
+ * Prefer the API refresh. See `src/lib/scrapers/README.md` and root `AGENTS.md`.
+ */
+
 /** Fallback if a scraped event omits `source` */
 const DEFAULT_SOURCE = "official-scraper";
 const DEFAULT_DIGINIGHTS_URLS = [
