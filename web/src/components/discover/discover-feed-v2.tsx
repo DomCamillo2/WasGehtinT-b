@@ -826,7 +826,12 @@ export function DiscoverFeedV2({
         <div className="discover-header-brand-row flex items-center justify-between">
           <div className="min-w-0">
             <h1 className="sr-only">WasGehtTüb – Events entdecken</h1>
-            <div aria-hidden="true" className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={navigateBottomNavDiscover}
+              className="flex max-w-full items-center gap-2.5 rounded-md text-left outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#c4783a]/40"
+              aria-label="Zu Discover"
+            >
               <Image
                 src={SITE_LOGO_SRC}
                 alt=""
@@ -835,7 +840,7 @@ export function DiscoverFeedV2({
                 className="discover-header-logo object-contain"
                 priority
               />
-              <div className="min-w-0">
+              <div className="min-w-0" aria-hidden="true">
                 <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[#f0ebe4] sm:text-2xl">
                   WasGeht<span className="text-[#c4783a]">Tüb</span>
                 </p>
@@ -843,7 +848,7 @@ export function DiscoverFeedV2({
                   Was geht heut’ in Tübingen?
                 </p>
               </div>
-            </div>
+            </button>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {!installDismissed ? (
