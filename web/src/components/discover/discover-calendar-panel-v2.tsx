@@ -108,7 +108,7 @@ export function DiscoverCalendarPanelV2({
                 }}
                 className={`relative h-9 rounded-lg text-xs font-semibold transition-colors ${
                   active
-                    ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
+                    ? "bg-[#d48745] text-[#2e1f1a]"
                     : "bg-[#1d1713] border border-[#2a221d] text-[#f2ece6] hover:bg-[#241d19]"
                 }`}
                 aria-label={BERLIN_DAY_CHIP_ARIA.format(new Date(`${cell.isoDate}T12:00:00Z`))}
@@ -117,7 +117,7 @@ export function DiscoverCalendarPanelV2({
                 {hasEvents ? (
                   <span
                     className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-                      active ? "bg-[#2d1d10]" : "bg-[#ff7a18]"
+                      active ? "bg-[#2e1f1a]" : "bg-[#d48745]"
                     }`}
                   />
                 ) : null}
@@ -132,7 +132,7 @@ export function DiscoverCalendarPanelV2({
             onSelectedDateChange(todayKey);
             onMonthAnchorChange(todayKey);
           }}
-          className="mt-3 h-9 w-full rounded-xl border border-[#2a221d] bg-[#1d1713] text-xs font-semibold text-[#f2ece6] hover:border-[#ff7a18]/40 hover:bg-[#241d19]"
+          className="mt-3 h-9 w-full rounded-lg border border-[rgba(232,236,234,0.12)] bg-[#1a1f1d] text-xs font-semibold text-[#e8ecea] hover:border-[#d48745]/40 hover:bg-[#1f2422]"
         >
           Heute
         </button>

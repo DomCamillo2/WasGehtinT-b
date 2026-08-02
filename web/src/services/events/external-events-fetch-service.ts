@@ -22,7 +22,10 @@ import { discoverImportantEventSourceCandidates } from "@/lib/scrapers/source-di
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
 const KUCKUCK_LAT = 48.5413588;
 const KUCKUCK_LNG = 9.0599431;
-const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
+const FSRVV_CLUBHAUS_URL = (
+  process.env.CLUBHAUS_EVENTS_URL?.trim() ||
+  "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/"
+);
 const CLUBHAUS_LAT = 48.5243852;
 const CLUBHAUS_LNG = 9.0605991;
 

@@ -33,7 +33,7 @@ export function DiscoverBottomNavV2({
             aria-selected={activeTab === "discover"}
             aria-label="Events entdecken"
             className={`relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 rounded-xl transition-all duration-200 sm:min-h-[56px] sm:min-w-[56px] sm:flex-none sm:px-3 sm:py-2 ${
-              activeTab === "discover" ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]" : "hover:bg-[#1d1713] active:bg-[#241d19]"
+              activeTab === "discover" ? "bg-[#d48745] text-[#2e1f1a]" : "hover:bg-[#1a1f1d] active:bg-[#1f2422]"
             }`}
           >
             <Compass
@@ -64,7 +64,7 @@ export function DiscoverBottomNavV2({
             aria-label="Gemerkte Events"
             title="Gemerkt / Merkliste"
             className={`relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 rounded-xl transition-all duration-200 sm:min-h-[56px] sm:min-w-[56px] sm:flex-none sm:px-3 sm:py-2 ${
-              activeTab === "saved" ? "bg-[#ff7a18] text-[#2d1d10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]" : "hover:bg-[#1d1713] active:bg-[#241d19]"
+              activeTab === "saved" ? "bg-[#d48745] text-[#2e1f1a]" : "hover:bg-[#1a1f1d] active:bg-[#1f2422]"
             }`}
           >
             <Bookmark
@@ -112,7 +112,7 @@ export function DiscoverBottomNavV2({
             </span>
             <span className="mt-0.5 max-w-[min(100%,5rem)] truncate rounded-full border border-[#3a312b] bg-[#1a1715] px-1 py-0.5 text-[8px] leading-tight text-[#8c8178] sm:max-w-none sm:px-1.5 sm:text-[9px]">
               <span className="sm:hidden">Bald</span>
-              <span className="hidden sm:inline">Coming soon</span>
+              <span className="hidden sm:inline">Bald</span>
             </span>
           </button>
         </div>

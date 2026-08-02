@@ -5,7 +5,7 @@ export default function Loading() {
     <AppShell theme="new" showBottomNav={false} showFooter={false} mainFlush>
       <div className="discover-ui-v2 flex min-h-[50vh] flex-col items-center justify-center gap-3 px-4">
         <div
-          className="h-9 w-9 rounded-full border-2 border-[#2a221d] border-t-[#ff7a18] animate-spin"
+          className="h-9 w-9 rounded-full border-2 border-[rgba(232,236,234,0.12)] border-t-[#d48745] animate-spin"
           aria-hidden="true"
         />
         <p className="text-xs font-medium text-[#8c8178]">Lädt …</p>

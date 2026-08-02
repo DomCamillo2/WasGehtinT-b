@@ -1,10 +1,10 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { syncExternalEventsToCache } from "@/lib/external-events-cache";
+import { externalEventsFetchStaleSourceKeys } from "@/lib/external-event-sources";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
 
 export const dynamic = "force-dynamic";
-const OFFICIAL_SOURCE = "official-scraper";
 const REFRESH_COOLDOWN_MINUTES = (() => {
   const parsed = Number(process.env.EXTERNAL_EVENTS_REFRESH_COOLDOWN_MINUTES ?? "10");
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -51,10 +51,11 @@ export async function GET(request: Request) {
   try {
     if (REFRESH_COOLDOWN_MINUTES > 0) {
       const supabase = getSupabaseAdmin();
+      const officialSources = externalEventsFetchStaleSourceKeys();
       const lastRunResult = await supabase
         .from("external_events_cache")
         .select("scraped_at")
-        .eq("source", OFFICIAL_SOURCE)
+        .in("source", officialSources)
         .order("scraped_at", { ascending: false })
         .limit(1)
         .maybeSingle();

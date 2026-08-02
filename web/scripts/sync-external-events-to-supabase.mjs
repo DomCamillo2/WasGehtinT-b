@@ -10,7 +10,9 @@ const DEFAULT_DIGINIGHTS_URLS = [
 ];
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
-const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
+const FSRVV_CLUBHAUS_URL =
+  (process.env.CLUBHAUS_EVENTS_URL || "").trim() ||
+  "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
 const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
 const TUEBINGEN_MARKETS_URL = "https://www.tuebingen.de/3393.html";
 const TUEBINGEN_FLEA_MARKETS_URL = "https://www.tuebingen.de/3392.html";

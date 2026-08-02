@@ -257,9 +257,9 @@ export function BottomNav() {
               <form
                 ref={partyFormRef}
                 action={partyFormAction}
-                className="rounded-2xl border border-violet-500/25 bg-violet-500/10 p-3"
+                className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--accent-soft)] p-3"
               >
-                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-500">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[color:var(--accent)]">
                   <Flame size={16} />
                   Club Event einreichen
                 </div>
@@ -268,41 +268,41 @@ export function BottomNav() {
                     name="submitterName"
                     maxLength={80}
                     placeholder="Dein Name (bei Einreichung ohne Account)"
-                    className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
+                    className={clsx(sheetFieldClassName, "border-[color:var(--border-soft)] focus:border-[color:var(--accent)]")}
                   />
                   <input
                     name="title"
                     required
                     maxLength={120}
                     placeholder="Titel des Club-Events"
-                    className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
+                    className={clsx(sheetFieldClassName, "border-[color:var(--border-soft)] focus:border-[color:var(--accent)]")}
                   />
                   <textarea
                     name="description"
                     maxLength={600}
                     rows={3}
                     placeholder="Kurzbeschreibung"
-                    className="w-full rounded-xl border border-violet-500/30 bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none focus:border-violet-500"
+                    className="w-full rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none focus:border-[color:var(--accent)]"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       name="startsAt"
                       type="datetime-local"
                       required
-                      className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
+                      className={clsx(sheetFieldClassName, "border-[color:var(--border-soft)] focus:border-[color:var(--accent)]")}
                     />
                     <input
                       name="endsAt"
                       type="datetime-local"
                       required
-                      className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
+                      className={clsx(sheetFieldClassName, "border-[color:var(--border-soft)] focus:border-[color:var(--accent)]")}
                     />
                   </div>
                   <input
                     name="locationName"
                     maxLength={140}
                     placeholder="Ort (optional)"
-                    className={clsx(sheetFieldClassName, "border-violet-500/30 focus:border-violet-500")}
+                    className={clsx(sheetFieldClassName, "border-[color:var(--border-soft)] focus:border-[color:var(--accent)]")}
                   />
                   <input type="hidden" name="vibeId" value="1" />
                   <input type="hidden" name="defaultVibeId" value="1" />
@@ -312,7 +312,7 @@ export function BottomNav() {
                   <button
                     type="submit"
                     disabled={isPartyPending}
-                    className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white disabled:opacity-70"
+                    className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[color:var(--accent)] px-4 text-sm font-semibold text-[color:var(--accent-dark-text)] disabled:opacity-70"
                   >
                     {isPartyPending ? "Sendet..." : "Zur Freigabe einreichen"}
                   </button>
@@ -392,7 +392,7 @@ export function BottomNav() {
                       className={clsx(
                         "flex h-14 flex-col items-center justify-center rounded-xl text-[11px] font-semibold transition",
                         active
-                          ? "scale-[1.04] bg-gradient-to-b from-fuchsia-500/20 to-violet-500/20 text-[color:var(--accent-strong)] shadow-[0_8px_18px_rgba(217,70,239,0.18)]"
+                          ? "bg-[color:var(--accent-soft)] text-[color:var(--accent-strong)]"
                           : "text-[color:var(--muted-foreground)]",
                       )}
                     >

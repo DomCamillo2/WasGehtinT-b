@@ -6,7 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  Bell,
   CalendarDays,
   Download,
   Flame,
@@ -537,7 +536,7 @@ export function DiscoverFeedV2({
   ];
 
   const viewModeToggleActive =
-    "border border-[#ff9a3f] bg-[#ff7a18] text-[#2D1D10] shadow-[0_4px_14px_rgba(255,122,24,0.38)]";
+    "border border-[#dea46b] bg-[#d48745] text-[#2e1f1a] shadow-[0_2px_8px_rgba(201,111,46,0.28)]";
   const viewModeToggleInactive = "border border-transparent text-[#8C8178] hover:text-[#E9DFD6]";
 
   const toggleLikedFilter = useCallback(() => {
@@ -671,42 +670,42 @@ export function DiscoverFeedV2({
       </a>
 
       <header
-        className={`discover-header-glass sticky top-0 z-40 px-4 backdrop-blur-md backdrop-saturate-150 motion-safe:transition-[padding] motion-safe:duration-200 ${
-          headerCompact ? "pb-2" : "pb-4"
+        className={`discover-header-glass sticky top-0 z-40 px-4 motion-safe:transition-[padding] motion-safe:duration-200 ${
+          headerCompact ? "pb-2" : "pb-3"
         }`}
         style={{
           paddingTop: "max(12px, env(safe-area-inset-top, 0px))",
-          background:
-            "linear-gradient(to bottom, rgba(15,11,8,0.72), rgba(15,11,8,0.4), rgba(15,11,8,0))",
         }}
       >
-        <div className={`flex items-center justify-between motion-safe:transition-[margin] motion-safe:duration-200 ${headerCompact ? "mb-2" : "mb-4"}`}>
+        <div className={`flex items-center justify-between motion-safe:transition-[margin] motion-safe:duration-200 ${headerCompact ? "mb-2" : "mb-3"}`}>
           <div className="min-w-0">
             <h1 className="sr-only">WasGehtTüb – Events entdecken</h1>
-            <div aria-hidden="true" className="flex items-center gap-2">
+            <div aria-hidden="true" className="flex items-center gap-2.5">
               <Image
                 src={SITE_LOGO_SRC}
                 alt=""
                 width={120}
                 height={120}
                 className={`object-contain motion-safe:transition-[width,height] motion-safe:duration-200 ${
-                  headerCompact ? "h-9 w-9 sm:h-12 sm:w-12" : "h-11 w-11 sm:h-14 sm:w-14"
+                  headerCompact ? "h-9 w-9 sm:h-11 sm:w-11" : "h-11 w-11 sm:h-12 sm:w-12"
                 }`}
                 priority
               />
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold tracking-wide text-[#f2ece6]">WasGehtTüb</p>
+                <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[#e8ecea] sm:text-2xl">
+                  WasGehtTüb
+                </p>
                 <p
-                  className={`hidden truncate text-[11px] text-[#a89b90] sm:block motion-safe:transition-opacity motion-safe:duration-200 ${
-                    headerCompact ? "sm:opacity-0 sm:pointer-events-none sm:h-0 sm:overflow-hidden" : ""
+                  className={`mt-1 hidden truncate text-[12px] text-[#8a9390] sm:block motion-safe:transition-opacity motion-safe:duration-200 ${
+                    headerCompact ? "sm:opacity-0 sm:pointer-events-none sm:h-0 sm:overflow-hidden sm:mt-0" : ""
                   }`}
                 >
-                  Clubs, Tagesevents, Community
+                  Was geht heut’?
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             {!installDismissed ? (
               <button
                 type="button"
@@ -715,46 +714,26 @@ export function DiscoverFeedV2({
                   event.preventDefault();
                   dismissInstallHint();
                 }}
-                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-3 text-xs font-semibold text-[#E9DFD6] transition-colors hover:bg-[#221d1a]"
+                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-[rgba(232,236,234,0.12)] bg-[#181c1b] px-3 text-xs font-semibold text-[#e8ecea] transition-colors hover:bg-[#1f2422]"
                 aria-label="App installieren"
                 title="App installieren (Rechtsklick/Langdruck zum Ausblenden)"
               >
-                <Download className="h-4 w-4 text-[#ff9a3f]" aria-hidden="true" />
+                <Download className="h-4 w-4 text-[#d48745]" aria-hidden="true" />
                 <span className="hidden sm:inline">App</span>
               </button>
             ) : null}
-            <button
-              type="button"
-              onClick={() =>
-                showToast({
-                  variant: "info",
-                  title: "Benachrichtigungen",
-                  message: "Push-Updates sind noch in Arbeit — nutze „Ich bin dabei!“, damit du Events schnell wiederfindest.",
-                })
-              }
-              className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-[#1A1715]/90 hover:bg-[#221d1a] transition-colors border border-[#2B2623]"
-              aria-label="Infos zu Benachrichtigungen"
-            >
-              <Bell className="w-5 h-5 text-[#A69A91]" aria-hidden="true" />
-            </button>
             <Link
               href={isAuthenticated ? "/profile" : "/auth"}
               className="relative min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label={isAuthenticated ? "Profil" : "Anmelden"}
             >
               {isAuthenticated ? (
-                <>
-                  <span className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-foreground border-2 border-primary/40">
-                    {avatarFallback}
-                  </span>
-                  <span
-                    className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-secondary border-2 border-background"
-                    aria-hidden="true"
-                  />
-                </>
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(232,236,234,0.14)] bg-[#1f2422] text-sm font-semibold text-foreground">
+                  {avatarFallback}
+                </span>
               ) : (
-                <span className="w-10 h-10 rounded-full bg-[#1A1715]/90 border-2 border-[#2B2623] flex items-center justify-center">
-                  <User className="w-5 h-5 text-[#A69A91]" aria-hidden="true" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(232,236,234,0.12)] bg-[#181c1b]">
+                  <User className="h-5 w-5 text-[#8a9390]" aria-hidden="true" />
                 </span>
               )}
             </Link>
@@ -905,7 +884,7 @@ export function DiscoverFeedV2({
         <div className={`mt-2 motion-safe:transition-opacity motion-safe:duration-200 ${headerCompact ? "max-sm:opacity-0 max-sm:h-0 max-sm:mt-0 max-sm:overflow-hidden max-sm:pointer-events-none" : ""}`}>
             <Link
               href={hottestParty.detailHref}
-              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-[#ff9a3f] bg-[#ff7a18] px-3 py-1.5 text-xs font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.42)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a3f]/50 sm:min-h-[38px] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-[#dea46b] bg-[#d48745] px-3 py-1.5 text-xs font-semibold text-[#2e1f1a] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d48745]/50 sm:min-h-[38px] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
               aria-label={`Im Trend: ${hottestParty.title}`}
             >
               <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
@@ -1115,7 +1094,7 @@ export function DiscoverFeedV2({
             <Link
               href={buildClassicDiscoverHref()}
               onClick={() => setFilterSheetOpen(false)}
-              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#ff7a18] px-4 text-sm font-semibold text-[#2D1D10] shadow-[0_8px_24px_rgba(255,122,24,0.35)]"
+              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#d48745] px-4 text-sm font-semibold text-[#2e1f1a]"
             >
               Klassische Discover-Ansicht
             </Link>

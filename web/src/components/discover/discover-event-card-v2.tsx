@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Flame } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { resolveDiscoverVenuePartnerLogo } from "@/lib/discover-venue-visual";
 import { DiscoverVenueLogoBadge } from "./discover-venue-logo-badge";
@@ -139,7 +139,7 @@ export function DiscoverEventCardV2({
         <div
           className="absolute bottom-0 left-0 right-0 z-[2] max-sm:h-[72px] sm:h-[96px]"
           style={{
-            background: "linear-gradient(to top, rgba(255,122,24,0.12) 0%, rgba(255,122,24,0) 100%)",
+            background: "linear-gradient(to top, rgba(14,17,16,0.55) 0%, rgba(14,17,16,0) 100%)",
           }}
           aria-hidden="true"
         />
@@ -151,9 +151,8 @@ export function DiscoverEventCardV2({
         />
 
         {isHot ? (
-          <div className="pointer-events-none absolute left-3 top-3 z-[6] inline-flex items-center gap-1 rounded-full border border-[#ff9a3f]/70 bg-[#2D1D10]/85 px-2 py-0.5 text-[10px] font-semibold text-[#ffc48a] shadow-sm sm:left-4 sm:top-4 sm:px-2.5 sm:py-1 sm:text-xs">
-            <Flame className="h-3 w-3 shrink-0 text-[#ff9a3f] sm:h-3.5 sm:w-3.5" aria-hidden="true" />
-            Im Trend
+          <div className="pointer-events-none absolute left-3 top-3 z-[6] border-l-2 border-[#d48745] bg-[#0e1110]/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#dea46b] sm:left-4 sm:top-4 sm:text-[11px]">
+            Trend
           </div>
         ) : null}
 
@@ -211,11 +210,11 @@ export function DiscoverEventCardV2({
                 onTouchEnd={() => setCtaPressed(false)}
                 aria-pressed={upvotedByMe}
                 aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-                className={`pointer-events-auto relative z-[1] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-semibold shadow-md transition-all duration-200 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
+                className={`pointer-events-auto relative z-[1] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold transition-opacity duration-150 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
                   upvotedByMe
-                    ? "wg-cta-confirmed bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_10px_24px_-14px_rgba(255,122,24,0.95)]"
-                    : "wg-cta-attention max-sm:border-[#ff7a18]/40 max-sm:bg-gradient-to-r max-sm:from-[#ff7a18] max-sm:to-[#e86c14] max-sm:text-[#2D1D10] max-sm:shadow-[0_10px_28px_-12px_rgba(255,122,24,0.55)] bg-[#1A1715]/92 text-[#E9DFD6] border border-[#2B2623] hover:border-[#3A312B] hover:text-white"
-                } ${ctaPressed ? "scale-95" : "scale-100"}`}
+                    ? "bg-[#d48745] text-[#2e1f1a] border border-[#dea46b]"
+                    : "bg-[#181c1b]/95 text-[#e8ecea] border border-[rgba(232,236,234,0.14)] hover:border-[rgba(232,236,234,0.28)]"
+                } ${ctaPressed ? "opacity-80" : ""}`}
               >
                 {upvotedByMe ? (
                   <>

@@ -9,10 +9,10 @@ export function PrimaryButton({ className, tone = "solid", ...props }: Props) {
   return (
     <button
       className={clsx(
-        "h-11 rounded-xl px-4 text-sm font-semibold transition active:scale-[0.99] disabled:opacity-50",
+        "h-11 rounded-lg px-4 text-sm font-semibold transition-opacity disabled:opacity-50",
         tone === "solid"
-          ? "brand-gradient text-white shadow-[0_10px_22px_rgba(127,44,226,0.34)] hover:brightness-110"
-          : "bg-violet-100 text-violet-900 hover:bg-violet-200",
+          ? "bg-[var(--accent)] text-[var(--accent-dark-text,#2e1f1a)] shadow-[0_2px_8px_rgba(201,111,46,0.28)] hover:opacity-90"
+          : "bg-[var(--accent-soft)] text-[var(--accent-strong)] hover:opacity-90",
         className,
       )}
       {...props}

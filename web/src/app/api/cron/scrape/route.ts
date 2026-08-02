@@ -569,8 +569,19 @@ async function handleCronScrape(request: Request) {
           for (const event of allParsed) {
             event.date = normalizeEventDateForInstagram(event.date);
             // Best-effort: attribute event to the post whose caption contains the event date.
-            const matchedPost = postsForGemini.find((p) => p.caption.includes(event.date.slice(5).replace("-", ".")))
-              ?? postsForGemini[0];
+            // German captions use DD.MM — never MM.DD.
+            const [, yyyy, mm, dd] = event.date.match(/^(\d{4})-(\d{2})-(\d{2})/) ?? [];
+            const germanDate = yyyy && mm && dd ? `${Number(dd)}.${Number(mm)}` : "";
+            const germanDatePadded = yyyy && mm && dd ? `${dd}.${mm}` : "";
+            const matchedPost = postsForGemini.find((p) => {
+              const caption = p.caption;
+              if (germanDate && caption.includes(germanDate)) return true;
+              if (germanDatePadded && caption.includes(germanDatePadded)) return true;
+              if (event.title && caption.toLowerCase().includes(event.title.toLowerCase().slice(0, 24))) {
+                return true;
+              }
+              return false;
+            }) ?? postsForGemini[0];
             if (matchedPost) {
               eventsToInsert.push({ post: matchedPost, event });
             }

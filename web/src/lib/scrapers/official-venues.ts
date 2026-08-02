@@ -64,13 +64,31 @@ function unfoldIcsLines(ics: string): string[] {
 
 function parseIcsDate(value: string): string | null {
   const raw = String(value ?? "").trim();
+
+  // UTC form: 20260315T180000Z
+  const utcMatch = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/i);
+  if (utcMatch) {
+    const [, year, month, day, hour, minute, second] = utcMatch;
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)));
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  // All-day: 20260315
+  const dateOnly = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    const date = berlinWallTimeToUtc(`${year}-${month}-${day}`, 12, 0);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  // Local wall clock (Europe/Berlin): 20260315T180000
   const match = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
   if (!match) {
     return null;
   }
 
-  const [, year, month, day, hour, minute, second] = match;
-  const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}+02:00`);
+  const [, year, month, day, hour, minute] = match;
+  const date = berlinWallTimeToUtc(`${year}-${month}-${day}`, Number(hour), Number(minute));
   if (Number.isNaN(date.getTime())) {
     return null;
   }
@@ -109,9 +127,7 @@ function parseGermanMonthName(name: string): number | null {
 function buildBerlinIsoDate(year: number, month: number, day: number, hour = 9, minute = 0): string | null {
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
-  const hh = String(hour).padStart(2, "0");
-  const min = String(minute).padStart(2, "0");
-  const date = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00+02:00`);
+  const date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, hour, minute);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
@@ -171,7 +187,9 @@ function parseDateTimeFromText(text: string): Date | null {
     const year = Number(yearRaw);
     const hour = Number(hourRaw ?? "19");
     const minute = Number(minuteRaw ?? "00");
-    const date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+    const mm = String(month).padStart(2, "0");
+    const dd = String(day).padStart(2, "0");
+    const date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, hour, minute);
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
@@ -185,9 +203,11 @@ function parseDateTimeFromText(text: string): Date | null {
   const yearRaw = partialMatch[3];
   const now = new Date();
   const year = yearRaw ? (yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw)) : now.getUTCFullYear();
-  let date = new Date(Date.UTC(year, month - 1, day, 19, 0, 0));
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  let date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, 19, 0);
   if (!yearRaw && date.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
-    date = new Date(Date.UTC(year + 1, month - 1, day, 19, 0, 0));
+    date = berlinWallTimeToUtc(`${year + 1}-${mm}-${dd}`, 19, 0);
   }
   return Number.isNaN(date.getTime()) ? null : date;
 }
@@ -195,9 +215,7 @@ function parseDateTimeFromText(text: string): Date | null {
 function buildBerlinIsoDateTime(year: number, month: number, day: number, hour = 19, minute = 0): Date | null {
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
-  const hh = String(hour).padStart(2, "0");
-  const min = String(minute).padStart(2, "0");
-  const date = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00+02:00`);
+  const date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, hour, minute);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 

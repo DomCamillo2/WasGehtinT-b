@@ -18,32 +18,22 @@ export function PrimaryButton({
 }: PrimaryButtonProps) {
   return (
     <motion.button
-      whileHover={{ y: -1, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 420, damping: 26 }}
+      transition={{ duration: 0.12 }}
       className={[
-        "group relative inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-2xl-plus px-5",
-        "text-sm font-semibold text-white shadow-cta",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2",
+        "group relative inline-flex h-11 items-center justify-center gap-2 overflow-hidden rounded-lg px-5",
+        "text-sm font-semibold text-[var(--accent-dark-text,#2e1f1a)] shadow-cta",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-60",
-        "brand-gradient",
+        "bg-[var(--accent)] hover:opacity-90",
         className,
       ].join(" ")}
       {...props}
     >
-      <span
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_100%_at_0%_0%,rgba(255,255,255,0.28),transparent_52%)]"
-        aria-hidden="true"
-      />
-
       <span className="relative inline-flex items-center gap-2">
         {children}
         {withArrow ? (
-          <ArrowRight
-            size={16}
-            className="transition-transform duration-200 group-hover:translate-x-0.5"
-            aria-hidden="true"
-          />
+          <ArrowRight size={16} aria-hidden="true" />
         ) : null}
       </span>
     </motion.button>

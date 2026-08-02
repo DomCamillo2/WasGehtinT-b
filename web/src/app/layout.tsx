@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import { GoogleAnalyticsConsent } from "@/components/analytics/google-analytics-consent";
 import { CookieConsentBannerMount } from "@/components/layout/cookie-consent-banner-mount";
 import { PwaRegister } from "@/components/pwa/pwa-register";
@@ -10,9 +10,9 @@ import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
 
-const inter = Inter({
+const figtree = Figtree({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-figtree",
   display: "swap",
 });
 
@@ -75,7 +75,7 @@ export default function RootLayout({
     <html
       lang="de"
       suppressHydrationWarning
-      className={`h-full antialiased ${inter.variable} ${bricolageGrotesque.variable}`}
+      className={`h-full antialiased ${figtree.variable} ${bricolageGrotesque.variable}`}
     >
       <head>
         <ThemeInitScript />

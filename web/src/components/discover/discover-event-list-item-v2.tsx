@@ -107,7 +107,7 @@ export function DiscoverEventListItemV2({
             <span className="text-xs font-medium tabular-nums text-[#aea396]">0 dabei</span>
           )}
           {isHot ? (
-            <span className="rounded-full border border-[#ff9a3f]/80 bg-[#ff7a18] px-1.5 py-0.5 text-[10px] font-semibold text-[#2D1D10] sm:px-2 sm:text-[11px]">
+            <span className="rounded-md border border-[#dea46b]/80 bg-[#d48745] px-1.5 py-0.5 text-[10px] font-semibold text-[#2e1f1a] sm:px-2 sm:text-[11px]">
               Im Trend
             </span>
           ) : null}
@@ -125,11 +125,11 @@ export function DiscoverEventListItemV2({
             onTouchEnd={() => setSavePressed(false)}
             aria-pressed={upvotedByMe}
             aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-            className={`inline-flex min-h-[40px] items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+            className={`inline-flex min-h-[40px] items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-opacity duration-150 ${
               upvotedByMe
-                ? "wg-cta-confirmed border-[#ff9a3f] bg-[#ff7a18] text-[#2D1D10] shadow-[0_8px_20px_-16px_rgba(255,122,24,0.9)]"
-                : "wg-cta-attention border-[#3A312B] bg-[#1A1715] text-[#E9DFD6] hover:border-[#4A3D34] hover:text-white"
-            } ${savePressed ? "scale-95" : "scale-100"}`}
+                ? "border-[#dea46b] bg-[#d48745] text-[#2e1f1a]"
+                : "border-[rgba(232,236,234,0.14)] bg-[#181c1b] text-[#e8ecea] hover:border-[rgba(232,236,234,0.28)]"
+            } ${savePressed ? "opacity-80" : ""}`}
           >
             {upvotedByMe ? (
               <span className="inline-flex items-center gap-1.5">

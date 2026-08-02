@@ -16,6 +16,9 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -25,6 +28,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -35,4 +39,6 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets['SUPABASE_SECRET_KEY'] }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets['SUPABASE_SERVICE_ROLE_KEY'] }}
           DIGINIGHTS_URLS: ${{ secrets['DIGINIGHTS_URLS'] }}
-        run: node scripts/sync-external-events-to-supabase.mjs
+          CLUBHAUS_EVENTS_URL: ${{ secrets['CLUBHAUS_EVENTS_URL'] }}
+          EXTERNAL_EVENTS_REDDIT_SUBREDDITS: ${{ secrets['EXTERNAL_EVENTS_REDDIT_SUBREDDITS'] }}
+        run: npm run external-events:sync

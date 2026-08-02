@@ -100,7 +100,7 @@ export default async function ExternalEventPage({
                 href={event.externalLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-[#ff7a18] px-4 py-2 text-sm font-semibold text-[#2D1D10] shadow-[0_10px_26px_-18px_rgba(255,122,24,0.95)] transition-opacity hover:opacity-90"
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg bg-[#d48745] px-4 py-2 text-sm font-semibold text-[#2e1f1a] transition-opacity hover:opacity-90"
               >
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Zum Veranstalter
