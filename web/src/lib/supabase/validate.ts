@@ -1,7 +1,7 @@
 /**
  * Validation of Supabase admin client configuration.
  */
-import { getSupabaseAdminKey } from "@/lib/env";
+import { getSupabaseAdminKey, getSupabaseUrl } from "@/lib/env";
 
 export function validateSupabaseAdminConfig(): {
   valid: boolean;
@@ -9,7 +9,7 @@ export function validateSupabaseAdminConfig(): {
 } {
   const errors: string[] = [];
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) {
+  if (!getSupabaseUrl()) {
     errors.push("NEXT_PUBLIC_SUPABASE_URL fehlt.");
   }
 

@@ -50,7 +50,7 @@ Ordered for impact vs effort. See git history / Phase A for items already shippe
 
 ## Dependencies / notes
 
-- **P1 #8** reuses weeks-navigation loading patterns; watch double-fetch and RSC remount (`key={currentWeeks}`).  
+- **P1 #8** reuses weeks-navigation loading patterns; guard double-fetch. Feed must **not** remount on `currentWeeks` (that reset scroll / `visibleCount`).  
 - **P1 #7** use CSS grid; mind LCP (hero `priority` / above-the-fold).  
 - **P0 #1** respect `prefers-reduced-motion` for show/hide.  
 

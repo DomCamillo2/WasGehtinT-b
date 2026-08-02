@@ -82,7 +82,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     <button
       type="button"
       onClick={toggleTheme}
-      className={`grid h-10 w-10 place-items-center rounded-2xl border bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] shadow-sm transition hover:opacity-95 active:scale-[0.98] ${className ?? ""}`.trim()}
+      className={`grid h-10 w-10 place-items-center rounded-xl border bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] transition hover:opacity-95 active:scale-[0.98] ${className ?? ""}`.trim()}
       style={{ borderColor: "var(--nav-border)" }}
       aria-label={mounted ? (isDark ? "Helles Farbschema aktivieren" : "Dunkles Farbschema aktivieren") : "Farbschema wechseln"}
       title={mounted ? (isDark ? "Auf hell umschalten" : "Auf dunkel umschalten") : "Farbschema wechseln"}

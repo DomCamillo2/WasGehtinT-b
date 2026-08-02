@@ -1,4 +1,5 @@
 import { SITE_URL, absoluteUrl } from "@/lib/site-config";
+import { serializeJsonLd } from "@/lib/security";
 
 type Props = {
   name: string;
@@ -117,7 +118,7 @@ export function EventSchema({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
     />
   );
 }

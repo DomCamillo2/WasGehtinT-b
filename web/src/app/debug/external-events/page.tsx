@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { requireInternalAdmin } from "@/lib/admin-guard";
 import { loadExternalEventsDebugPageData } from "@/services/events/external-events-debug-service";
 
 type SearchParams = Promise<{ date?: string; vibe?: string }>;
@@ -9,6 +10,7 @@ export default async function ExternalEventsDebugPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await requireInternalAdmin();
   const params = await searchParams;
   const debugPageData = await loadExternalEventsDebugPageData(params);
 

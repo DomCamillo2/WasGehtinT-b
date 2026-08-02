@@ -1,170 +1,51 @@
-# WasGehtTüb Web App (MVP)
+# WasGehtTüb Web App
 
-Mobile-first PWA-ähnliches Frontend für den Studenten WG-Party Radar.
+Canonical Next.js app for [wasgehttueb.app](https://www.wasgehttueb.app).
 
-## Tech
-
-- Next.js (App Router, TypeScript, Tailwind)
-- Supabase (Auth + Postgres + Realtime)
-- MapLibre GL + OpenFreeMap (Map-Ansicht, ohne Token)
+Agent / architecture: root `AGENTS.md`, then `ARCHITECTURE.md`.
 
 ## Setup
 
-1) Abhängigkeiten installieren
-
 ```bash
 npm install
-```
-
-2) Environment-Datei anlegen
-
-```bash
-cp .env.example .env.local
-```
-
-3) Variablen in `.env.local` setzen
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (oder fallback `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-- `NEXT_PUBLIC_APP_URL` (z.B. `http://localhost:3000`)
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `SUPABASE_SECRET_KEY` (oder fallback `SUPABASE_SERVICE_ROLE_KEY`)
-- `INTERNAL_ADMIN_EMAILS` (kommagetrennt, z.B. `a@student.uni-tuebingen.de,b@student.uni-tuebingen.de`)
-- `EXTERNAL_EVENTS_REFRESH_TOKEN` (optional, für automatisches Partner-Event-Refresh per Cron)
-- `CRON_SECRET` (für sichere Aufrufe interner Cron-Routen, z. B. durch cron-job.org oder CI — **nicht** Vercel Cron, siehe `ARCHITECTURE.md`)
-- `RESEND_API_KEY` (für transaktionale Mails)
-- `RESEND_FROM_EMAIL` (z. B. `WasGehtTüb <onboarding@resend.dev>` oder deine verifizierte Domain-Absenderadresse)
-- `PEXELS_API_KEY` (empfohlen: Pexels-API-Key; **für Live/Preview in Vercel unter Environment Variables / Secrets setzen** — sonst fehlen Stock-Fotos in Discover. Lokal: optional in `.env.local`)
-
-4) Datenbank vorbereiten (Supabase SQL Editor)
-
-- Erst dein Schema-SQL ausführen (das ausführliche Schema aus dem Projektkontext/Chat)
-- Danach `../supabase/02_seed_and_views.sql` ausführen
-- Danach `../supabase/03_webhook_idempotency.sql` ausführen
-- Danach `../supabase/04_external_partner_events.sql` ausführen
-- Danach `../supabase/05_hangouts.sql` ausführen
-- Danach `../supabase/06_content_reports.sql` ausführen
-- Danach `../supabase/07_user_profile_onboarding.sql` ausführen
-- Danach `./supabase/08_external_events_cache.sql` ausführen
-
-5) Dev-Server starten
-
-```bash
+cp .env.example .env.local   # fill Supabase + optional keys
 npm run dev
 ```
 
-Öffnen: [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000). Admin: `/admin/login`.
 
-Falls Supabase-Variablen fehlen, zeigt die Startseite eine Setup-Anleitung statt eines Runtime-Errors.
+### Database
 
-## MVP Screens
+Apply SQL from **`supabase/migrations/`** (in order) via Supabase SQL editor or CLI.  
+Do **not** use old paths like `../supabase/02_*.sql` — those files do not exist.
 
-- `/` Login/Registrierung (nur Uni-Mail im Server-Flow erlaubt)
-- `/discover` Listen- oder Map-Ansicht, Gruppenanfrage + Mitbring-Auswahl
-- `/host` Party erstellen, offene Anfragen annehmen/ablehnen
-- `/requests` Eigene Anfragen inkl. Status
-- `/chat` Mini-Chat nach akzeptierter Anfrage (Realtime-Updates)
-- `/payments/success` Rückkehrseite nach Stripe Checkout
-- `/party/[partyId]/address` Exakte Adresse (nur Host oder accepted Gast)
-- `/host/webhooks` Internes Admin-Panel für Stripe Webhook Events
-- `/host/reports` Interne Moderations-Queue für gemeldete Inhalte
-
-Im Panel `/host/webhooks` können fehlgeschlagene Events manuell per "Retry Event" erneut verarbeitet werden.
-Zusätzlich gibt es Status-Filter (`all`, `failed`, `pending`, `processed`) und Suche nach Event-ID/Event-Typ.
-
-## Partner-Events automatisch aktualisieren
-
-Externe Events sind sauber vom Frontend getrennt:
-
-- Frontend liest nur aus Supabase (`v_external_events_public`).
-- Scraper schreiben in `external_events_cache` (Next `/api/external-events/refresh`, Instagram `/api/cron/scrape`, optional CLI `npm run external-events:sync`).
-- **Vercel Cron wird nicht genutzt** (u. a. 8h-/Serverless-Rahmenbedingungen; Details in `ARCHITECTURE.md`). `vercel.json` bleibt mit leerem `crons`.
-- **Empfohlen:** externe Cronjobs via `scripts/setup-cronjob-org.mjs` (cron-job.org, `ENABLE_CRONJOB_ORG_SETUP=true`).
-- **Alternative:** GitHub Actions (`.github/workflows/external-events-refresh.yml` am Repo-Root).
-
-Benötigte GitHub Repository Secrets:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `SUPABASE_SECRET_KEY` (oder fallback `SUPABASE_SERVICE_ROLE_KEY`)
-- `DIGINIGHTS_URLS` (optional, kommaseparierte Fallback-URLs)
-
-Lokal testen:
+### Tests
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SECRET_KEY=... npm run external-events:sync
+npm run test
+npm run build
 ```
 
-Optionaler Diginights-Override (z. B. bei URL-Aenderungen):
+## External events
 
-```bash
-DIGINIGHTS_URLS="https://diginights.com,https://diginights.com/city/tuebingen" npm run external-events:sync
-```
+- Discover reads **only** from Supabase (`v_external_events_public`).
+- Canonical refresh: `POST /api/external-events/refresh` (GH Actions / cron-job.org).
+- Instagram: `POST /api/cron/scrape`.
+- `npm run external-events:sync` is an **incomplete fallback** — prefer the API.
 
-## Reports API
+Vercel Cron is unused on purpose (`vercel.json` → empty `crons`). Details: `ARCHITECTURE.md`.
 
-Serverseitige API für Meldungen und Moderation:
+Needed GitHub secrets: `CRON_SECRET`, Supabase keys, optional `CLUBHAUS_EVENTS_URL` / `APP_BASE_URL`.
 
-```bash
-POST /api/reports
-Content-Type: application/json
-Body: { "type": "chat|spontan|party|other", "targetId": "...", "reason": "...", "details": "..." }
-```
+## Screens
 
-- Benötigt eingeloggten User (Session Cookie).
+- `/` — friendly welcome (light/dark), CTAs to Discover + Auth
+- `/auth` — Uni-Mail login
+- `/discover` — feed, calendar, map
+- `/event/[id]` — external event detail
+- `/host`, `/requests`, `/chat` — lower priority than Discover/events
+- `/admin/login` — admin
 
-```bash
-GET /api/reports?status=open&limit=100
-```
+## Go-live
 
-- Nur interne Admins (`INTERNAL_ADMIN_EMAILS`).
-
-```bash
-PATCH /api/reports/{reportId}
-Content-Type: application/json
-Body: { "status": "open|reviewing|resolved|rejected", "reviewNote": "..." }
-```
-
-- Nur interne Admins (`INTERNAL_ADMIN_EMAILS`).
-
-## Hinweise
-
-- Das Projekt liegt bewusst im Unterordner `web`, da der Workspace-Ordnername nicht npm-kompatibel ist.
-- Geld-Wording im UI bleibt bei Beitrag/Umlage/Service-Gebühr.
-- Exakte Adresse wird nicht im öffentlichen Discover-Flow angezeigt (RLS über DB-Schema).
-
-## Go-Live
-
-Eine konkrete Schritt-für-Schritt Anleitung für den Livegang findest du in `GO_LIVE_CHECKLIST.md`.
-
-## Resend Templates einrichten
-
-Für Welcome-, Passwort-Reset- und Verifizierungs-Templates ist ein Setup-Script enthalten:
-
-```bash
-node scripts/setup-resend-templates.mjs
-```
-
-Verwendete Template-Aliase:
-
-- `wasgehttueb-welcome`
-- `wasgehttueb-password-reset`
-- `wasgehttueb-email-confirmation`
-
-Optional überschreibbar über Env:
-
-- `RESEND_TEMPLATE_WELCOME`
-- `RESEND_TEMPLATE_PASSWORD_RESET`
-- `RESEND_TEMPLATE_EMAIL_CONFIRMATION`
-
-## Stripe Webhook lokal testen
-
-1) Stripe CLI installieren und einloggen.
-
-2) Webhooks an Next.js weiterleiten:
-
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
-
-3) Das ausgegebene Secret als `STRIPE_WEBHOOK_SECRET` in `.env.local` setzen.
+See `GO_LIVE_CHECKLIST.md`.

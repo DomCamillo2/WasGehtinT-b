@@ -1,18 +1,44 @@
 import { PartyCard } from "@/lib/types";
+import { externalEventsFetchStaleSourceKeys } from "@/lib/external-event-sources";
+import { sanitizeExternalEventTitle } from "@/lib/sanitize-event-title";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const DEFAULT_INGEST_SOURCE = "official-scraper";
+
+/** Drop ghost rows invented by year-bump scrapers (July program → July next year). */
+const MAX_FUTURE_CACHE_MS = 160 * 24 * 60 * 60 * 1000;
 
 export type ExternalEventsSyncResult = {
   upserted: number;
   usedBaseFallback: boolean;
   deletedStale: boolean;
   deletedExpired: boolean;
+  deletedFarFuture: boolean;
+  sourcesSwept: string[];
+};
+
+export type SyncExternalEventsOptions = {
+  /**
+   * Sources that completed successfully this run (including empty results).
+   * Only these are stale-swept. Failed sources keep their last good rows.
+   * When omitted, falls back to sweeping all known official sources (legacy).
+   */
+  sourcesSucceeded?: string[];
 };
 
 function normalizeIngestSource(event: PartyCard): string {
   const raw = (event.source ?? "").trim();
   return raw.length > 0 ? raw : DEFAULT_INGEST_SOURCE;
+}
+
+function sanitizeEventForCache(event: PartyCard): PartyCard {
+  const title = sanitizeExternalEventTitle(event.title, {
+    description: event.description,
+    externalLink: event.external_link,
+    fallback: event.vibe_label || event.location_name || "Event",
+  });
+  if (title === event.title) return event;
+  return { ...event, title };
 }
 
 function buildBaseRow(event: PartyCard, scrapedAt: string) {
@@ -57,30 +83,98 @@ function isUnknownColumnError(message: string) {
   );
 }
 
-export async function syncExternalEventsToCache(events: PartyCard[]): Promise<ExternalEventsSyncResult> {
+async function deleteExpiredRows(nowIso: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("external_events_cache").delete().lt("ends_at", nowIso);
+  if (error) {
+    throw new Error(`Deleting expired external events failed: ${error.message}`);
+  }
+}
+
+async function deleteFarFutureGhostRows(maxStartsAtIso: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const sources = externalEventsFetchStaleSourceKeys();
+  const { error, count } = await supabase
+    .from("external_events_cache")
+    .delete({ count: "exact" })
+    .in("source", sources)
+    .gt("starts_at", maxStartsAtIso);
+
+  if (error) {
+    throw new Error(`Deleting far-future external events failed: ${error.message}`);
+  }
+
+  return (count ?? 0) > 0;
+}
+
+async function deleteStaleForSources(sources: string[], scrapedAt: string): Promise<void> {
+  if (sources.length === 0) return;
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("external_events_cache")
+    .delete()
+    .in("source", sources)
+    .lt("scraped_at", scrapedAt);
+
+  if (error) {
+    throw new Error(`Deleting stale external events failed: ${error.message}`);
+  }
+}
+
+export async function syncExternalEventsToCache(
+  events: PartyCard[],
+  options: SyncExternalEventsOptions = {},
+): Promise<ExternalEventsSyncResult> {
   const supabase = getSupabaseAdmin();
   const scrapedAt = new Date().toISOString();
   const nowIso = new Date().toISOString();
+  const maxStartsAtIso = new Date(Date.now() + MAX_FUTURE_CACHE_MS).toISOString();
   let usedBaseFallback = false;
 
-  if (events.length === 0) {
-    console.warn(
-      "[external-events-cache] Refresh produced zero events — skipping upsert and per-source stale deletes so existing cache rows stay intact.",
-    );
-    const { error: expiredDeleteError } = await supabase.from("external_events_cache").delete().lt("ends_at", nowIso);
-    if (expiredDeleteError) {
-      throw new Error(`Deleting expired external events failed: ${expiredDeleteError.message}`);
+  const knownSources = new Set(externalEventsFetchStaleSourceKeys());
+  const sourcesSucceeded = (options.sourcesSucceeded ?? [...knownSources])
+    .map((source) => source.trim())
+    .filter((source) => source.length > 0 && knownSources.has(source));
+
+  const sanitizedEvents = events.map(sanitizeEventForCache);
+
+  if (sanitizedEvents.length === 0) {
+    await deleteExpiredRows(nowIso);
+    const deletedFarFuture = await deleteFarFutureGhostRows(maxStartsAtIso);
+
+    // Empty-but-successful sources should still clear their ghosts.
+    // If nothing succeeded (total scrape failure), keep last good snapshot.
+    if (sourcesSucceeded.length === 0) {
+      console.warn(
+        "[external-events-cache] Refresh produced zero events and no successful sources — keeping last good cache.",
+      );
+      return {
+        upserted: 0,
+        usedBaseFallback: false,
+        deletedStale: false,
+        deletedExpired: true,
+        deletedFarFuture,
+        sourcesSwept: [],
+      };
     }
+
+    console.warn(
+      `[external-events-cache] Refresh produced zero events — sweeping successful empty sources: ${sourcesSucceeded.join(", ")}`,
+    );
+    await deleteStaleForSources(sourcesSucceeded, scrapedAt);
     return {
       upserted: 0,
       usedBaseFallback: false,
-      deletedStale: false,
+      deletedStale: true,
       deletedExpired: true,
+      deletedFarFuture,
+      sourcesSwept: sourcesSucceeded,
     };
   }
 
-  const extendedRows = events.map((event) => buildExtendedRow(event, scrapedAt));
-  const baseRows = events.map((event) => buildBaseRow(event, scrapedAt));
+  const extendedRows = sanitizedEvents.map((event) => buildExtendedRow(event, scrapedAt));
+  const baseRows = sanitizedEvents.map((event) => buildBaseRow(event, scrapedAt));
 
   const extendedUpsert = await supabase
     .from("external_events_cache")
@@ -101,29 +195,16 @@ export async function syncExternalEventsToCache(events: PartyCard[]): Promise<Ex
     }
   }
 
-  const sourcesTouched = new Set(events.map((event) => normalizeIngestSource(event)));
-  for (const source of sourcesTouched) {
-    const { error: staleDeleteError } = await supabase
-      .from("external_events_cache")
-      .delete()
-      .eq("source", source)
-      .lt("scraped_at", scrapedAt);
-
-    if (staleDeleteError) {
-      throw new Error(`Deleting stale external events failed for source ${source}: ${staleDeleteError.message}`);
-    }
-  }
-
-  const { error: expiredDeleteError } = await supabase.from("external_events_cache").delete().lt("ends_at", nowIso);
-
-  if (expiredDeleteError) {
-    throw new Error(`Deleting expired external events failed: ${expiredDeleteError.message}`);
-  }
+  await deleteStaleForSources(sourcesSucceeded, scrapedAt);
+  await deleteExpiredRows(nowIso);
+  const deletedFarFuture = await deleteFarFutureGhostRows(maxStartsAtIso);
 
   return {
     upserted: extendedRows.length,
     usedBaseFallback,
-    deletedStale: true,
+    deletedStale: sourcesSucceeded.length > 0,
     deletedExpired: true,
+    deletedFarFuture,
+    sourcesSwept: sourcesSucceeded,
   };
 }

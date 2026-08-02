@@ -1,5 +1,6 @@
 import { getCommunityHangoutById, getExternalEventById, getPublicPartyById } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
+import { sanitizeExternalEventTitle } from "@/lib/sanitize-event-title";
 
 function formatEventKindLabel(kind: "external" | "party" | "community"): string {
   if (kind === "party") {
@@ -44,31 +45,37 @@ function truncateDescription(text: string, maxLength = 150): string {
 }
 
 function buildPresentationModel(baseEvent: PublicEventPageModel): PublicEventPageData {
-  const displayLocationName = baseEvent.locationName ?? "Ort wird noch ergaenzt";
-  const clubName = baseEvent.locationName?.trim() || baseEvent.vibeLabel.trim() || "Tuebingen";
-  const kindLabel = formatEventKindLabel(baseEvent.kind);
+  const displayTitle = sanitizeExternalEventTitle(baseEvent.title, {
+    description: baseEvent.description,
+    externalLink: baseEvent.externalLink,
+    fallback: baseEvent.vibeLabel || baseEvent.locationName || "Event",
+  });
+  const event = { ...baseEvent, title: displayTitle };
+  const displayLocationName = event.locationName ?? "Ort wird noch ergaenzt";
+  const clubName = event.locationName?.trim() || event.vibeLabel.trim() || "Tuebingen";
+  const kindLabel = formatEventKindLabel(event.kind);
   const schemaDescription =
-    baseEvent.description?.trim() ||
-    `${baseEvent.title} im ${clubName} am ${formatDateTime(baseEvent.startsAt)} in Tuebingen.`;
+    event.description?.trim() ||
+    `${event.title} im ${clubName} am ${formatDateTime(event.startsAt)} in Tuebingen.`;
 
   return {
-    ...baseEvent,
+    ...event,
     kindLabel,
     clubName,
     displayLocationName,
-    displayCategory: baseEvent.musicGenre ?? baseEvent.categoryLabel ?? baseEvent.vibeLabel,
-    heroDateLabel: formatDateTime(baseEvent.startsAt),
-    startDateLabel: formatFullDateTime(baseEvent.startsAt),
-    endDateLabel: formatFullDateTime(baseEvent.endsAt),
-    coordinatesLabel: formatCoordinates(baseEvent.publicLat, baseEvent.publicLng),
+    displayCategory: event.musicGenre ?? event.categoryLabel ?? event.vibeLabel,
+    heroDateLabel: formatDateTime(event.startsAt),
+    startDateLabel: formatFullDateTime(event.startsAt),
+    endDateLabel: formatFullDateTime(event.endsAt),
+    coordinatesLabel: formatCoordinates(event.publicLat, event.publicLng),
     mapsLink:
-      baseEvent.publicLat != null && baseEvent.publicLng != null
-        ? `https://www.google.com/maps/search/?api=1&query=${baseEvent.publicLat},${baseEvent.publicLng}`
+      event.publicLat != null && event.publicLng != null
+        ? `https://www.google.com/maps/search/?api=1&query=${event.publicLat},${event.publicLng}`
         : null,
-    seoDescription: baseEvent.description?.trim()
-      ? truncateDescription(baseEvent.description)
+    seoDescription: event.description?.trim()
+      ? truncateDescription(event.description)
       : truncateDescription(
-          `${baseEvent.title} in Tuebingen als ${kindLabel} am ${formatDateTime(baseEvent.startsAt)}.`,
+          `${event.title} in Tuebingen als ${kindLabel} am ${formatDateTime(event.startsAt)}.`,
         ),
     schemaDescription,
   };

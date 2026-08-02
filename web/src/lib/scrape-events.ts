@@ -24,7 +24,8 @@ export type InstagramPostCandidate = {
 };
 
 function getRequiredValue(value: string | undefined, missingName: string): string {
-  const normalized = value?.trim();
+  // Vercel sometimes stores secrets with a literal trailing "\n".
+  const normalized = value?.trim().replace(/\\n$/g, "").replace(/\n+$/g, "").trim();
   if (!normalized) {
     throw new Error(`Missing required environment variable: ${missingName}`);
   }

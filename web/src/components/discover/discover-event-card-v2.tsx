@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Flame } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { resolveDiscoverVenuePartnerLogo } from "@/lib/discover-venue-visual";
 import { DiscoverVenueLogoBadge } from "./discover-venue-logo-badge";
@@ -49,7 +49,7 @@ function InterestStack({ count, hostAvatarUrl }: { count: number; hostAvatarUrl:
                 <Image src={hostAvatarUrl} alt="" width={28} height={28} className="h-full w-full object-cover" />
               ) : (
                 <div
-                  className="h-full w-full bg-gradient-to-br from-primary/55 to-secondary/45"
+                  className="h-full w-full bg-[#221e1a]"
                   aria-hidden="true"
                 />
               )}
@@ -98,14 +98,15 @@ export function DiscoverEventCardV2({
 
   return (
     <article
-      className="group relative w-full overflow-hidden rounded-none [contain-intrinsic-size:auto_10rem] card-lift"
+      className="group relative w-full overflow-hidden rounded-none card-lift"
       role="article"
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-none sm:aspect-[3/1] md:aspect-[5/1]">
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-primary/25 via-muted to-secondary/20"
-          aria-hidden="true"
-        />
+      {/*
+        Media fills the card; copy is in-flow so tall titles expand height instead of
+        clipping against a flat aspect-ratio box (especially md two-column 5:1).
+      */}
+      <div className="relative w-full min-h-[13.5rem] sm:min-h-[15rem] md:min-h-[14.5rem]">
+        <div className="absolute inset-0 bg-[#221e1a]" aria-hidden="true" />
         <div
           className={`absolute inset-0 z-[1] transition-transform duration-700 ease-out ${showMedia ? "scale-100 sm:scale-105 sm:group-hover:scale-110" : ""}`}
         >
@@ -114,7 +115,7 @@ export function DiscoverEventCardV2({
               src={mediaSrc}
               alt={mediaAlt}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, min(1200px, 100vw)"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, min(40rem, 50vw)"
               priority={imagePriority}
               className={
                 hasHeroImage
@@ -133,15 +134,8 @@ export function DiscoverEventCardV2({
           className="absolute inset-0 z-[2]"
           style={{
             background:
-              "linear-gradient(to top, rgba(12,10,9,0.95) 0%, rgba(12,10,9,0.55) 45%, rgba(12,10,9,0.1) 100%)",
+              "linear-gradient(to top, rgba(20,17,15,0.94) 0%, rgba(20,17,15,0.55) 42%, rgba(20,17,15,0.2) 72%, rgba(20,17,15,0.05) 100%)",
           }}
-        />
-        <div
-          className="absolute bottom-0 left-0 right-0 z-[2] max-sm:h-[72px] sm:h-[96px]"
-          style={{
-            background: "linear-gradient(to top, rgba(255,122,24,0.12) 0%, rgba(255,122,24,0) 100%)",
-          }}
-          aria-hidden="true"
         />
 
         <Link
@@ -151,17 +145,15 @@ export function DiscoverEventCardV2({
         />
 
         {isHot ? (
-          <div className="pointer-events-none absolute left-3 top-3 z-[6] inline-flex items-center gap-1 rounded-full border border-[#ff9a3f]/70 bg-[#2D1D10]/85 px-2 py-0.5 text-[10px] font-semibold text-[#ffc48a] shadow-sm sm:left-4 sm:top-4 sm:px-2.5 sm:py-1 sm:text-xs">
-            <Flame className="h-3 w-3 shrink-0 text-[#ff9a3f] sm:h-3.5 sm:w-3.5" aria-hidden="true" />
-            Im Trend
+          <div className="pointer-events-none absolute left-3 top-3 z-[6] border-l-2 border-[#c4783a] bg-[#14110f]/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#d9a06a] sm:left-4 sm:top-4 sm:text-[11px]">
+            Trend
           </div>
         ) : null}
 
-        {/* Mock layout: Titel → Venue → Social, Datum-Pille + CTA (Klicks außer Upvote → Detail) */}
-        <div className="absolute inset-x-0 bottom-0 z-[5] p-2.5 sm:p-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="relative z-[5] flex min-h-[13.5rem] flex-col justify-end p-3 pt-12 sm:min-h-[15rem] sm:p-4 sm:pt-14 md:min-h-[14.5rem]">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="pointer-events-none flex min-w-0 flex-1 flex-col gap-1.5 sm:gap-2">
-              <h3 className="min-w-0 text-[1.05rem] font-semibold leading-snug tracking-tight text-white drop-shadow-sm line-clamp-2 sm:text-2xl sm:leading-snug">
+              <h3 className="min-w-0 break-words text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-white drop-shadow-sm [overflow-wrap:anywhere] sm:text-xl sm:leading-[1.25] md:text-[1.35rem]">
                 {event.title}
               </h3>
               <p className="flex min-w-0 items-center gap-1.5 text-[10px] font-medium text-[#e8e1db] sm:gap-2 sm:text-xs">
@@ -184,14 +176,14 @@ export function DiscoverEventCardV2({
             </div>
 
             <div className="flex w-full shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end sm:justify-start sm:gap-2.5 sm:flex-col">
-              <div className="pointer-events-none flex w-fit max-w-full items-center gap-1 self-end rounded-full border border-stone-500/60 bg-stone-950/90 px-2 py-1 sm:gap-2 sm:px-3.5 sm:py-2 max-sm:self-stretch max-sm:justify-center">
+              <div className="pointer-events-none flex w-fit max-w-full items-center gap-1.5 self-end rounded-md border border-[rgba(240,235,228,0.18)] bg-[#14110f]/90 px-2 py-1 sm:gap-2 sm:px-3 sm:py-1.5 max-sm:self-stretch max-sm:justify-center">
                 <time
-                  className="text-[10px] font-semibold tabular-nums text-[#f2ece6] sm:text-sm"
+                  className="text-[10px] font-semibold tabular-nums text-[#f0ebe4] sm:text-sm"
                   dateTime={event.startsAt}
                 >
                   {dateLabel}
                 </time>
-                <span className="h-0.5 w-0.5 rounded-full bg-stone-300/90" aria-hidden="true" />
+                <span className="h-0.5 w-0.5 rounded-full bg-[#9a9086]" aria-hidden="true" />
                 <span className="text-[10px] font-semibold tabular-nums text-[#ebe4dd] sm:text-sm">{timeLabel}</span>
               </div>
               <button
@@ -211,11 +203,11 @@ export function DiscoverEventCardV2({
                 onTouchEnd={() => setCtaPressed(false)}
                 aria-pressed={upvotedByMe}
                 aria-label={upvotedByMe ? "Zusagen entfernen" : "Ich bin dabei!"}
-                className={`pointer-events-auto relative z-[1] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-semibold shadow-md transition-all duration-200 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
+                className={`pointer-events-auto relative z-[1] flex min-h-[44px] w-full max-sm:min-h-[48px] max-sm:justify-center sm:h-auto sm:w-auto sm:min-h-[44px] items-center gap-1 rounded-md px-2.5 py-1.5 text-[10px] font-semibold transition-opacity duration-150 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm ${
                   upvotedByMe
-                    ? "wg-cta-confirmed bg-[#ff7a18] text-[#2D1D10] border border-[#ff9a3f] shadow-[0_10px_24px_-14px_rgba(255,122,24,0.95)]"
-                    : "wg-cta-attention max-sm:border-[#ff7a18]/40 max-sm:bg-gradient-to-r max-sm:from-[#ff7a18] max-sm:to-[#e86c14] max-sm:text-[#2D1D10] max-sm:shadow-[0_10px_28px_-12px_rgba(255,122,24,0.55)] bg-[#1A1715]/92 text-[#E9DFD6] border border-[#2B2623] hover:border-[#3A312B] hover:text-white"
-                } ${ctaPressed ? "scale-95" : "scale-100"}`}
+                    ? "bg-[#c4783a] text-[#1c1410] border border-[#d9a06a]"
+                    : "bg-[#1c1815]/95 text-[#f0ebe4] border border-[rgba(240,235,228,0.14)] hover:border-[rgba(240,235,228,0.28)]"
+                } ${ctaPressed ? "opacity-80" : ""}`}
               >
                 {upvotedByMe ? (
                   <>
@@ -235,7 +227,7 @@ export function DiscoverEventCardV2({
       </div>
       {showConfirmation ? (
         <div
-          className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-2xl animate-bounce-in sm:rounded-xl sm:px-4 sm:py-2 sm:text-sm"
+          className="wg-confirm-toast absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] sm:px-4 sm:py-2 sm:text-sm"
           role="status"
           aria-live="polite"
         >

@@ -1,10 +1,13 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { syncExternalEventsToCache } from "@/lib/external-events-cache";
+import { externalEventsFetchStaleSourceKeys } from "@/lib/external-event-sources";
+import { cronSecretMatches, normalizeEnvSecret } from "@/lib/cron-auth";
+import { safeEqualString } from "@/lib/security";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
+import { fetchExternalEventsBundle } from "@/services/events/external-events-fetch-service";
 
 export const dynamic = "force-dynamic";
-const OFFICIAL_SOURCE = "official-scraper";
+export const maxDuration = 300;
 const REFRESH_COOLDOWN_MINUTES = (() => {
   const parsed = Number(process.env.EXTERNAL_EVENTS_REFRESH_COOLDOWN_MINUTES ?? "10");
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -14,23 +17,18 @@ const REFRESH_COOLDOWN_MINUTES = (() => {
 })();
 
 function isAuthorized(request: Request) {
-  const cronSecret = process.env.CRON_SECRET?.trim();
-  const authHeader = request.headers.get("authorization")?.trim();
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+  if (cronSecretMatches(request)) {
     return true;
   }
 
-  const expected = process.env.EXTERNAL_EVENTS_REFRESH_TOKEN?.trim();
-
+  const expected = normalizeEnvSecret(process.env.EXTERNAL_EVENTS_REFRESH_TOKEN);
   if (!expected) {
     return false;
   }
 
-  const headerToken = request.headers.get("x-refresh-token")?.trim();
-  const url = new URL(request.url);
-  const queryToken = url.searchParams.get("token")?.trim();
-
-  return headerToken === expected || queryToken === expected;
+  // Header-only — never accept ?token= (logs / Referer leakage).
+  const headerToken = request.headers.get("x-refresh-token")?.trim() ?? "";
+  return headerToken.length > 0 && safeEqualString(headerToken, expected);
 }
 
 export async function GET(request: Request) {
@@ -51,10 +49,11 @@ export async function GET(request: Request) {
   try {
     if (REFRESH_COOLDOWN_MINUTES > 0) {
       const supabase = getSupabaseAdmin();
+      const officialSources = externalEventsFetchStaleSourceKeys();
       const lastRunResult = await supabase
         .from("external_events_cache")
         .select("scraped_at")
-        .eq("source", OFFICIAL_SOURCE)
+        .in("source", officialSources)
         .order("scraped_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -81,9 +80,13 @@ export async function GET(request: Request) {
     }
 
     revalidateTag("external-events", "max");
-    const events = await fetchExternalEvents();
-    const syncResult = await syncExternalEventsToCache(events);
+    revalidateTag("discover-public", "max");
+    const bundle = await fetchExternalEventsBundle();
+    const syncResult = await syncExternalEventsToCache(bundle.events, {
+      sourcesSucceeded: bundle.sourcesSucceeded,
+    });
     revalidatePath("/discover");
+    revalidatePath("/");
 
     if (syncResult.usedBaseFallback) {
       console.warn(
@@ -91,12 +94,18 @@ export async function GET(request: Request) {
       );
     }
 
+    const partial = bundle.sourcesFailed.length > 0;
+
     return Response.json({
       ok: true,
+      partial,
       refreshedAt: new Date().toISOString(),
-      count: events.length,
+      count: bundle.events.length,
       upserted: syncResult.upserted,
       usedBaseFallback: syncResult.usedBaseFallback,
+      sourcesSucceeded: bundle.sourcesSucceeded,
+      sourcesFailed: bundle.sourcesFailed,
+      sourcesSwept: syncResult.sourcesSwept,
       durationMs: Date.now() - startedAt,
     }, {
       status: 200,

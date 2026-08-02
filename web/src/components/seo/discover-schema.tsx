@@ -1,5 +1,6 @@
 import { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/site-config";
+import { serializeJsonLd } from "@/lib/security";
 
 type Props = {
   events: DiscoverEvent[];
@@ -134,7 +135,7 @@ export function DiscoverSchema({ events }: Props) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
     />
   );
 }

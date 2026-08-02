@@ -1,16 +1,27 @@
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
 
+/**
+ * ⚠️ FALLBACK ONLY — incomplete scraper set.
+ *
+ * Canonical ingest: production `POST /api/external-events/refresh`
+ * (TypeScript scrapers in `src/lib/scrapers/` + `external-events-fetch-service.ts`).
+ *
+ * This worker omits Club Voltaire / DAI / Uni / Sudhaus / Partykel / Reddit.
+ * Prefer the API refresh. See `src/lib/scrapers/README.md` and root `AGENTS.md`.
+ */
+
 /** Fallback if a scraped event omits `source` */
 const DEFAULT_SOURCE = "official-scraper";
 const DEFAULT_DIGINIGHTS_URLS = [
-  "https://diginights.com/city/tuebingen",
-  "https://diginights.com/city/tubingen",
   "https://diginights.com",
+  "https://www.diginights.com",
 ];
 const SCHLACHTHAUS_URL = "https://www.schlachthaus-tuebingen.de/";
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
-const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
+const FSRVV_CLUBHAUS_URL =
+  (process.env.CLUBHAUS_EVENTS_URL || "").trim() ||
+  "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
 const EPPLEHAUS_ICAL_URL = "https://www.epplehaus.de/events/?ical=1";
 const TUEBINGEN_MARKETS_URL = "https://www.tuebingen.de/3393.html";
 const TUEBINGEN_FLEA_MARKETS_URL = "https://www.tuebingen.de/3392.html";
@@ -155,9 +166,7 @@ function parseGermanMonthName(name) {
 function buildBerlinIsoDate(year, month, day, hour = 9, minute = 0) {
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
-  const hh = String(hour).padStart(2, "0");
-  const min = String(minute).padStart(2, "0");
-  const date = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00+02:00`);
+  const date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, hour, minute);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
@@ -216,14 +225,28 @@ function unfoldIcsLines(ics) {
 
 function parseIcsDate(value) {
   const raw = String(value ?? "").trim();
+
+  const utcMatch = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/i);
+  if (utcMatch) {
+    const [, year, month, day, hour, minute, second] = utcMatch;
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)));
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
+  const dateOnly = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    const date = berlinWallTimeToUtc(`${year}-${month}-${day}`, 12, 0);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  }
+
   const match = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
   if (!match) {
     return null;
   }
 
-  const [, year, month, day, hour, minute, second] = match;
-  const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}+02:00`;
-  const date = new Date(iso);
+  const [, year, month, day, hour, minute] = match;
+  const date = berlinWallTimeToUtc(`${year}-${month}-${day}`, Number(hour), Number(minute));
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 

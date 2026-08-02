@@ -874,6 +874,25 @@ export async function getChatThreads(userId: string) {
 
 export async function getChatMessages(threadId: string) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return [];
+  }
+
+  const { data: membership } = await supabase
+    .from("v_chat_threads_with_last_message")
+    .select("thread_id")
+    .eq("thread_id", threadId)
+    .or(`host_user_id.eq.${user.id},guest_user_id.eq.${user.id}`)
+    .maybeSingle();
+
+  if (!membership?.thread_id) {
+    return [];
+  }
+
   const { data } = await supabase
     .from("chat_messages")
     .select("id, thread_id, sender_user_id, body, created_at")

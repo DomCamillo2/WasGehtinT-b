@@ -1,4 +1,5 @@
 import { PartyCard } from "@/lib/types";
+import { sanitizeExternalEventTitle } from "@/lib/sanitize-event-title";
 
 export type DiscoverEvent = {
   id: string;
@@ -36,7 +37,11 @@ export function mapPartyCardToDiscoverEvent(party: PartyCard): DiscoverEvent {
   return {
     id: party.id,
     detailHref: `/event/${party.id}`,
-    title: party.title,
+    title: sanitizeExternalEventTitle(party.title, {
+      description: party.description,
+      externalLink: party.external_link,
+      fallback: party.vibe_label || party.location_name || "Event",
+    }),
     description: party.description,
     startsAt: party.starts_at,
     endsAt: party.ends_at,

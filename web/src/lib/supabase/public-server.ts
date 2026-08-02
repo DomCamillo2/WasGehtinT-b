@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { getMissingSupabaseEnv, getSupabasePublicKey } from "@/lib/env";
+import { getMissingSupabaseEnv, getSupabasePublicKey, getSupabaseUrl } from "@/lib/env";
 
 let publicSingleton: SupabaseClient | null = null;
 
@@ -9,7 +9,7 @@ export function getSupabasePublicServerClient() {
     throw new Error(`Supabase-Konfiguration fehlt: ${missing.join(", ")}`);
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const url = getSupabaseUrl()!;
   const publicKey = getSupabasePublicKey()!;
 
   if (!publicSingleton) {

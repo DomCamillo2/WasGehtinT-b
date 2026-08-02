@@ -2,7 +2,9 @@ import "server-only";
 
 import * as cheerio from "cheerio";
 import { unstable_cache } from "next/cache";
-import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
+import { enrichExternalEventCategories } from "@/lib/external-event-categorization";
+import { fetchSourceText } from "@/lib/scrapers/source-fetch";
+import { berlinDayKeyFromDate, berlinWallTimeToUtc, resolveYearlessBerlinDate } from "@/lib/timezone-berlin";
 import { PartyCard } from "@/lib/types";
 import {
   fetchSchlachthausEvents,
@@ -15,16 +17,26 @@ import {
   fetchClubVoltaireEvents,
   fetchDaiEvents,
   fetchPartykelEvents,
-  fetchRedditEvents,
+  fetchRedditEventBatches,
+  type SourceScrapeResult,
 } from "@/lib/scrapers/official-venues";
 import { discoverImportantEventSourceCandidates } from "@/lib/scrapers/source-discovery";
 
 const KUCKUCK_PROGRAM_URL = "https://kuckuck-bar.de/wochenprogramm/";
 const KUCKUCK_LAT = 48.5413588;
 const KUCKUCK_LNG = 9.0599431;
-const FSRVV_CLUBHAUS_URL = "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/";
+const FSRVV_CLUBHAUS_URL = (
+  process.env.CLUBHAUS_EVENTS_URL?.trim() ||
+  "https://www.fsrvv.de/2026/03/06/clubhausfesttermine-sose-2026/"
+);
 const CLUBHAUS_LAT = 48.5243852;
 const CLUBHAUS_LNG = 9.0605991;
+
+if (!process.env.CLUBHAUS_EVENTS_URL?.trim()) {
+  console.warn(
+    "[external-events] CLUBHAUS_EVENTS_URL unset — using seasonal fallback URL that will go stale.",
+  );
+}
 
 function logExternalSourceWarning(source: string, message: string, details?: unknown): void {
   if (details === undefined) {
@@ -38,6 +50,12 @@ function logExternalSourceWarning(source: string, message: string, details?: unk
 function logExternalSourceFailure(source: string, error: unknown): void {
   console.error(`[external-events:${source}] Fetch failed:`, error);
 }
+
+export type ExternalEventsFetchBundle = {
+  events: PartyCard[];
+  sourcesSucceeded: string[];
+  sourcesFailed: Array<{ source: string; error: string }>;
+};
 
 type ParsedEvent = {
   dateKey: string;
@@ -81,44 +99,12 @@ function isCancelledOrOutageEvent(event: PartyCard): boolean {
 }
 
 function toIsoDate(day: number, month: number): string | null {
-  if (!Number.isInteger(day) || !Number.isInteger(month)) {
-    return null;
-  }
-
-  if (day < 1 || day > 31 || month < 1 || month > 12) {
-    return null;
-  }
-
-  const now = Date.now();
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Berlin",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).formatToParts(new Date());
-
-  let year = Number(parts.find((p) => p.type === "year")?.value);
-  if (!Number.isFinite(year)) {
-    year = new Date().getUTCFullYear();
-  }
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  let isoDate = `${year}-${pad(month)}-${pad(day)}`;
-  let candidate = berlinWallTimeToUtc(isoDate, 20, 0);
-  if (Number.isNaN(candidate.getTime())) {
-    return null;
-  }
-
-  if (candidate.getTime() < now - 12 * 60 * 60 * 1000) {
-    isoDate = `${year + 1}-${pad(month)}-${pad(day)}`;
-    candidate = berlinWallTimeToUtc(isoDate, 20, 0);
-  }
-
-  if (Number.isNaN(candidate.getTime()) || candidate.getTime() < now - 12 * 60 * 60 * 1000) {
-    return null;
-  }
-
-  return candidate.toISOString();
+  // Weekly program: allow ~36h past, reject year-bumps beyond 3 weeks.
+  const resolved = resolveYearlessBerlinDate(day, month, 20, 0, {
+    maxPastMs: 36 * 60 * 60 * 1000,
+    maxFutureMs: 21 * 24 * 60 * 60 * 1000,
+  });
+  return resolved ? resolved.toISOString() : null;
 }
 
 function normalizeChunk(input: string): string {
@@ -216,50 +202,35 @@ function parseWeeklyProgram(rawText: string): ParsedEvent[] {
 }
 
 async function fetchKuckuckEvents(): Promise<PartyCard[]> {
-  try {
-    const response = await fetch(KUCKUCK_PROGRAM_URL, {
-      cache: "no-store",
-    });
+  const html = await fetchSourceText("kuckuck", KUCKUCK_PROGRAM_URL);
+  const $ = cheerio.load(html);
+  const text = $("body").text();
+  const parsed = parseWeeklyProgram(text);
 
-    if (!response.ok) {
-      logExternalSourceWarning("kuckuck", "Non-OK response from source.", {
-        status: response.status,
-        statusText: response.statusText,
-        url: KUCKUCK_PROGRAM_URL,
-      });
-      return [];
-    }
-
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    const text = $("body").text();
-    const parsed = parseWeeklyProgram(text);
-
-    return parsed.slice(0, 14).map((event) => ({
-      id: `kuckuck-${event.dateKey.replace(".", "-")}-${event.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")}`,
-      source: "kuckuck",
-      title: event.title,
-      description: event.description || "Kuckuck Event in T\u00fcbingen",
-      starts_at: event.startsAt,
-      ends_at: new Date(new Date(event.startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString(),
-      max_guests: 0,
-      contribution_cents: 0,
-      public_lat: KUCKUCK_LAT,
-      public_lng: KUCKUCK_LNG,
-      is_external: true,
-      external_link: null,
-      vibe_label: "Kuckuck",
-      spots_left: 0,
-      location_name: "Kuckuck",
-      music_genre: event.musicGenre,
-    }));
-  } catch (error) {
-    logExternalSourceFailure("kuckuck", error);
-    return [];
-  }
+  return parsed.slice(0, 14).map((event) => ({
+    id: `kuckuck-${event.dateKey.replace(".", "-")}-${event.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")}`,
+    source: "kuckuck",
+    title: event.title,
+    description: event.description || "Kuckuck Event in T\u00fcbingen",
+    starts_at: event.startsAt,
+    ends_at: new Date(new Date(event.startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString(),
+    max_guests: 0,
+    contribution_cents: 0,
+    public_lat: KUCKUCK_LAT,
+    public_lng: KUCKUCK_LNG,
+    is_external: true,
+    external_link: null,
+    vibe_label: "Kuckuck",
+    spots_left: 0,
+    location_name: "Kuckuck",
+    music_genre: event.musicGenre,
+    event_scope: "nightlife" as const,
+    category_slug: "party",
+    category_label: "Party",
+  }));
 }
 
 function parseClubhausDate(day: number, month: number, year: number): string | null {
@@ -297,7 +268,7 @@ function buildEventSignature(event: PartyCard): string {
   const startsAt = new Date(event.starts_at);
   const dayKey = Number.isNaN(startsAt.getTime())
     ? "unknown-day"
-    : startsAt.toISOString().slice(0, 10);
+    : berlinDayKeyFromDate(startsAt) || startsAt.toISOString().slice(0, 10);
 
   const location = normalizeForDedupe(event.location_name ?? "");
   const title = normalizeForDedupe(event.title ?? "");
@@ -313,145 +284,148 @@ function scoreEventForDedupe(event: PartyCard): number {
 }
 
 async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
-  try {
-    const response = await fetch(FSRVV_CLUBHAUS_URL, {
-      cache: "no-store",
-    });
+  const html = await fetchSourceText("clubhaus", FSRVV_CLUBHAUS_URL);
+  const $ = cheerio.load(html);
+  const tableRows = $("article table tr");
+  const parsedEvents: Array<{
+    day: number;
+    month: number;
+    year: number;
+    title: string;
+  }> = [];
 
-    if (!response.ok) {
-      logExternalSourceWarning("clubhaus", "Non-OK response from source.", {
-        status: response.status,
-        statusText: response.statusText,
-        url: FSRVV_CLUBHAUS_URL,
-      });
-      return [];
+  tableRows.each((_, row) => {
+    const cells = $(row)
+      .find("td")
+      .map((__, cell) => $(cell).text().trim())
+      .get();
+
+    if (cells.length < 2) {
+      return;
     }
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    const tableRows = $("article table tr");
-    const parsedEvents: Array<{
-      day: number;
-      month: number;
-      year: number;
-      title: string;
-    }> = [];
+    const dateText = cells[0] ?? "";
+    const titleText = cells[1] ?? "";
+    const match = dateText.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
 
-    tableRows.each((_, row) => {
-      const cells = $(row)
-        .find("td")
-        .map((__, cell) => $(cell).text().trim())
-        .get();
+    if (!match) {
+      return;
+    }
 
-      if (cells.length < 2) {
-        return;
-      }
+    parsedEvents.push({
+      day: Number(match[1]),
+      month: Number(match[2]),
+      year: Number(match[3]),
+      title: normalizeFsrvvTitle(titleText),
+    });
+  });
 
-      const dateText = cells[0] ?? "";
-      const titleText = cells[1] ?? "";
-      const match = dateText.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-
-      if (!match) {
-        return;
-      }
-
+  if (!parsedEvents.length) {
+    const fallbackText = $("article").text();
+    const regex = /(\d{2})\.(\d{2})\.(\d{4})\s*\|\s*([^\n]+)/g;
+    for (const match of fallbackText.matchAll(regex)) {
       parsedEvents.push({
         day: Number(match[1]),
         month: Number(match[2]),
         year: Number(match[3]),
-        title: normalizeFsrvvTitle(titleText),
+        title: normalizeFsrvvTitle((match[4] ?? "").trim()),
       });
-    });
+    }
+  }
 
-    if (!parsedEvents.length) {
-      const fallbackText = $("article").text();
-      const regex = /(\d{2})\.(\d{2})\.(\d{4})\s*\|\s*([^\n]+)/g;
-      for (const match of fallbackText.matchAll(regex)) {
-        parsedEvents.push({
-          day: Number(match[1]),
-          month: Number(match[2]),
-          year: Number(match[3]),
-          title: normalizeFsrvvTitle((match[4] ?? "").trim()),
-        });
+  if (!parsedEvents.length) {
+    logExternalSourceWarning(
+      "clubhaus",
+      "No parsable events found in primary table or fallback text.",
+    );
+  }
+
+  return parsedEvents
+    .map((event) => {
+      const startsAt = parseClubhausDate(event.day, event.month, event.year);
+      if (!startsAt) {
+        return null;
       }
-    }
 
-    if (!parsedEvents.length) {
-      logExternalSourceWarning(
-        "clubhaus",
-        "No parsable events found in primary table or fallback text.",
-      );
-    }
+      const dateKey = `${String(event.day).padStart(2, "0")}-${String(event.month).padStart(2, "0")}-${event.year}`;
 
-    return parsedEvents
-      .map((event) => {
-        const startsAt = parseClubhausDate(event.day, event.month, event.year);
-        if (!startsAt) {
-          return null;
-        }
+      return {
+        id: `clubhaus-${dateKey}-${event.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")}`,
+        source: "clubhaus",
+        title: event.title,
+        description: "Offizieller Clubhausfesttermin (FSRVV), Wilhelmstra\u00dfe 30, 72074 T\u00fcbingen",
+        starts_at: startsAt,
+        ends_at: new Date(new Date(startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString(),
+        max_guests: 0,
+        contribution_cents: 0,
+        public_lat: CLUBHAUS_LAT,
+        public_lng: CLUBHAUS_LNG,
+        is_external: true,
+        external_link: null,
+        vibe_label: "Clubhausfest",
+        spots_left: 0,
+        location_name: "Clubhaus",
+        music_genre: inferMusicGenre(event.title),
+        event_scope: "nightlife",
+        category_slug: "party",
+        category_label: "Party",
+      } as PartyCard;
+    })
+    .filter((event): event is PartyCard => Boolean(event));
+}
 
-        const dateKey = `${String(event.day).padStart(2, "0")}-${String(event.month).padStart(2, "0")}-${event.year}`;
-
-        return {
-          id: `clubhaus-${dateKey}-${event.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "")}`,
-          source: "clubhaus",
-          title: event.title,
-          description: "Offizieller Clubhausfesttermin (FSRVV), Wilhelmstra\u00dfe 30, 72074 T\u00fcbingen",
-          starts_at: startsAt,
-          ends_at: new Date(new Date(startsAt).getTime() + 4 * 60 * 60 * 1000).toISOString(),
-          max_guests: 0,
-          contribution_cents: 0,
-          public_lat: CLUBHAUS_LAT,
-          public_lng: CLUBHAUS_LNG,
-          is_external: true,
-          external_link: null,
-          vibe_label: "Clubhausfest",
-          spots_left: 0,
-          location_name: "Clubhaus",
-          music_genre: inferMusicGenre(event.title),
-        } as PartyCard;
-      })
-      .filter((event): event is PartyCard => Boolean(event));
+async function runSource(
+  source: string,
+  fetcher: () => Promise<PartyCard[]>,
+): Promise<SourceScrapeResult> {
+  try {
+    const events = await fetcher();
+    return { source, ok: true, events };
   } catch (error) {
-    logExternalSourceFailure("clubhaus", error);
-    return [];
+    logExternalSourceFailure(source, error);
+    return {
+      source,
+      ok: false,
+      events: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
-const getCachedExternalEvents = unstable_cache(
-  async (): Promise<PartyCard[]> => {
+const getCachedExternalEventsBundle = unstable_cache(
+  async (): Promise<ExternalEventsFetchBundle> => {
     const nowMs = Date.now();
     const [
-      kuckuckEvents,
-      clubhausEvents,
-      schlachthausEvents,
-      dignightsEvents,
-      epplehausEvents,
-      tuebingenMarketEvents,
-      tuebingenFleaMarketEvents,
-      uniCalendarEvents,
-      sudhausEvents,
-      clubVoltaireEvents,
-      daiEvents,
-      partykelEvents,
-      redditEvents,
+      kuckuck,
+      clubhaus,
+      schlachthaus,
+      dignights,
+      epplehaus,
+      tuebingenMarket,
+      tuebingenFleaMarket,
+      uniCalendar,
+      sudhaus,
+      clubVoltaire,
+      dai,
+      partykel,
+      redditBatches,
     ] = await Promise.all([
-      fetchKuckuckEvents(),
-      fetchFsrvvClubhausEvents(),
-      fetchSchlachthausEvents(),
-      fetchDignightsEvents(),
-      fetchEpplehausEvents(),
-      fetchTuebingenMarketEvents(),
-      fetchTuebingenFleaMarketEvents(),
-      fetchUniCalendarEvents(),
-      fetchSudhausEvents(),
-      fetchClubVoltaireEvents(),
-      fetchDaiEvents(),
-      fetchPartykelEvents(),
-      fetchRedditEvents(),
+      runSource("kuckuck", fetchKuckuckEvents),
+      runSource("clubhaus", fetchFsrvvClubhausEvents),
+      runSource("schlachthaus", fetchSchlachthausEvents),
+      runSource("diginights", fetchDignightsEvents),
+      runSource("epplehaus", fetchEpplehausEvents),
+      runSource("tuebingen-market", fetchTuebingenMarketEvents),
+      runSource("tuebingen-flohmarkt", fetchTuebingenFleaMarketEvents),
+      runSource("uni-tuebingen", fetchUniCalendarEvents),
+      runSource("sudhaus", fetchSudhausEvents),
+      runSource("club-voltaire", fetchClubVoltaireEvents),
+      runSource("dai", fetchDaiEvents),
+      runSource("partykel", fetchPartykelEvents),
+      fetchRedditEventBatches(),
     ]);
 
     // Non-blocking source discovery: surfaces promising future sources in logs.
@@ -463,25 +437,45 @@ const getCachedExternalEvents = unstable_cache(
       });
     }
 
-    const allEvents = [
-      ...kuckuckEvents,
-      ...clubhausEvents,
-      ...schlachthausEvents,
-      ...dignightsEvents,
-      ...epplehausEvents,
-      ...tuebingenMarketEvents,
-      ...tuebingenFleaMarketEvents,
-      ...uniCalendarEvents,
-      ...sudhausEvents,
-      ...clubVoltaireEvents,
-      ...daiEvents,
-      ...partykelEvents,
-      ...redditEvents,
-    ]
+    const results: SourceScrapeResult[] = [
+      kuckuck,
+      clubhaus,
+      schlachthaus,
+      dignights,
+      epplehaus,
+      tuebingenMarket,
+      tuebingenFleaMarket,
+      uniCalendar,
+      sudhaus,
+      clubVoltaire,
+      dai,
+      partykel,
+      ...redditBatches,
+    ];
+
+    const sourcesSucceeded = results.filter((result) => result.ok).map((result) => result.source);
+    const sourcesFailed = results
+      .filter((result) => !result.ok)
+      .map((result) => ({ source: result.source, error: result.error ?? "unknown" }));
+
+    if (sourcesFailed.length > 0) {
+      console.warn(
+        "[external-events] Sources failed (last good rows kept):",
+        sourcesFailed.map((item) => `${item.source}: ${item.error}`),
+      );
+    }
+
+    const allEvents = results
+      .flatMap((result) => result.events)
       .filter((event) => !isCancelledOrOutageEvent(event))
       .filter((event) => {
         const endMs = new Date(event.ends_at).getTime();
         return Number.isFinite(endMs) && endMs >= nowMs;
+      })
+      .filter((event) => {
+        // Safety net: year-bump scrapers must not invent events ~half a year+ out.
+        const startMs = new Date(event.starts_at).getTime();
+        return Number.isFinite(startMs) && startMs <= nowMs + 160 * 24 * 60 * 60 * 1000;
       });
 
     const uniqueMap = new Map<string, PartyCard>();
@@ -503,14 +497,35 @@ const getCachedExternalEvents = unstable_cache(
       }
     }
 
-    return Array.from(signatureMap.values()).sort(
+    const events = Array.from(signatureMap.values()).sort(
       (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
     );
+
+    return { events, sourcesSucceeded, sourcesFailed };
   },
-  ["external-events-v5"],
+  ["external-events-v7"],
   { revalidate: 60 * 5, tags: ["external-events"] },
 );
 
+export async function fetchExternalEventsBundle(): Promise<ExternalEventsFetchBundle> {
+  const bundle = await getCachedExternalEventsBundle();
+  const enrichEnabled =
+    (process.env.EXTERNAL_EVENTS_ENRICH_CATEGORIES ?? "true").trim().toLowerCase() !== "false";
+  if (!enrichEnabled) {
+    return bundle;
+  }
+  try {
+    return {
+      ...bundle,
+      events: await enrichExternalEventCategories(bundle.events),
+    };
+  } catch (error) {
+    console.warn("[external-events] Category enrichment failed; returning base events.", error);
+    return bundle;
+  }
+}
+
 export async function fetchExternalEvents(): Promise<PartyCard[]> {
-  return getCachedExternalEvents();
+  const bundle = await fetchExternalEventsBundle();
+  return bundle.events;
 }

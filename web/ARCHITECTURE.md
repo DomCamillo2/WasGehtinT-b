@@ -2,6 +2,8 @@
 
 Dieses Dokument ist ein verbindliches Architektur-Regelwerk für zukünftige Änderungen und KI-generierten Code. Die produktive Next.js-App und dieses versionierte Regelwerk liegen in `web/`. Behandle dieses Dokument als harte System-Constraints, nicht als lose Empfehlung.
 
+**Agent-Einstieg:** Repo-Root `AGENTS.md` (Karte der Entry Points). Scrapers: `src/lib/scrapers/README.md`.
+
 ## Aktueller Produktfokus
 
 Stand jetzt liegt der Fokus auf der External-Events-Pipeline:
@@ -46,7 +48,7 @@ Konkretes Projektmuster:
 - `web/src/app/discover/page.tsx` ruft `loadDiscoverPageData()` aus `web/src/services/discover/discover-page-service.ts` auf.
 - `discover-page-service.ts` orchestriert Datenquellen, Caching und Anreicherung.
 - `web/src/services/discover/discover-view-model.ts` mappt rohe `PartyCard`-Daten in `DiscoverEvent`.
-- `web/src/components/party/discover-premium.tsx` rendert ausschließlich das UI-freundliche `DiscoverEvent`.
+- `web/src/components/discover/discover-experience-v2.tsx` rendert ausschließlich das UI-freundliche `DiscoverEvent`.
 
 Nutze `*-page-service.ts` für serverseitige Orchestrierung von Reads.
 
@@ -72,7 +74,7 @@ Nutze für imperative Client-Interaktionen immer diesen Pfad:
 
 Konkretes Projektmuster:
 
-- `web/src/components/party/discover-premium.tsx` ruft `togglePartyUpvote(...)` aus `web/src/services/events/upvotes-service.ts` auf.
+- `web/src/components/discover/discover-experience-v2.tsx` ruft `togglePartyUpvote(...)` aus `web/src/services/events/upvotes-service.ts` auf.
 - `upvotes-service.ts` kapselt den HTTP-Call und mappt Fehler auf `ServiceError`.
 - Die UI fängt den Fehler via `asServiceError(...)` ab und zeigt ihn mit `showToast(...)`.
 
@@ -118,7 +120,7 @@ upvotedByMe: party.upvoted_by_me === true,
 
 Nutze dieses Muster immer.
 
-`web/src/components/party/discover-premium.tsx` darf deshalb mit `startsAt`, `hostUserId` und `upvotedByMe` arbeiten, ohne etwas über Spaltennamen oder Supabase-Schema wissen zu müssen.
+`web/src/components/discover/discover-experience-v2.tsx` darf deshalb mit `startsAt`, `hostUserId` und `upvotedByMe` arbeiten, ohne etwas über Spaltennamen oder Supabase-Schema wissen zu müssen.
 
 ### Beispiel 2: Requests
 
@@ -245,7 +247,7 @@ Nutze dafür:
 
 Konkretes Projektmuster:
 
-- `discover-premium.tsx` fängt Fehler von `togglePartyUpvote(...)` ab.
+- `discover-experience-v2.tsx / discover-feed-v2.tsx` fängt Fehler von `togglePartyUpvote(...)` ab.
 - Der Fehler wird mit `asServiceError(...)` normalisiert.
 - Die UI zeigt `showToast({ variant: "error", ... })`.
 
@@ -357,15 +359,16 @@ Nutze für kuratierte externe Events diesen Pfad:
 Konkrete Projektdateien:
 
 - `web/src/app/api/external-events/refresh/route.ts`
-- `web/src/app/actions/external-events.ts`
+- `web/src/services/events/external-events-fetch-service.ts`
+- `web/src/lib/scrapers/official-venues.ts`
 - `web/src/lib/scrapers/official-venues.ts`
 - `web/src/lib/external-events-cache.ts`
 - `web/scripts/sync-external-events-to-supabase.mjs`
 
 Aktuelle Logik:
 
-- `fetchExternalEventsAction()` bündelt die offiziellen Quellen.
-- Ein Teil der Scraperlogik liegt direkt in `src/app/actions/external-events.ts`, zum Beispiel für:
+- `fetchExternalEvents()` bündelt die offiziellen Quellen.
+- Die Scraperlogik liegt in `src/lib/scrapers/*` und wird von `src/services/events/external-events-fetch-service.ts` orchestriert, zum Beispiel für:
   - Kuckuck
   - Clubhaus / FSRVV
 - Weitere offizielle Quellen liegen in `src/lib/scrapers/official-venues.ts`, zum Beispiel für:

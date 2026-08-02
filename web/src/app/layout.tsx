@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import { GoogleAnalyticsConsent } from "@/components/analytics/google-analytics-consent";
 import { CookieConsentBannerMount } from "@/components/layout/cookie-consent-banner-mount";
 import { PwaRegister } from "@/components/pwa/pwa-register";
@@ -10,10 +10,12 @@ import { ThemeInitScript } from "@/components/theme/theme-init-script";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
 
-const inter = Inter({
+const figtree = Figtree({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-figtree",
   display: "swap",
+  preload: true,
 });
 
 /** Wortmarke / Logo — SemiBold, urban, gut lesbar in kleinen Größen */
@@ -22,6 +24,7 @@ const bricolageGrotesque = Bricolage_Grotesque({
   weight: "600",
   variable: "--font-bricolage",
   display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -75,10 +78,12 @@ export default function RootLayout({
     <html
       lang="de"
       suppressHydrationWarning
-      className={`h-full antialiased ${inter.variable} ${bricolageGrotesque.variable}`}
+      className={`h-full antialiased ${figtree.variable} ${bricolageGrotesque.variable}`}
     >
       <head>
         <ThemeInitScript />
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <ToastProvider>

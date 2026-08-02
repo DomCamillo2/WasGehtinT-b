@@ -38,7 +38,7 @@ export function getPaymentStatusMeta(status: string | number | null | undefined)
     case "requires_payment":
       return {
         label: "Zahlung offen",
-        className: "border border-violet-200 bg-violet-50 text-violet-700",
+        className: "border border-amber-200 bg-amber-50 text-amber-800",
       };
     case "pending":
       return {

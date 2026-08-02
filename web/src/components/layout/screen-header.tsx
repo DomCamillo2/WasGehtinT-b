@@ -21,16 +21,22 @@ export function ScreenHeader({ title, subtitle }: Props) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="mb-2 flex items-center gap-2">
-            <Image
-              src={SITE_LOGO_SRC}
-              alt=""
-              width={40}
-              height={40}
-              className="h-9 w-9 object-contain"
-            />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
-              {"WasGehtT\u00fcb"}
-            </p>
+            <Link
+              href="/discover?ui=new"
+              className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ring)]"
+              aria-label="Zu Discover"
+            >
+              <Image
+                src={SITE_LOGO_SRC}
+                alt=""
+                width={40}
+                height={40}
+                className="h-9 w-9 object-contain"
+              />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
+                {"WasGehtT\u00fcb"}
+              </p>
+            </Link>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-[color:var(--foreground)]">{title}</h1>
           {subtitle ? (

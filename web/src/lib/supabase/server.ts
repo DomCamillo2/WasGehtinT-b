@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getMissingSupabaseEnv, getSupabasePublicKey } from "@/lib/env";
+import { getMissingSupabaseEnv, getSupabasePublicKey, getSupabaseUrl } from "@/lib/env";
 
 export async function createClient() {
   const missing = getMissingSupabaseEnv();
@@ -10,25 +10,22 @@ export async function createClient() {
 
   const cookieStore = await cookies();
   const publicKey = getSupabasePublicKey();
+  const url = getSupabaseUrl();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    publicKey!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            try {
-              cookieStore.set(name, value, options);
-            } catch {
-              return;
-            }
-          });
-        },
+  return createServerClient(url!, publicKey!, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          try {
+            cookieStore.set(name, value, options);
+          } catch {
+            return;
+          }
+        });
       },
     },
-  );
+  });
 }

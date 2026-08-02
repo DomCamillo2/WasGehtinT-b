@@ -16,8 +16,11 @@ export async function createRequestAction(
   }
 
   const partyId = String(formData.get("partyId") ?? "");
-  const groupSize = Number(formData.get("groupSize") ?? 1);
-  const message = String(formData.get("message") ?? "").trim();
+  const rawGroupSize = Number(formData.get("groupSize") ?? 1);
+  const groupSize = Number.isFinite(rawGroupSize)
+    ? Math.min(20, Math.max(1, Math.floor(rawGroupSize)))
+    : 1;
+  const message = String(formData.get("message") ?? "").trim().slice(0, 1000);
 
   if (!partyId) {
     return;

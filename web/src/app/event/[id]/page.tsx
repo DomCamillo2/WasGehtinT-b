@@ -78,19 +78,19 @@ export default async function ExternalEventPage({
       <div className="space-y-3">
         <Link
           href="/discover"
-          className="inline-flex min-h-[38px] items-center rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-xs font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
+          className="inline-flex min-h-[38px] items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-2 text-xs font-semibold text-[#f0ebe4] transition-colors hover:border-[rgba(240,235,228,0.22)]"
         >
           Zurück zu Discover
         </Link>
 
-        <section className="overflow-hidden rounded-[1.2rem] border border-[#2B2623] bg-[radial-gradient(120%_120%_at_90%_10%,rgba(255,122,24,0.2),transparent_45%),linear-gradient(180deg,#171310_0%,#120f0d_100%)] px-5 py-6 shadow-[0_14px_40px_-28px_rgba(255,122,24,0.55)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A69A91]">
+        <section className="overflow-hidden rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-5 py-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a9086]">
             {event.kindLabel}
           </p>
-          <h1 className="mt-3 text-3xl font-black leading-tight text-[#F2ECE6]">
+          <h1 className="mt-3 font-wordmark text-3xl leading-tight text-[#f0ebe4]">
             {event.title}
           </h1>
-          <p className="mt-3 text-base font-medium text-[#A69A91]">
+          <p className="mt-3 text-base font-medium text-[#9a9086]">
             {event.clubName} · {event.heroDateLabel}
           </p>
 
@@ -100,7 +100,7 @@ export default async function ExternalEventPage({
                 href={event.externalLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-[#ff7a18] px-4 py-2 text-sm font-semibold text-[#2D1D10] shadow-[0_10px_26px_-18px_rgba(255,122,24,0.95)] transition-opacity hover:opacity-90"
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-md bg-[#c4783a] px-4 py-2 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90"
               >
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Zum Veranstalter
@@ -111,7 +111,7 @@ export default async function ExternalEventPage({
                 href={event.mapsLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-[#2B2623] bg-[#1A1715]/90 px-4 py-2 text-sm font-semibold text-[#E9DFD6] transition-colors hover:border-[#3A312B] hover:text-white"
+                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] px-4 py-2 text-sm font-semibold text-[#f0ebe4] transition-colors hover:border-[rgba(240,235,228,0.22)]"
               >
                 <MapPin className="h-4 w-4" aria-hidden="true" />
                 Auf Karte öffnen
@@ -121,81 +121,81 @@ export default async function ExternalEventPage({
         </section>
       </div>
 
-      <section className="grid gap-3 rounded-[1.1rem] border border-[#2B2623] bg-[#151210]/92 p-4 sm:p-5">
-        <h2 className="text-lg font-bold text-[#F2ECE6]">
+      <section className="grid gap-3 rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-4 sm:p-5">
+        <h2 className="font-wordmark text-lg text-[#f0ebe4]">
           Event-Details
         </h2>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+          <div className="rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#9a9086]">
               <CalendarDays className="h-4 w-4" aria-hidden="true" />
               Start
             </p>
-            <p className="mt-2 text-base font-semibold tabular-nums leading-snug text-[#E9DFD6] sm:text-lg">
+            <p className="mt-2 text-base font-semibold tabular-nums leading-snug text-[#f0ebe4] sm:text-lg">
               {event.startDateLabel}
             </p>
           </div>
 
-          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+          <div className="rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#9a9086]">
               <Clock3 className="h-4 w-4" aria-hidden="true" />
               Ende
             </p>
-            <p className="mt-2 text-base font-semibold tabular-nums leading-snug text-[#E9DFD6] sm:text-lg">
+            <p className="mt-2 text-base font-semibold tabular-nums leading-snug text-[#f0ebe4] sm:text-lg">
               {event.endDateLabel}
             </p>
           </div>
 
-          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+          <div className="rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#9a9086]">
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
               Ort
             </p>
-            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
+            <p className="mt-2 text-sm font-medium text-[#f0ebe4]">
               {event.displayLocationName}
             </p>
           </div>
 
-          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+          <div className="rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#9a9086]">
               <Tag className="h-3.5 w-3.5" aria-hidden="true" />
               Kategorie
             </p>
-            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
+            <p className="mt-2 text-sm font-medium text-[#f0ebe4]">
               {event.displayCategory}
             </p>
           </div>
         </div>
 
         {event.priceInfo ? (
-          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+          <div className="rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9a9086]">
               Preis
             </p>
-            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
+            <p className="mt-2 text-sm font-medium text-[#f0ebe4]">
               {event.priceInfo}
             </p>
           </div>
         ) : null}
 
         {event.description ? (
-          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+          <div className="rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9a9086]">
               Beschreibung
             </p>
-            <p className="mt-2 text-sm leading-6 text-[#E9DFD6]">
+            <p className="mt-2 text-sm leading-6 text-[#f0ebe4]">
               {event.description}
             </p>
           </div>
         ) : null}
 
         {event.coordinatesLabel ? (
-          <div className="rounded-xl border border-[#2B2623] bg-[#1A1715]/88 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#A69A91]">
+          <div className="rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9a9086]">
               Koordinaten
             </p>
-            <p className="mt-2 text-sm font-medium text-[#E9DFD6]">
+            <p className="mt-2 text-sm font-medium text-[#f0ebe4]">
               {event.coordinatesLabel}
             </p>
           </div>

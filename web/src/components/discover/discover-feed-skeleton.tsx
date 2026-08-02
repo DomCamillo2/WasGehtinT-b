@@ -14,15 +14,15 @@ export function DiscoverFeedSkeleton() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="w-full overflow-hidden rounded-none border-b border-[#2a2521]/80 bg-[#141210]/30"
+          className="w-full overflow-hidden rounded-none border-b border-[rgba(240,235,228,0.12)] bg-[#14110f]"
         >
-          <div className="aspect-[16/9] w-full animate-pulse bg-gradient-to-br from-[#221c18] via-[#1a1613] to-[#151210]" />
+          <div className="aspect-[16/9] w-full animate-pulse bg-[#221e1a]" />
           <div className="space-y-2.5 p-3 sm:p-4">
-            <div className="h-5 w-[88%] max-w-md animate-pulse rounded-md bg-[#2c2622]" />
-            <div className="h-3.5 w-[40%] animate-pulse rounded-md bg-[#252019]" />
+            <div className="h-5 w-[88%] max-w-md animate-pulse rounded-md bg-[#2a2520]" />
+            <div className="h-3.5 w-[40%] animate-pulse rounded-md bg-[#221e1a]" />
             <div className="flex gap-2 pt-1">
-              <div className="h-8 w-24 animate-pulse rounded-full bg-[#2a2420]" />
-              <div className="h-8 flex-1 max-w-[140px] animate-pulse rounded-full bg-[#2a2420]" />
+              <div className="h-8 w-24 animate-pulse rounded-md bg-[#2a2520]" />
+              <div className="h-8 max-w-[140px] flex-1 animate-pulse rounded-md bg-[#2a2520]" />
             </div>
           </div>
         </div>

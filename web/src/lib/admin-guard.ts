@@ -27,7 +27,13 @@ export async function getInternalAdminUserOrNull() {
   }
 
   const admins = getAdminMailSet();
-  const isEnvAdmin = admins.has(user.email.toLowerCase());
+  const email = user.email.toLowerCase();
+  const isEnvAdmin = admins.has(email);
+
+  // When an allowlist is configured, it is authoritative (role alone cannot escalate).
+  if (admins.size > 0) {
+    return isEnvAdmin ? user : null;
+  }
 
   const roleById = await supabase
     .from("user_profiles")
@@ -44,13 +50,10 @@ export async function getInternalAdminUserOrNull() {
           .maybeSingle()
       : roleById;
 
-  const isRoleAdmin = !roleResult.error && (roleResult.data?.role === "admin" || roleResult.data?.role === "owner");
+  const isRoleAdmin =
+    !roleResult.error && (roleResult.data?.role === "admin" || roleResult.data?.role === "owner");
 
-  if (!isEnvAdmin && !isRoleAdmin) {
-    return null;
-  }
-
-  return user;
+  return isRoleAdmin ? user : null;
 }
 
 export async function requireInternalAdmin() {

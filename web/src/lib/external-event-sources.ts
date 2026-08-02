@@ -20,7 +20,7 @@ export const EXTERNAL_EVENTS_FETCH_STALE_SOURCES = [
 ] as const;
 
 function redditIngestSources(): string[] {
-  return (process.env.EXTERNAL_EVENTS_REDDIT_SUBREDDITS ?? "tuebingen")
+  return (process.env.EXTERNAL_EVENTS_REDDIT_SUBREDDITS ?? "tuebingen,reutlingen,stuttgart")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter((value) => value.length > 0)

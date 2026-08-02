@@ -125,7 +125,7 @@ export async function startCheckoutAction(formData: FormData): Promise<void> {
 }
 
 export async function confirmCheckoutBySession(sessionId: string): Promise<void> {
-  if (!sessionId) {
+  if (!sessionId || !/^cs_[a-zA-Z0-9_]+$/.test(sessionId)) {
     return;
   }
 
@@ -137,11 +137,21 @@ export async function confirmCheckoutBySession(sessionId: string): Promise<void>
   }
 
   const requestId = String(session.metadata?.party_request_id ?? "");
-  if (!requestId) {
+  const requesterUserId = String(session.metadata?.requester_user_id ?? "");
+  if (!requestId || !requesterUserId) {
     return;
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Only the paying requester (or Stripe webhook path) may mark paid from the success page.
+  if (!user || user.id !== requesterUserId) {
+    return;
+  }
+
   await supabase
     .from("party_request_payments")
     .update({
@@ -152,7 +162,8 @@ export async function confirmCheckoutBySession(sessionId: string): Promise<void>
           ? session.payment_intent
           : null,
     })
-    .eq("party_request_id", requestId);
+    .eq("party_request_id", requestId)
+    .eq("stripe_checkout_session_id", sessionId);
 
   revalidatePath("/requests");
 }

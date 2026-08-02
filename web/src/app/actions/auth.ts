@@ -8,6 +8,7 @@ import {
   sendPasswordResetMail,
   sendWelcomeMail,
 } from "@/lib/resend";
+import { safeInternalPath } from "@/lib/security";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,6 +19,38 @@ type ActionState = {
 
 function isAllowedMail(email: string) {
   return /^[a-z0-9._%+\-]+@student\.uni-tuebingen\.de$/i.test(email);
+}
+
+/**
+ * Admin login accepts either a full email or the configured username (default: admin).
+ * Username maps to ADMIN_LOGIN_EMAIL, else the first INTERNAL_ADMIN_EMAILS entry.
+ */
+function resolveAdminSignInEmail(rawIdentifier: string): string {
+  const value = rawIdentifier.trim().toLowerCase();
+  if (!value) {
+    return value;
+  }
+
+  if (value.includes("@")) {
+    return value;
+  }
+
+  const configuredUsername = (process.env.ADMIN_LOGIN_USERNAME ?? "admin").trim().toLowerCase();
+  if (value !== configuredUsername) {
+    return value;
+  }
+
+  const mappedEmail = (process.env.ADMIN_LOGIN_EMAIL ?? "").trim().toLowerCase();
+  if (mappedEmail.includes("@")) {
+    return mappedEmail;
+  }
+
+  const firstAllowlisted = (process.env.INTERNAL_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((mail) => mail.trim().toLowerCase())
+    .find((mail) => mail.includes("@"));
+
+  return firstAllowlisted ?? value;
 }
 
 type ProfileVisibility = "public" | "members" | "hidden";
@@ -131,7 +164,7 @@ export async function signUpAction(
   if (!signUpEnabled) {
     void formData;
     return {
-      error: "Kontoerstellung ist vorübergehend pausiert. Stay tuned - dieses Feature kommt später.",
+      error: "Kontoerstellung ist vorübergehend pausiert. Dieses Feature kommt später.",
     };
   }
 
@@ -280,12 +313,32 @@ export async function signInAction(
     return { error: "Supabase ist noch nicht konfiguriert (.env.local)." };
   }
 
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const rawIdentifier = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const requestedRedirect = String(formData.get("redirectTo") ?? "").trim();
-  const redirectTarget = requestedRedirect.startsWith("/") ? requestedRedirect : "/discover";
+  const redirectTarget = safeInternalPath(requestedRedirect, "/discover");
+  const email =
+    redirectTarget === "/admin" || redirectTarget.startsWith("/admin/")
+      ? resolveAdminSignInEmail(rawIdentifier)
+      : rawIdentifier;
+
+  if (!email.includes("@")) {
+    return {
+      error:
+        redirectTarget.startsWith("/admin")
+          ? "Ungültiger Admin-Login. Nutze Benutzername oder E-Mail."
+          : "Bitte eine gültige E-Mail eingeben.",
+    };
+  }
 
   const supabase = await createClient();
+
+  // Best-effort auth rate limit (per email + coarse key).
+  const { consumeRateLimit } = await import("@/lib/security");
+  if (!consumeRateLimit(`signin:${email}`, 10, 60_000)) {
+    return { error: "Zu viele Login-Versuche. Bitte kurz warten." };
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
