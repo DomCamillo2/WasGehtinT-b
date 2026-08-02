@@ -42,7 +42,7 @@ export function DiscoverEventListItemV2({
 
   return (
     <article
-      className="group relative flex w-full items-center gap-3 rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-3.5 py-3 transition-colors duration-150 hover:border-[rgba(240,235,228,0.22)]"
+      className="group event-card-hover relative flex w-full items-center gap-3 rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-3.5 py-3"
       role="article"
       aria-label={`${event.title} in ${venueLabel}, ${dateLabel} ${timeLabel}`}
     >

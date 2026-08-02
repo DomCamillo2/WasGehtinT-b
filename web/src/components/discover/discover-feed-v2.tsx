@@ -8,7 +8,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   Download,
-  Flame,
   Heart,
   LayoutGrid,
   List,
@@ -33,6 +32,7 @@ import type { DiscoverViewMode } from "@/services/discover/discover-page-service
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { SITE_LOGO_SRC } from "@/lib/site-config";
 import { togglePartyUpvote } from "@/services/events/upvotes-service";
+import { LegalLinks } from "@/components/layout/legal-links";
 import { DiscoverBottomNavV2 } from "./discover-bottom-nav-v2";
 import { DiscoverCalendarPanelV2 } from "./discover-calendar-panel-v2";
 import { DiscoverEventCardV2 } from "./discover-event-card-v2";
@@ -751,8 +751,8 @@ export function DiscoverFeedV2({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex min-w-[min(100%,12rem)] flex-1 items-center gap-3 rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-3 transition-colors duration-150 focus-within:border-[rgba(196,120,58,0.45)]">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex w-full min-w-0 flex-1 items-center gap-3 rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-3 transition-colors duration-150 focus-within:border-[rgba(196,120,58,0.45)] sm:min-w-[min(100%,12rem)]">
             <Search className="h-4 w-4 shrink-0 text-[#9a9086]" aria-hidden="true" />
             <input
               ref={searchInputRef}
@@ -774,6 +774,7 @@ export function DiscoverFeedV2({
               </button>
             ) : null}
           </div>
+          <div className="flex items-center gap-2">
           <div className="flex items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-0.5" role="group" aria-label="Ansicht">
             <button
               type="button"
@@ -835,6 +836,7 @@ export function DiscoverFeedV2({
           >
             <SlidersHorizontal className="w-5 h-5" />
           </Link>
+          </div>
         </div>
 
         <div
@@ -914,19 +916,6 @@ export function DiscoverFeedV2({
             </span>
           </button>
         </div>
-
-        {viewMode === "cards" && hottestParty && topScore > 0 ? (
-        <div className={`mt-2 motion-safe:transition-opacity motion-safe:duration-200 ${headerCompact ? "max-sm:opacity-0 max-sm:h-0 max-sm:mt-0 max-sm:overflow-hidden max-sm:pointer-events-none" : ""}`}>
-            <Link
-              href={hottestParty.detailHref}
-              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-md border border-[#c4783a] bg-[#c4783a] px-3 py-1.5 text-xs font-semibold text-[#1c1410] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4783a]/40 sm:min-h-[38px] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
-              aria-label={`Im Trend: ${hottestParty.title}`}
-            >
-              <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
-              <span>Im Trend</span>
-            </Link>
-          </div>
-        ) : null}
       </header>
 
       <main
@@ -1160,6 +1149,10 @@ export function DiscoverFeedV2({
         </m.div>
       ) : null}
       </AnimatePresence>
+
+      <div className="mx-auto max-w-md px-4 pb-3 pt-6">
+        <LegalLinks className="text-[#6f675f] [&_a]:text-[#9a9086] [&_a]:decoration-[#6f675f]/50 [&_a:hover]:text-[#f0ebe4]" />
+      </div>
 
       <DiscoverBottomNavV2
         activeTab={likedOnly ? "saved" : "discover"}

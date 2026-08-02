@@ -26,6 +26,10 @@ export function LegalLinks({ className }: Props) {
       <Link href="/feedback" className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
         Feedback
       </Link>
+      <span className="mx-2">•</span>
+      <Link href="/melden" className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
+        Melden
+      </Link>
     </nav>
   );
 }

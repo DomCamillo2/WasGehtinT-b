@@ -1,6 +1,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { syncExternalEventsToCache } from "@/lib/external-events-cache";
 import { externalEventsFetchStaleSourceKeys } from "@/lib/external-event-sources";
+import { cronSecretMatches, normalizeEnvSecret } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { fetchExternalEvents } from "@/services/events/external-events-fetch-service";
 
@@ -14,13 +15,11 @@ const REFRESH_COOLDOWN_MINUTES = (() => {
 })();
 
 function isAuthorized(request: Request) {
-  const cronSecret = process.env.CRON_SECRET?.trim();
-  const authHeader = request.headers.get("authorization")?.trim();
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+  if (cronSecretMatches(request)) {
     return true;
   }
 
-  const expected = process.env.EXTERNAL_EVENTS_REFRESH_TOKEN?.trim();
+  const expected = normalizeEnvSecret(process.env.EXTERNAL_EVENTS_REFRESH_TOKEN);
 
   if (!expected) {
     return false;
@@ -82,9 +81,11 @@ export async function GET(request: Request) {
     }
 
     revalidateTag("external-events", "max");
+    revalidateTag("discover-public", "max");
     const events = await fetchExternalEvents();
     const syncResult = await syncExternalEventsToCache(events);
     revalidatePath("/discover");
+    revalidatePath("/");
 
     if (syncResult.usedBaseFallback) {
       console.warn(

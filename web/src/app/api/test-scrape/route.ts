@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { cronSecretMatches } from "@/lib/cron-auth";
 import { scrapeInstagramEvents } from "@/lib/scrape-events";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -9,14 +10,7 @@ const INSTAGRAM_SOURCE = "instagram-scraper";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  const authHeader = request.headers.get("authorization")?.trim();
-
-  if (!secret) {
-    return false;
-  }
-
-  return authHeader === `Bearer ${secret}`;
+  return cronSecretMatches(request);
 }
 
 function slugify(value: string): string {

@@ -355,6 +355,16 @@ html.discover-ui-new {
   transition: transform var(--dur-micro) var(--ease-out);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .discover-ui-v2 .event-card-hover {
+    transition: border-color var(--dur-hover) var(--ease-out);
+  }
+
+  .discover-ui-v2 .event-card-hover:hover {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  }
+}
+
 .discover-ui-v2 .wg-empty-enter {
   animation: wg-empty-in var(--dur-panel) var(--ease-out) both;
 }
