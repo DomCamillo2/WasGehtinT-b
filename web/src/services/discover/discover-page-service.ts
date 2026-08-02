@@ -10,7 +10,7 @@ import {
 } from "@/lib/discover-calendar";
 import { applyTrafficBasedUpvoteEstimates } from "@/lib/discover-traffic-upvotes";
 import {
-  pickDiscoverFallbackHeroUrlForParty,
+  assignDiscoverHeroUrlsForParties,
 } from "@/lib/discover-event-images";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { createClient } from "@/lib/supabase/server";
@@ -277,14 +277,12 @@ export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): 
       ? partiesWithUpvotes.filter((party) => party.upvoted_by_me === true)
       : partiesWithUpvotes;
 
-  // Sync curated Unsplash heroes only — never await Pexels on Discover SSR (TTFB killer).
-  // Client may still upgrade via `/api/discover/hero-images` when a card has no hero.
+  // Sync curated Unsplash heroes with batch uniqueness — never await Pexels on Discover SSR.
+  // Client may still upgrade via `/api/discover/hero-images` when Pexels is configured.
+  const heroById = assignDiscoverHeroUrlsForParties(scopedParties);
   const partiesWithHeroes = scopedParties.map((party) => ({
     ...party,
-    hero_image_url:
-      party.hero_image_url && party.hero_image_url.length > 0
-        ? party.hero_image_url
-        : pickDiscoverFallbackHeroUrlForParty(party),
+    hero_image_url: heroById[party.id] ?? party.hero_image_url ?? null,
   }));
 
   const discoverEvents = partiesWithHeroes.map(mapPartyCardToDiscoverEvent);

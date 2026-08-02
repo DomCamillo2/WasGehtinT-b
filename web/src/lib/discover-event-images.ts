@@ -19,49 +19,78 @@ export type DiscoverVisualCategory =
 /**
  * Curated SFW Unsplash heroes per vibe. Used when Pexels is missing/unsafe/empty.
  * Never keyed off scraped event titles — only category.
+ * Pools are intentionally larger + cross-category unique so feed cards don't repeat.
  */
 const CATEGORY_FALLBACK_HEROES: Record<DiscoverVisualCategory, readonly string[]> = {
   "club-night": [
     "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1566737236501-c4aa710bce0d?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1545128485-c400e7702796?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1485872299829-c673f5194813?auto=format&fit=crop&w=1200&q=80",
   ],
   "live-music": [
     "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1415201364774-f6f0bb35beb0?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1498038432885-c6f3f1d481cd?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1501612780327-492296692176?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1487180144351-b8472da7d491?auto=format&fit=crop&w=1200&q=80",
   ],
   market: [
     "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1578911373434-0cb395d2cbfb?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1506483757494-76d0d7a4c9d0?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&w=1200&q=80",
   ],
   community: [
     "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1200&q=80",
   ],
   culture: [
     "https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80",
   ],
   daytime: [
     "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80",
   ],
   nightlife: [
     "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1200&q=80",
     "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1459749411177-04952823c9ca?auto=format&fit=crop&w=1200&q=80",
   ],
 };
 
@@ -117,6 +146,83 @@ function hashStringToIndex(input: string, modulo: number): number {
     h = (Math.imul(31, h) + input.charCodeAt(i)) | 0;
   }
   return Math.abs(h) % Math.max(1, modulo);
+}
+
+/** Normalize Unsplash/Pexels URLs so query variants count as the same picture. */
+export function heroImageIdentity(url: string): string {
+  const unsplash = url.match(/photo-([a-zA-Z0-9-]+)/i);
+  if (unsplash?.[1]) return `unsplash:${unsplash[1]}`;
+  const pexels = url.match(/pexels\.com\/photos\/(\d+)/i);
+  if (pexels?.[1]) return `pexels:${pexels[1]}`;
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname}${parsed.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+function pickUnusedFromPool(
+  pool: readonly string[],
+  eventId: string,
+  usedIdentities: Set<string>,
+): string {
+  const start = hashStringToIndex(eventId, pool.length);
+  for (let offset = 0; offset < pool.length; offset += 1) {
+    const candidate = pool[(start + offset) % pool.length]!;
+    const identity = heroImageIdentity(candidate);
+    if (!usedIdentities.has(identity)) {
+      usedIdentities.add(identity);
+      return candidate;
+    }
+  }
+  // Pool exhausted in this batch — still deterministic, allow reuse.
+  const fallback = pool[start]!;
+  usedIdentities.add(heroImageIdentity(fallback));
+  return fallback;
+}
+
+function pickCategoryFallback(category: DiscoverVisualCategory, eventId: string): string {
+  const pool = CATEGORY_FALLBACK_HEROES[category];
+  return pool[hashStringToIndex(eventId, pool.length)]!;
+}
+
+/** @deprecated Prefer category-aware pickDiscoverFallbackHeroUrlForParty */
+export function pickDiscoverFallbackHeroUrl(eventId: string): string {
+  return pickCategoryFallback("nightlife", eventId);
+}
+
+export function pickDiscoverFallbackHeroUrlForParty(party: PartyCard): string {
+  return pickCategoryFallback(classifyDiscoverVisualCategory(party), party.id);
+}
+
+/**
+ * Assign category-appropriate heroes for a whole feed batch.
+ * Prefers unused pictures across the batch so adjacent cards don't repeat.
+ * Existing DB heroes are kept only when they don't collide with another card.
+ */
+export function assignDiscoverHeroUrlsForParties(parties: PartyCard[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const used = new Set<string>();
+
+  // Pass 1: keep unique existing heroes (event-specific uploads / prior picks).
+  for (const party of parties) {
+    const existing = compact(party.hero_image_url);
+    if (!existing) continue;
+    const identity = heroImageIdentity(existing);
+    if (used.has(identity)) continue;
+    used.add(identity);
+    out[party.id] = existing;
+  }
+
+  // Pass 2: fill the rest from category pools without repeating identities.
+  for (const party of parties) {
+    if (out[party.id]) continue;
+    const category = classifyDiscoverVisualCategory(party);
+    out[party.id] = pickUnusedFromPool(CATEGORY_FALLBACK_HEROES[category], party.id, used);
+  }
+
+  return out;
 }
 
 function compact(value: string | null | undefined): string {
@@ -194,20 +300,6 @@ export function classifyDiscoverVisualCategory(party: PartyCard): DiscoverVisual
   return "daytime";
 }
 
-function pickCategoryFallback(category: DiscoverVisualCategory, eventId: string): string {
-  const pool = CATEGORY_FALLBACK_HEROES[category];
-  return pool[hashStringToIndex(eventId, pool.length)]!;
-}
-
-/** @deprecated Prefer category-aware pickDiscoverFallbackHeroUrlForParty */
-export function pickDiscoverFallbackHeroUrl(eventId: string): string {
-  return pickCategoryFallback("nightlife", eventId);
-}
-
-export function pickDiscoverFallbackHeroUrlForParty(party: PartyCard): string {
-  return pickCategoryFallback(classifyDiscoverVisualCategory(party), party.id);
-}
-
 function buildSafePexelsQuery(party: PartyCard): string {
   const category = classifyDiscoverVisualCategory(party);
   const queries = CATEGORY_PEXELS_QUERIES[category];
@@ -256,7 +348,17 @@ function isSafePexelsPhoto(photo: PexelsPhoto): boolean {
   return true;
 }
 
-function pickSafePhotoUrl(photos: PexelsPhoto[], eventId: string): string | null {
+function photoUrlFromPexelsPhoto(photo: PexelsPhoto): string | null {
+  const best =
+    photo.src?.landscape ?? photo.src?.large2x ?? photo.src?.large ?? photo.src?.original ?? null;
+  return normalizePexelsImageUrl(best);
+}
+
+function pickSafePhotoUrl(
+  photos: PexelsPhoto[],
+  eventId: string,
+  usedIdentities?: Set<string>,
+): string | null {
   const safe = photos.filter(isSafePexelsPhoto);
   if (!safe.length) return null;
 
@@ -267,10 +369,20 @@ function pickSafePhotoUrl(photos: PexelsPhoto[], eventId: string): string | null
     return bAlt - aAlt;
   });
 
-  const pick = ranked[hashStringToIndex(eventId, ranked.length)] ?? ranked[0];
-  const best =
-    pick?.src?.landscape ?? pick?.src?.large2x ?? pick?.src?.large ?? pick?.src?.original ?? null;
-  return normalizePexelsImageUrl(best);
+  const start = hashStringToIndex(eventId, ranked.length);
+  for (let offset = 0; offset < ranked.length; offset += 1) {
+    const pick = ranked[(start + offset) % ranked.length]!;
+    const url = photoUrlFromPexelsPhoto(pick);
+    if (!url) continue;
+    const identity = heroImageIdentity(url);
+    if (usedIdentities?.has(identity)) continue;
+    usedIdentities?.add(identity);
+    return url;
+  }
+
+  const fallback = photoUrlFromPexelsPhoto(ranked[start] ?? ranked[0]!);
+  if (fallback) usedIdentities?.add(heroImageIdentity(fallback));
+  return fallback;
 }
 
 function getPexelsApiKey(): string | null {
@@ -281,37 +393,36 @@ function getPexelsApiKey(): string | null {
   return key;
 }
 
-async function fetchPexelsSafeLandscapeImage(query: string, eventId: string): Promise<string | null> {
+async function fetchPexelsSafePhotos(query: string): Promise<PexelsPhoto[]> {
   const apiKey = getPexelsApiKey();
-  if (!apiKey || !query) return null;
+  if (!apiKey || !query) return [];
 
   const url = new URL(PEXELS_ENDPOINT);
   url.searchParams.set("query", query);
   url.searchParams.set("orientation", "landscape");
   url.searchParams.set("size", "large");
-  url.searchParams.set("per_page", "12");
-  // English queries are more predictable for stock safety than de-DE + scraped titles.
+  url.searchParams.set("per_page", "24");
   url.searchParams.set("locale", "en-US");
 
   const response = await fetch(url.toString(), {
     headers: { Authorization: apiKey },
     next: { revalidate: IMAGE_REVALIDATE_SECONDS },
   });
-  if (!response.ok) return null;
+  if (!response.ok) return [];
 
   const data = (await response.json()) as PexelsResponse;
-  return pickSafePhotoUrl(data.photos ?? [], eventId);
+  return data.photos ?? [];
 }
 
-const fetchPexelsSafeLandscapeImageCached = unstable_cache(
-  async (query: string, eventId: string) => fetchPexelsSafeLandscapeImage(query, eventId),
-  ["discover-pexels-image-v3-safe-categories"],
+const fetchPexelsSafePhotosCached = unstable_cache(
+  async (query: string) => fetchPexelsSafePhotos(query),
+  ["discover-pexels-photos-v4-unique"],
   { revalidate: IMAGE_REVALIDATE_SECONDS },
 );
 
 /**
  * Resolves hero image URLs for parties (category-safe Pexels + curated fallbacks).
- * Does not mutate input; safe from route handlers after first paint.
+ * Guarantees unique pictures across the batch whenever the pool allows.
  */
 export async function resolveDiscoverHeroImagesForParties(
   parties: PartyCard[],
@@ -322,43 +433,39 @@ export async function resolveDiscoverHeroImagesForParties(
     return out;
   }
 
+  const used = new Set<string>();
   const apiKey = getPexelsApiKey();
+
   if (apiKey) {
     const queryByPartyId = new Map<string, string>();
     for (const party of parties) {
       queryByPartyId.set(party.id, buildSafePexelsQuery(party));
     }
 
-    // Dedupe by query but still vary pick via eventId hash among candidates.
     const uniqueQueries = Array.from(new Set(Array.from(queryByPartyId.values()))).filter(Boolean);
     const limitedQueries = uniqueQueries.slice(0, Math.max(0, maxLookups));
 
-    // One representative event id per query for cache key stability of the HTTP response,
-    // then re-pick from the same candidate set is handled inside the fetch via eventId.
-    // For shared queries, fetch once per (query, eventId) would explode — instead fetch by query
-    // with a stable seed and let fallbacks differentiate visually by category/id.
-    const imageByQuery = new Map<string, string | null>();
+    const photosByQuery = new Map<string, PexelsPhoto[]>();
     await Promise.all(
       limitedQueries.map(async (query) => {
-        const seedId = parties.find((p) => queryByPartyId.get(p.id) === query)?.id ?? query;
-        const image = await fetchPexelsSafeLandscapeImageCached(query, seedId);
-        imageByQuery.set(query, image);
+        const photos = await fetchPexelsSafePhotosCached(query);
+        photosByQuery.set(query, photos);
       }),
     );
 
     for (const party of parties) {
       const query = queryByPartyId.get(party.id) ?? "";
-      const hero = imageByQuery.get(query) ?? null;
-      // Ignore any previously stored scraped/DB hero if we already have a safe stock pick;
-      // category fallbacks beat mismatched legacy URLs.
+      const photos = photosByQuery.get(query) ?? [];
+      const hero = pickSafePhotoUrl(photos, party.id, used);
       out[party.id] = hero;
     }
   }
 
-  for (const party of parties) {
-    if (!out[party.id]) {
-      out[party.id] = pickDiscoverFallbackHeroUrlForParty(party);
-    }
+  // Fill gaps (and replace nulls) with unique curated fallbacks.
+  const needingFallback = parties.filter((party) => !out[party.id]);
+  for (const party of needingFallback) {
+    const category = classifyDiscoverVisualCategory(party);
+    out[party.id] = pickUnusedFromPool(CATEGORY_FALLBACK_HEROES[category], party.id, used);
   }
 
   return out;
