@@ -12,16 +12,11 @@ const HERO_SRC =
 
 const easeOut: [number, number, number, number] = [0, 0, 0.2, 1];
 
-type WelcomePageProps = {
-  isAuthenticated?: boolean;
-};
-
-export function WelcomePage({ isAuthenticated = false }: WelcomePageProps) {
+export function WelcomePage() {
   const reduce = useReducedMotion();
 
   return (
     <main className="relative isolate min-h-dvh overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)]">
-      {/* Full-bleed hero plane */}
       <div className="absolute inset-0 -z-10">
         <motion.div
           className="absolute inset-0"
@@ -43,7 +38,6 @@ export function WelcomePage({ isAuthenticated = false }: WelcomePageProps) {
           style={{ background: "var(--hero-scrim)" }}
           aria-hidden
         />
-        {/* Cool Neckar wash — atmosphere, not decoration soup */}
         <div
           className="absolute inset-0 opacity-80"
           style={{
@@ -68,14 +62,10 @@ export function WelcomePage({ isAuthenticated = false }: WelcomePageProps) {
             className="h-9 w-9 object-contain drop-shadow-sm"
             priority
           />
-          <span className="font-wordmark text-lg tracking-tight text-white sm:text-xl">
-            WasGehtTüb
-          </span>
         </Link>
-        <ThemeToggle className="!rounded-xl !border-white/20 !bg-black/25 !text-white backdrop-blur-sm" />
+        <ThemeToggle className="!rounded-xl !border-white/25 !bg-black/40 !text-white" />
       </header>
 
-      {/* First viewport: brand + one headline + one sentence + CTAs */}
       <section className="relative z-10 mx-auto flex min-h-[calc(100dvh-4.5rem)] w-full max-w-3xl flex-col justify-end px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-16 sm:px-8 sm:pb-14">
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 10 }}
@@ -106,27 +96,20 @@ export function WelcomePage({ isAuthenticated = false }: WelcomePageProps) {
         </motion.p>
 
         <motion.div
-          className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row"
+          className="mt-8 w-full max-w-md"
           initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduce ? 0 : 0.4, ease: easeOut, delay: reduce ? 0 : 0.3 }}
         >
           <Link
-            href="/discover?ui=new"
-            className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[color:var(--accent)] px-5 text-sm font-semibold text-[color:var(--accent-dark-text)] transition-opacity hover:opacity-92 active:scale-[0.98]"
+            href="/discover"
+            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[color:var(--accent)] px-5 text-sm font-semibold text-[color:var(--accent-dark-text)] transition-opacity hover:opacity-92 active:scale-[0.98] sm:w-auto sm:min-w-[12rem]"
           >
             Entdecken
-          </Link>
-          <Link
-            href={isAuthenticated ? "/profile" : "/auth"}
-            className="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur-[2px] transition-colors hover:bg-white/16 active:scale-[0.98]"
-          >
-            {isAuthenticated ? "Zum Profil" : "Einloggen"}
           </Link>
         </motion.div>
 
         <p className="mt-5 text-xs text-white/55">
-          Uni-Mail willkommen ·{" "}
           <Link href="/impressum" className="underline decoration-white/30 underline-offset-2">
             Impressum
           </Link>

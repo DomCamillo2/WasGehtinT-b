@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { DiscoverBottomNavV2 } from "@/components/discover/discover-bottom-nav-v2";
 import { SpontanFeed } from "@/components/spontan/spontan-feed";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { mapSpontanFeedRowToItem, type SpontanFeedItem, type SpontanFeedRow } from "@/services/spontan/spontan-feed-view-model";
@@ -48,8 +49,9 @@ export default async function SpontanPage() {
   const items = await loadSpontanFeedItems();
 
   return (
-    <AppShell theme="new">
+    <AppShell theme="new" showBottomNav={false}>
       <SpontanFeed items={items} />
+      <DiscoverBottomNavV2 activeTab="spontan" />
     </AppShell>
   );
 }

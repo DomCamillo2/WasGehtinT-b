@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
@@ -15,8 +14,8 @@ import {
   MapPin,
   Search,
   SlidersHorizontal,
-  User,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useToast } from "@/components/ui/toast-provider";
 import {
   berlinDayKeyFromIso,
@@ -129,18 +128,9 @@ function venueLabel(event: DiscoverEvent) {
   return (event.locationName ?? event.vibeLabel ?? "Tübingen").trim();
 }
 
-function buildClassicDiscoverHref(): string {
-  if (typeof window === "undefined") return "/discover";
-  const params = new URLSearchParams(window.location.search);
-  params.delete("ui");
-  const q = params.toString();
-  return q ? `/discover?${q}` : "/discover";
-}
-
-
 export function DiscoverFeedV2({
   parties,
-  avatarFallback,
+  avatarFallback: _avatarFallback,
   isAuthenticated,
   canLoadMore,
   currentWeeks,
@@ -200,6 +190,7 @@ export function DiscoverFeedV2({
   /** Keep view, category filter, and calendar selection aligned with the URL (back/forward, shared links). */
   useEffect(() => {
     const params = new URLSearchParams(discoverUrlSignature);
+    params.delete("ui");
     const fromUrlView = parseViewFromDiscoverUrl(params);
     const fromUrlFilter = parseFilterFromDiscoverUrl(params);
     const likedKey = params.get("liked") === "1" ? "1" : "";
@@ -374,7 +365,7 @@ export function DiscoverFeedV2({
   useEffect(() => {
     if (typeof window === "undefined" || pathname !== "/discover") return;
     const params = new URLSearchParams(window.location.search);
-    params.set("ui", "new");
+    params.delete("ui");
     const trimmedQuery = debouncedSearchForUrl;
     if (trimmedQuery.length > 0) params.set("q", trimmedQuery);
     else params.delete("q");
@@ -418,7 +409,7 @@ export function DiscoverFeedV2({
     weeksLoadTargetRef.current = nextWeeks;
     setWeeksNavPending(true);
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    params.set("ui", "new");
+    params.delete("ui");
     params.set("view", "calendar");
     params.set("date", calendarDate);
     params.set("weeks", String(nextWeeks));
@@ -444,7 +435,7 @@ export function DiscoverFeedV2({
     weeksLoadTargetRef.current = nextWeeks;
     setWeeksNavPending(true);
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    params.set("ui", "new");
+    params.delete("ui");
     params.set("weeks", String(nextWeeks));
     startTransition(() => {
       router.replace(`/discover?${params.toString()}`, { scroll: false });
@@ -595,23 +586,13 @@ export function DiscoverFeedV2({
     "bg-[#221e1a] text-[#c4783a] border border-[rgba(240,235,228,0.14)]";
   const viewModeToggleInactive = "border border-transparent text-[#9a9086] hover:text-[#f0ebe4]";
 
-  const toggleLikedFilter = useCallback(() => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("ui", "new");
-    if (likedOnly) {
-      params.delete("liked");
-    } else {
-      params.set("liked", "1");
-    }
-    router.replace(`/discover?${params.toString()}`, { scroll: false });
-  }, [likedOnly, router]);
 
   const navigateBottomNavDiscover = useCallback(() => {
     setViewMode("cards");
     startTransition(() => {
       const params = new URLSearchParams(window.location.search);
-      params.set("ui", "new");
-      params.delete("liked");
+    params.delete("ui");
+        params.delete("liked");
       params.delete("date");
       params.delete("view");
       router.replace(`/discover?${params.toString()}`, { scroll: false });
@@ -622,8 +603,8 @@ export function DiscoverFeedV2({
     setViewMode("cards");
     startTransition(() => {
       const params = new URLSearchParams(window.location.search);
-      params.set("ui", "new");
-      params.set("liked", "1");
+    params.delete("ui");
+        params.set("liked", "1");
       params.delete("date");
       params.delete("view");
       router.replace(`/discover?${params.toString()}`, { scroll: false });
@@ -639,7 +620,7 @@ export function DiscoverFeedV2({
     setCalendarDate(todayKey);
     setCalendarMonth(startOfIsoMonth(todayKey));
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    params.set("ui", "new");
+    params.delete("ui");
     params.delete("type");
     params.delete("liked");
     params.delete("date");
@@ -670,15 +651,19 @@ export function DiscoverFeedV2({
         const result = await togglePartyUpvote(eventId, nextUpvoted);
         setUpvoteCounts((c) => ({ ...c, [eventId]: Math.max(0, result.upvoteCount) }));
       } catch (error) {
+        const serviceError = asServiceError(error);
+        // Login is not released: keep device-local Merkliste on 401.
+        if (serviceError.code === "UNAUTHORIZED" || !isAuthenticated) {
+          return;
+        }
         setUpvotedPartyIds((c) =>
           nextUpvoted ? c.filter((id) => id !== eventId) : Array.from(new Set([...c, eventId])),
         );
         setUpvoteCounts((c) => ({ ...c, [eventId]: previousCount }));
-        const serviceError = asServiceError(error);
-        showToast({ variant: "error", title: "Upvote fehlgeschlagen", message: serviceError.message });
+        showToast({ variant: "error", title: "Merken fehlgeschlagen", message: serviceError.message });
       }
     },
-    [parties, showToast, upvoteCounts, upvotedPartyIds],
+    [isAuthenticated, parties, showToast, upvoteCounts, upvotedPartyIds],
   );
 
   async function handleInstallApp() {
@@ -766,21 +751,7 @@ export function DiscoverFeedV2({
                 <span className="hidden sm:inline">App</span>
               </button>
             ) : null}
-            <Link
-              href={isAuthenticated ? "/profile" : "/auth"}
-              className="relative min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label={isAuthenticated ? "Profil" : "Anmelden"}
-            >
-              {isAuthenticated ? (
-                <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[rgba(240,235,228,0.14)] bg-[#221e1a] text-sm font-semibold text-foreground">
-                  {avatarFallback}
-                </span>
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815]">
-                  <User className="h-5 w-5 text-[#9a9086]" aria-hidden="true" />
-                </span>
-              )}
-            </Link>
+            <ThemeToggle className="!min-h-[44px] !min-w-[44px] !rounded-md !border-[rgba(240,235,228,0.12)] !bg-[#1c1815] !text-[#f0ebe4]" />
           </div>
         </div>
 
@@ -861,17 +832,10 @@ export function DiscoverFeedV2({
             type="button"
             onClick={() => setFilterSheetOpen(true)}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] text-[#9a9086] transition-colors duration-150 hover:border-[rgba(240,235,228,0.22)] hover:text-[#c4783a] sm:hidden"
-            aria-label="Mehr Filter und klassische Ansicht"
+            aria-label="Ansicht und Filter"
           >
             <SlidersHorizontal className="w-5 h-5" />
           </button>
-          <Link
-            href={buildClassicDiscoverHref()}
-            className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] text-[#9a9086] transition-colors duration-150 hover:border-[rgba(240,235,228,0.22)] hover:text-[#c4783a] sm:flex"
-            aria-label="Klassische Discover-Ansicht mit erweiterten Filtern öffnen"
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-          </Link>
           </div>
         </div>
 
@@ -909,23 +873,6 @@ export function DiscoverFeedV2({
             </button>
             );
           })}
-          <button
-            type="button"
-            onClick={() => toggleLikedFilter()}
-            role="tab"
-            aria-selected={likedOnly}
-            className={`wg-interactive wg-pressable relative snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium sm:min-h-[32px] sm:text-sm ${
-              likedOnly
-                ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
-                : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
-            }`}
-          >
-            <Heart
-              className={`h-3.5 w-3.5 ${likedOnly ? "fill-[#c4783a] text-[#c4783a]" : "text-[#9a9086]"}`}
-              aria-hidden="true"
-            />
-            <span>Gemerkt</span>
-          </button>
         </div>
       </header>
 
@@ -1139,21 +1086,53 @@ export function DiscoverFeedV2({
           <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[rgba(240,235,228,0.12)] bg-[#14110f] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div className="mx-auto mb-3 h-0.5 w-10 bg-[#3a312b]" aria-hidden="true" />
             <h2 id="discover-filter-sheet-title" className="font-wordmark text-lg text-[#f0ebe4]">
-              Mehr Optionen
+              Ansicht wählen
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-[#9a9086]">
-              Erweiterte Filter und die klassische Discover-Ansicht mit allen Steuerungen.
+              Wechsle zwischen Karten, Liste, Kalender und Karte — oder setze Filter zurück.
             </p>
-            <Link
-              href={buildClassicDiscoverHref()}
-              onClick={() => setFilterSheetOpen(false)}
-              className="mt-5 flex min-h-[44px] w-full items-center justify-center rounded-md bg-[#c4783a] px-4 text-sm font-semibold text-[#1c1410] wg-pressable"
-            >
-              Klassische Discover-Ansicht
-            </Link>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["cards", "Karten"],
+                  ["list", "Liste"],
+                  ["calendar", "Kalender"],
+                  ["map", "Karte"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`min-h-[44px] rounded-md border px-3 text-sm font-semibold wg-pressable ${
+                    viewMode === mode
+                      ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
+                      : "border-[rgba(240,235,228,0.12)] bg-[#1c1815] text-[#9a9086]"
+                  }`}
+                  onClick={() => {
+                    setViewMode(mode);
+                    if (mode === "calendar") {
+                      setCalendarMonth(startOfIsoMonth(calendarDate || todayKey));
+                    }
+                    setFilterSheetOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               className="mt-3 w-full min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] py-3 text-sm font-medium text-[#f0ebe4] wg-pressable"
+              onClick={() => {
+                resetDiscoverV2Filters();
+                setFilterSheetOpen(false);
+              }}
+            >
+              Filter zurücksetzen
+            </button>
+            <button
+              type="button"
+              className="mt-2 w-full min-h-[44px] rounded-md py-3 text-sm font-medium text-[#9a9086] wg-pressable"
               onClick={() => setFilterSheetOpen(false)}
             >
               Schließen
