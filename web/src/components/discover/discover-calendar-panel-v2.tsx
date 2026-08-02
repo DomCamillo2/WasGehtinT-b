@@ -6,7 +6,10 @@ import {
   BERLIN_DAY_CHIP_ARIA,
   berlinDayKeyFromIso,
   buildCalendarMonthGrid,
+  endOfIsoMonth,
+  isoDatesInSameMonth,
   shiftIsoMonth,
+  startOfIsoMonth,
 } from "@/lib/discover-calendar";
 import type { DiscoverEvent } from "@/services/discover/discover-view-model";
 import { DiscoverEventListItemV2 } from "./discover-event-list-item-v2";
@@ -27,6 +30,25 @@ type Props = {
   onUpvote: (eventId: string) => void;
 };
 
+function pickDateForMonth(
+  monthIso: string,
+  todayKey: string,
+  selectedDate: string,
+  counts: Map<string, number>,
+): string {
+  const monthStart = startOfIsoMonth(monthIso);
+  if (isoDatesInSameMonth(selectedDate, monthStart)) return selectedDate;
+  if (isoDatesInSameMonth(todayKey, monthStart)) return todayKey;
+
+  let firstWithEvents: string | null = null;
+  for (const [day, count] of counts) {
+    if (count > 0 && isoDatesInSameMonth(day, monthStart)) {
+      if (!firstWithEvents || day < firstWithEvents) firstWithEvents = day;
+    }
+  }
+  return firstWithEvents ?? monthStart;
+}
+
 export function DiscoverCalendarPanelV2({
   events,
   todayKey,
@@ -42,15 +64,44 @@ export function DiscoverCalendarPanelV2({
   venueLabel,
   onUpvote,
 }: Props) {
-  const grid = useMemo(() => buildCalendarMonthGrid(monthAnchor, todayKey), [monthAnchor, todayKey]);
+  const monthStart = startOfIsoMonth(monthAnchor || todayKey);
+  const grid = useMemo(() => buildCalendarMonthGrid(monthStart, todayKey), [monthStart, todayKey]);
+
+  const eventCountByDay = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const event of events) {
+      const key = berlinDayKeyFromIso(event.startsAt);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [events]);
 
   const dayEvents = useMemo(() => {
-    return events.filter((e) => berlinDayKeyFromIso(e.startsAt) === selectedDate);
+    return events
+      .filter((e) => berlinDayKeyFromIso(e.startsAt) === selectedDate)
+      .slice()
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   }, [events, selectedDate]);
 
   const heading = useMemo(() => {
     return BERLIN_CALENDAR_HEADING.format(new Date(`${selectedDate}T12:00:00Z`));
   }, [selectedDate]);
+
+  const goToMonth = (delta: number) => {
+    const nextMonth = startOfIsoMonth(shiftIsoMonth(monthStart, delta));
+    onMonthAnchorChange(nextMonth);
+    onSelectedDateChange(pickDateForMonth(nextMonth, todayKey, selectedDate, eventCountByDay));
+  };
+
+  const coverageHint = useMemo(() => {
+    const monthEnd = endOfIsoMonth(monthStart);
+    const hasAnyInMonth = [...eventCountByDay.keys()].some((d) => isoDatesInSameMonth(d, monthStart));
+    if (hasAnyInMonth) return null;
+    if (monthEnd < todayKey) {
+      return "Vergangene Tage liegen außerhalb des Discover-Fensters.";
+    }
+    return "Für diesen Monat sind noch keine Events geladen — ggf. weiter voraus scrollen oder Wochen erweitern.";
+  }, [eventCountByDay, monthStart, todayKey]);
 
   return (
     <div className="space-y-4">
@@ -58,12 +109,8 @@ export function DiscoverCalendarPanelV2({
         <div className="mb-3 flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={() => {
-              const next = shiftIsoMonth(monthAnchor || todayKey, -1);
-              onMonthAnchorChange(next);
-              onSelectedDateChange(next);
-            }}
-            className="grid h-9 w-9 place-items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
+            onClick={() => goToMonth(-1)}
+            className="grid h-10 w-10 place-items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
             aria-label="Vorheriger Monat"
           >
             <span aria-hidden="true">‹</span>
@@ -71,12 +118,8 @@ export function DiscoverCalendarPanelV2({
           <p className="text-sm font-semibold capitalize text-[#f0ebe4]">{grid.monthLabel}</p>
           <button
             type="button"
-            onClick={() => {
-              const next = shiftIsoMonth(monthAnchor || todayKey, 1);
-              onMonthAnchorChange(next);
-              onSelectedDateChange(next);
-            }}
-            className="grid h-9 w-9 place-items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
+            onClick={() => goToMonth(1)}
+            className="grid h-10 w-10 place-items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
             aria-label="Nächster Monat"
           >
             <span aria-hidden="true">›</span>
@@ -89,38 +132,50 @@ export function DiscoverCalendarPanelV2({
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1" role="grid" aria-label="Monatskalender">
           {grid.cells.map((cell, index) => {
             if (!cell.isoDate || !cell.day) {
-              return <div key={`cal-empty-${index}`} className="h-9" />;
+              return <div key={`cal-empty-${index}`} className="h-10" role="presentation" />;
             }
 
-            const hasEvents = events.some((p) => berlinDayKeyFromIso(p.startsAt) === cell.isoDate);
+            const count = eventCountByDay.get(cell.isoDate) ?? 0;
             const active = selectedDate === cell.isoDate;
+            const isToday = todayKey === cell.isoDate;
+            const isPast = cell.isoDate < todayKey;
 
             return (
               <button
                 key={cell.isoDate}
                 type="button"
+                role="gridcell"
+                aria-selected={active}
+                aria-current={isToday ? "date" : undefined}
                 onClick={() => {
                   onSelectedDateChange(cell.isoDate!);
-                  onMonthAnchorChange(cell.isoDate!);
+                  onMonthAnchorChange(startOfIsoMonth(cell.isoDate!));
                 }}
-                className={`relative h-9 rounded-md text-xs font-semibold transition-colors ${
+                className={`relative flex h-10 flex-col items-center justify-center rounded-md text-xs font-semibold transition-colors ${
                   active
                     ? "bg-[#c4783a] text-[#1c1410]"
-                    : "border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
+                    : isToday
+                      ? "border border-[#c4783a]/70 bg-[#221e1a] text-[#f0ebe4]"
+                      : isPast
+                        ? "border border-[rgba(240,235,228,0.08)] bg-[#1c1815] text-[#6f675f] hover:border-[rgba(240,235,228,0.18)]"
+                        : "border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
                 }`}
-                aria-label={BERLIN_DAY_CHIP_ARIA.format(new Date(`${cell.isoDate}T12:00:00Z`))}
+                aria-label={`${BERLIN_DAY_CHIP_ARIA.format(new Date(`${cell.isoDate}T12:00:00Z`))}${
+                  count > 0 ? `, ${count} Events` : ""
+                }`}
               >
-                {cell.day}
-                {hasEvents ? (
+                <span className="leading-none">{cell.day}</span>
+                {count > 0 ? (
                   <span
-                    className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                      active ? "bg-[#1c1410]" : "bg-[#c4783a]"
-                    }`}
+                    className={`mt-0.5 h-1 w-1 rounded-full ${active ? "bg-[#1c1410]" : "bg-[#c4783a]"}`}
+                    aria-hidden="true"
                   />
-                ) : null}
+                ) : (
+                  <span className="mt-0.5 h-1 w-1" aria-hidden="true" />
+                )}
               </button>
             );
           })}
@@ -130,16 +185,23 @@ export function DiscoverCalendarPanelV2({
           type="button"
           onClick={() => {
             onSelectedDateChange(todayKey);
-            onMonthAnchorChange(todayKey);
+            onMonthAnchorChange(startOfIsoMonth(todayKey));
           }}
-          className="mt-3 h-9 w-full rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-xs font-semibold text-[#f0ebe4] hover:border-[rgba(196,120,58,0.45)]"
+          className="mt-3 h-10 w-full rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-xs font-semibold text-[#f0ebe4] hover:border-[rgba(196,120,58,0.45)]"
         >
           Heute
         </button>
       </div>
 
       <div className="space-y-2">
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-[#9a9086]">Events am {heading}</p>
+        <div className="flex items-baseline justify-between gap-2 px-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#9a9086]">
+            Events am {heading}
+          </p>
+          {dayEvents.length > 0 ? (
+            <p className="text-[11px] tabular-nums text-[#6f675f]">{dayEvents.length}</p>
+          ) : null}
+        </div>
 
         {dayEvents.length > 0 ? (
           <div className="space-y-2">
@@ -159,7 +221,8 @@ export function DiscoverCalendarPanelV2({
           </div>
         ) : (
           <div className="rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-4 text-sm text-[#9a9086]">
-            Keine Events für diesen Tag in der aktuellen Auswahl.
+            <p>Keine Events für diesen Tag in der aktuellen Auswahl.</p>
+            {coverageHint ? <p className="mt-2 text-xs text-[#6f675f]">{coverageHint}</p> : null}
           </div>
         )}
       </div>

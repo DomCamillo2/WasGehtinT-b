@@ -2,6 +2,12 @@ import { cookies } from "next/headers";
 import { unstable_cache } from "next/cache";
 import { getCommunityHangoutsForDiscover, getExternalEvents, getPublicParties } from "@/lib/data";
 import type { DiscoverFilterKey } from "@/lib/discover-filters";
+import {
+  berlinDayKeyFromIso,
+  endOfIsoMonth,
+  isIsoDate,
+  weeksNeededToCoverIsoDate,
+} from "@/lib/discover-calendar";
 import { applyTrafficBasedUpvoteEstimates } from "@/lib/discover-traffic-upvotes";
 import {
   MAX_DISCOVER_HERO_LOOKUPS_DEFAULT,
@@ -207,8 +213,18 @@ const loadDiscoverPublicDataCached = unstable_cache(
 );
 
 export async function loadDiscoverPageData(searchParams: DiscoverSearchParams): Promise<DiscoverPageData> {
-  const weeks = clampWeeks(searchParams.weeks);
+  let weeks = clampWeeks(searchParams.weeks);
   const likedOnly = searchParams.liked === "1";
+  const calendarDate = isIsoDate(searchParams.date) ? searchParams.date : null;
+  // Calendar needs the whole visible month loaded, otherwise day dots / lists look "broken".
+  if (searchParams.view === "calendar" || calendarDate) {
+    const todayBerlin = berlinDayKeyFromIso(new Date().toISOString());
+    const coverThrough = endOfIsoMonth(calendarDate ?? todayBerlin);
+    const needed = weeksNeededToCoverIsoDate(coverThrough);
+    if (needed > weeks) {
+      weeks = Math.max(DEFAULT_WEEKS, Math.min(MAX_WEEKS, needed));
+    }
+  }
   const windowStart = new Date();
   const windowEnd = addWeeks(windowStart, weeks);
   const windowStartIso = windowStart.toISOString();

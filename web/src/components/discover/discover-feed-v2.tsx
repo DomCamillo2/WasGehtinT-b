@@ -18,7 +18,12 @@ import {
   User,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast-provider";
-import { berlinDayKeyFromIso } from "@/lib/discover-calendar";
+import {
+  berlinDayKeyFromIso,
+  endOfIsoMonth,
+  startOfIsoMonth,
+  weeksNeededToCoverIsoDate,
+} from "@/lib/discover-calendar";
 import {
   type DiscoverFilterKey,
   filterDiscoverEvents,
@@ -206,7 +211,7 @@ export function DiscoverFeedV2({
     resolveSeedCalendarDate(searchParams.get("date"), initialCalendarDate, todayKey),
   );
   const [calendarMonth, setCalendarMonth] = useState(() =>
-    resolveSeedCalendarDate(searchParams.get("date"), initialCalendarDate, todayKey),
+    startOfIsoMonth(resolveSeedCalendarDate(searchParams.get("date"), initialCalendarDate, todayKey)),
   );
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installDismissed, setInstallDismissed] = useState(false);
@@ -216,6 +221,9 @@ export function DiscoverFeedV2({
 
   /** When filter/view/liked in the URL change (history, deep link), reset “Mehr anzeigen” — not on date-only changes. */
   const feedControlSignatureRef = useRef<string | null>(null);
+  const urlCalendarDateRef = useRef<string | null>(
+    resolveSeedCalendarDate(searchParams.get("date"), initialCalendarDate, todayKey),
+  );
 
   /** Keep view, category filter, and calendar selection aligned with the URL (back/forward, shared links). */
   useEffect(() => {
@@ -240,7 +248,10 @@ export function DiscoverFeedV2({
     const validDate = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
     if (validDate) {
       setCalendarDate((prev) => (prev === validDate ? prev : validDate));
-      setCalendarMonth((prev) => (prev === validDate ? prev : validDate));
+      if (urlCalendarDateRef.current !== validDate) {
+        urlCalendarDateRef.current = validDate;
+        setCalendarMonth(startOfIsoMonth(validDate));
+      }
     }
   }, [discoverUrlSignature]);
 
@@ -422,6 +433,38 @@ export function DiscoverFeedV2({
       weeksLoadTargetRef.current = null;
     }
   }, [currentWeeks]);
+
+  /**
+   * Calendar can navigate months beyond the loaded Discover window.
+   * Expand `weeks` so day dots and the day list stay accurate.
+   */
+  useEffect(() => {
+    if (viewMode !== "calendar" || !canLoadMore || weeksNavPending) return;
+    const coverThrough = endOfIsoMonth(calendarMonth || calendarDate || todayKey);
+    const needed = weeksNeededToCoverIsoDate(coverThrough);
+    if (needed <= currentWeeks) return;
+    const nextWeeks = Math.min(24, Math.max(currentWeeks + 4, needed));
+    if (weeksLoadTargetRef.current === nextWeeks) return;
+    weeksLoadTargetRef.current = nextWeeks;
+    setWeeksNavPending(true);
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    params.set("ui", "new");
+    params.set("view", "calendar");
+    params.set("date", calendarDate);
+    params.set("weeks", String(nextWeeks));
+    startTransition(() => {
+      router.replace(`/discover?${params.toString()}`, { scroll: false });
+    });
+  }, [
+    calendarDate,
+    calendarMonth,
+    canLoadMore,
+    currentWeeks,
+    router,
+    todayKey,
+    viewMode,
+    weeksNavPending,
+  ]);
 
   const requestMoreWeeks = useCallback(() => {
     if (weeksNavPending || !canLoadMore) return;
@@ -687,7 +730,7 @@ export function DiscoverFeedV2({
     setVisibleCount(LOAD_MORE_STEP);
     setViewMode("cards");
     setCalendarDate(todayKey);
-    setCalendarMonth(todayKey);
+    setCalendarMonth(startOfIsoMonth(todayKey));
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     params.set("ui", "new");
     params.delete("type");
@@ -881,7 +924,10 @@ export function DiscoverFeedV2({
             </button>
             <button
               type="button"
-              onClick={() => setViewMode("calendar")}
+              onClick={() => {
+                setViewMode("calendar");
+                setCalendarMonth(startOfIsoMonth(calendarDate || todayKey));
+              }}
               className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md transition-colors duration-150 sm:min-h-[36px] sm:min-w-[36px] ${
                 viewMode === "calendar" ? viewModeToggleActive : viewModeToggleInactive
               }`}
