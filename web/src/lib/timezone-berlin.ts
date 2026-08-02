@@ -38,3 +38,67 @@ export function berlinWallTimeToUtc(isoDate: string, hour: number, minute: numbe
 
   return new Date(t);
 }
+
+function berlinCalendarYear(now = new Date()): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+  }).formatToParts(now);
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  return Number.isFinite(year) ? year : now.getUTCFullYear();
+}
+
+export type YearlessDateOptions = {
+  /** How far in the past a date may sit before we try year+1 (ms). */
+  maxPastMs?: number;
+  /**
+   * Reject dates further than this into the future (ms).
+   * Prevents stale July programs becoming July next-year nightlife ghosts.
+   */
+  maxFutureMs?: number;
+};
+
+/**
+ * Resolve yearless day/month wall times in Europe/Berlin.
+ * Year-bumps only when still within maxFutureMs — otherwise returns null (stale listing).
+ */
+export function resolveYearlessBerlinDate(
+  day: number,
+  month: number,
+  hour: number,
+  minute: number,
+  options: YearlessDateOptions = {},
+): Date | null {
+  if (!Number.isInteger(day) || !Number.isInteger(month) || day < 1 || day > 31 || month < 1 || month > 12) {
+    return null;
+  }
+
+  const maxPastMs = options.maxPastMs ?? 2 * 24 * 60 * 60 * 1000;
+  const maxFutureMs = options.maxFutureMs ?? 120 * 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+  const year = berlinCalendarYear();
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  let candidate = berlinWallTimeToUtc(`${year}-${pad(month)}-${pad(day)}`, hour, minute);
+  if (Number.isNaN(candidate.getTime())) {
+    return null;
+  }
+
+  if (candidate.getTime() < nowMs - maxPastMs) {
+    candidate = berlinWallTimeToUtc(`${year + 1}-${pad(month)}-${pad(day)}`, hour, minute);
+  }
+
+  if (Number.isNaN(candidate.getTime())) {
+    return null;
+  }
+
+  if (candidate.getTime() < nowMs - maxPastMs) {
+    return null;
+  }
+
+  if (candidate.getTime() > nowMs + maxFutureMs) {
+    return null;
+  }
+
+  return candidate;
+}

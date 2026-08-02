@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PartyCard } from "@/lib/types";
 import { DiscoverEvent, mapPartyCardToDiscoverEvent } from "@/services/discover/discover-view-model";
 
-const DEFAULT_WEEKS = 4;
+const DEFAULT_WEEKS = 8;
 const MAX_WEEKS = 24;
 const MIN_DISCOVER_EVENTS_ON_ENTRY = 12;
 

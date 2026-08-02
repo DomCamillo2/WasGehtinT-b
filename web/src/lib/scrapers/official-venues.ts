@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
+import { berlinWallTimeToUtc, resolveYearlessBerlinDate } from "@/lib/timezone-berlin";
 import { PartyCard } from "@/lib/types";
 
 // Feste Koordinaten für Tübinger Venues
@@ -201,14 +201,19 @@ function parseDateTimeFromText(text: string): Date | null {
   const day = Number(partialMatch[1]);
   const month = Number(partialMatch[2]);
   const yearRaw = partialMatch[3];
-  const now = new Date();
-  const year = yearRaw ? (yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw)) : now.getUTCFullYear();
+
+  // Yearless calendar lines (Club Voltaire etc.): never invent next-year ghosts.
+  if (!yearRaw) {
+    return resolveYearlessBerlinDate(day, month, 19, 0, {
+      maxPastMs: 24 * 60 * 60 * 1000,
+      maxFutureMs: 100 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  const year = yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw);
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
-  let date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, 19, 0);
-  if (!yearRaw && date.getTime() < now.getTime() - 24 * 60 * 60 * 1000) {
-    date = berlinWallTimeToUtc(`${year + 1}-${mm}-${dd}`, 19, 0);
-  }
+  const date = berlinWallTimeToUtc(`${year}-${mm}-${dd}`, 19, 0);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -288,6 +293,92 @@ async function fetchGenericCalendarEvents(config: {
 
     const html = await response.text();
     const $ = cheerio.load(html);
+    const now = Date.now();
+    const events: PartyCard[] = [];
+    const seenIds = new Set<string>();
+
+    // Prefer structured Event JSON-LD when present (Club Voltaire calendar, etc.).
+    $("script[type=\"application/ld+json\"]").each((_, el) => {
+      const raw = $(el).html();
+      if (!raw) return;
+
+      let data: unknown;
+      try {
+        data = JSON.parse(raw.trim());
+      } catch {
+        return;
+      }
+
+      const roots = Array.isArray(data) ? data : [data];
+      for (const root of roots) {
+        for (const node of collectLdJsonEventNodes(root)) {
+          if (!node || typeof node !== "object") continue;
+          const item = node as Record<string, unknown>;
+          const typeField = item["@type"];
+          if (!ldJsonTypeMatches(typeField, "Event") && !ldJsonTypeMatches(typeField, "MusicEvent")) {
+            continue;
+          }
+
+          const name = String(item.name ?? "").trim();
+          if (!name || name.length < 2) continue;
+
+          const startRaw = item.startDate;
+          const startStr = typeof startRaw === "string" ? startRaw : null;
+          if (!startStr) continue;
+          const startsAtDate = new Date(startStr);
+          if (Number.isNaN(startsAtDate.getTime())) continue;
+          if (startsAtDate.getTime() < now - 24 * 60 * 60 * 1000) continue;
+          if (startsAtDate.getTime() > now + 160 * 24 * 60 * 60 * 1000) continue;
+
+          let endsAtMs = startsAtDate.getTime() + 2 * 60 * 60 * 1000;
+          if (typeof item.endDate === "string") {
+            const parsedEnd = new Date(item.endDate);
+            if (!Number.isNaN(parsedEnd.getTime())) {
+              endsAtMs = parsedEnd.getTime();
+            }
+          }
+
+          const urlField = item.url;
+          const externalLink =
+            typeof urlField === "string" && urlField.startsWith("http") ? urlField : config.url;
+
+          const eventId = generateEventId(config.source, startsAtDate, name);
+          if (seenIds.has(eventId)) continue;
+          seenIds.add(eventId);
+
+          events.push({
+            id: eventId,
+            source: config.source,
+            title: name.slice(0, 140),
+            description: `${config.locationName} – ${config.categoryLabel}`,
+            starts_at: startsAtDate.toISOString(),
+            ends_at: new Date(endsAtMs).toISOString(),
+            max_guests: 0,
+            contribution_cents: 0,
+            public_lat: null,
+            public_lng: null,
+            is_external: true,
+            external_link: externalLink,
+            vibe_label: config.vibeLabel,
+            spots_left: 0,
+            location_name: config.locationName,
+            category_slug: config.categorySlug,
+            category_label: config.categoryLabel,
+            event_scope: config.scope ?? "daytime",
+            is_all_day: false,
+            audience_label: "Alle",
+            price_info: null,
+          } as PartyCard);
+        }
+      }
+    });
+
+    if (events.length > 0) {
+      return events
+        .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+        .slice(0, 40);
+    }
+
     const selectors = config.selectors ?? [
       "article",
       ".event",
@@ -308,14 +399,11 @@ async function fetchGenericCalendarEvents(config: {
         });
     }
 
-    const now = Date.now();
-    const events: PartyCard[] = [];
-    const seenIds = new Set<string>();
-
     for (const candidate of Array.from(candidates).slice(0, 120)) {
       const startsAtDate = parseDateTimeFromText(candidate);
       if (!startsAtDate) continue;
       if (startsAtDate.getTime() < now - 24 * 60 * 60 * 1000) continue;
+      if (startsAtDate.getTime() > now + 160 * 24 * 60 * 60 * 1000) continue;
 
       const title = candidate
         .replace(/^\d{1,2}\.\d{1,2}\.(\d{2,4})?\s*[|:-]?\s*/g, "")
@@ -439,9 +527,6 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
 
     let eventCount = 0;
     const uniqueEventIds = new Set<string>();
-    const currentYear = new Date().getFullYear();
-    const now = new Date();
-    const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
 
     for (const line of lines) {
       if (eventCount >= 10) {
@@ -455,19 +540,12 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
 
       const { day, month, title, hour, minute } = parsed;
 
-      const pad = (n: number) => String(n).padStart(2, "0");
-      let isoDate = `${currentYear}-${pad(month)}-${pad(day)}`;
-      let eventDate = berlinWallTimeToUtc(isoDate, hour, minute);
-      if (Number.isNaN(eventDate.getTime())) {
-        continue;
-      }
-
-      if (eventDate < tenDaysAgo) {
-        isoDate = `${currentYear + 1}-${pad(month)}-${pad(day)}`;
-        eventDate = berlinWallTimeToUtc(isoDate, hour, minute);
-      }
-
-      if (Number.isNaN(eventDate.getTime()) || eventDate < tenDaysAgo) {
+      // Month programs: allow ~10d past, reject year-bumps beyond ~100d (stale July→next year).
+      const eventDate = resolveYearlessBerlinDate(day, month, hour, minute, {
+        maxPastMs: 10 * 24 * 60 * 60 * 1000,
+        maxFutureMs: 100 * 24 * 60 * 60 * 1000,
+      });
+      if (!eventDate) {
         continue;
       }
 
@@ -494,6 +572,10 @@ export async function fetchSchlachthausEvents(): Promise<PartyCard[]> {
         external_link: null,
         vibe_label: "Schlachthaus",
         spots_left: 0,
+        location_name: "Schlachthaus",
+        event_scope: "nightlife",
+        category_slug: "party",
+        category_label: "Party",
       } as PartyCard);
       eventCount += 1;
     }
@@ -542,6 +624,50 @@ function ldJsonTypeMatches(types: unknown, needle: string): boolean {
 
   if (Array.isArray(types)) {
     return types.some((t) => t === needle);
+  }
+
+  return false;
+}
+
+const TUEBINGEN_LAT = 48.5216;
+const TUEBINGEN_LNG = 9.0576;
+/** ~35 km — covers Tübingen + nearby party towns without national Diginights noise. */
+const TUEBINGEN_RADIUS_KM = 35;
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function isTuebingenAreaEvent(input: {
+  locationName?: string | null;
+  addressText?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  title?: string | null;
+  description?: string | null;
+}): boolean {
+  const haystack = [input.locationName, input.addressText, input.title, input.description]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join(" ")
+    .toLowerCase();
+
+  if (/tübingen|tuebingen|tuebing|tübinger|reutlingen/.test(haystack)) {
+    return true;
+  }
+
+  if (
+    typeof input.lat === "number" &&
+    typeof input.lng === "number" &&
+    Number.isFinite(input.lat) &&
+    Number.isFinite(input.lng)
+  ) {
+    return haversineKm(TUEBINGEN_LAT, TUEBINGEN_LNG, input.lat, input.lng) <= TUEBINGEN_RADIUS_KM;
   }
 
   return false;
@@ -640,7 +766,8 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
           }
 
           const location = item.location;
-          let locationName: string | null = "Tübingen";
+          let locationName: string | null = null;
+          let addressText = "";
           let lat: number | null = null;
           let lng: number | null = null;
 
@@ -649,6 +776,16 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
             const locName = loc.name;
             if (typeof locName === "string" && locName.trim()) {
               locationName = locName.trim();
+            }
+
+            const address = loc.address;
+            if (typeof address === "string") {
+              addressText = address;
+            } else if (address && typeof address === "object") {
+              const addr = address as Record<string, unknown>;
+              addressText = [addr.addressLocality, addr.streetAddress, addr.postalCode, addr.addressRegion]
+                .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+                .join(" ");
             }
 
             const geo = loc.geo;
@@ -663,9 +800,14 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
             }
           }
 
+          const desc = typeof item.description === "string" ? item.description.slice(0, 500) : null;
+          // Diginights.com is national — keep Tübingen-area rows only.
+          if (!isTuebingenAreaEvent({ locationName, addressText, lat, lng, title: name, description: desc })) {
+            continue;
+          }
+
           const urlField = item.url;
           const externalLink = typeof urlField === "string" && urlField.startsWith("http") ? urlField : DIGINIGHTS_URL;
-          const desc = typeof item.description === "string" ? item.description.slice(0, 500) : null;
           const eventId = generateEventId("diginights", startsAt, name);
           if (seen.has(eventId)) {
             continue;
@@ -687,7 +829,7 @@ export async function fetchDignightsEvents(): Promise<PartyCard[]> {
             external_link: externalLink,
             vibe_label: "Diginights",
             spots_left: 0,
-            location_name: locationName,
+            location_name: locationName ?? "Tübingen",
             event_scope: "nightlife",
             category_slug: "party",
             category_label: "Party",
@@ -979,9 +1121,9 @@ export async function fetchClubVoltaireEvents(): Promise<PartyCard[]> {
     url: CLUB_VOLTAIRE_URL,
     vibeLabel: "Club Voltaire",
     locationName: "Club Voltaire Tübingen",
-    categoryLabel: "Kultur",
-    categorySlug: "culture",
-    scope: "daytime",
+    categoryLabel: "Party",
+    categorySlug: "party",
+    scope: "nightlife",
   });
 }
 

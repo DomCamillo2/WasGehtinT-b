@@ -48,6 +48,10 @@ function isLikelyDaytimeEvent(party: DiscoverEvent): boolean {
 
 export function isClubEvent(party: DiscoverEvent): boolean {
   if (isCommunityDiscoverEvent(party)) return false;
+
+  // Explicit nightlife scope from scrapers/enrichment always counts as Clubs.
+  if (party.eventScope === "nightlife") return true;
+
   if (isLikelyDaytimeEvent(party)) return false;
 
   const categorySlug = (party.categorySlug ?? "").toLowerCase();
@@ -56,12 +60,12 @@ export function isClubEvent(party: DiscoverEvent): boolean {
   }
 
   const text = `${party.title} ${party.description ?? ""} ${party.vibeLabel} ${party.locationName ?? ""}`.toLowerCase();
-  if (/\b(club|party|rave|dj|aftershow|night|nachts?|techno|house|concert|konzert)\b/.test(text)) {
+  if (/\b(club|party|rave|dj|aftershow|night|nachts?|techno|house|concert|konzert|schlachthaus|kuckuck|clubhaus)\b/.test(text)) {
     return true;
   }
 
-  // Keep external nightlife items visible even with sparse metadata.
-  return party.isExternal;
+  // Keep external nightlife-adjacent items visible even with sparse metadata.
+  return party.isExternal && party.eventScope !== "daytime";
 }
 
 export function filterDiscoverEvents(parties: DiscoverEvent[], filter: DiscoverFilterKey): DiscoverEvent[] {

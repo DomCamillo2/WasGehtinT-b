@@ -3,7 +3,7 @@ import "server-only";
 import * as cheerio from "cheerio";
 import { unstable_cache } from "next/cache";
 import { enrichExternalEventCategories } from "@/lib/external-event-categorization";
-import { berlinWallTimeToUtc } from "@/lib/timezone-berlin";
+import { berlinWallTimeToUtc, resolveYearlessBerlinDate } from "@/lib/timezone-berlin";
 import { PartyCard } from "@/lib/types";
 import {
   fetchSchlachthausEvents,
@@ -91,44 +91,12 @@ function isCancelledOrOutageEvent(event: PartyCard): boolean {
 }
 
 function toIsoDate(day: number, month: number): string | null {
-  if (!Number.isInteger(day) || !Number.isInteger(month)) {
-    return null;
-  }
-
-  if (day < 1 || day > 31 || month < 1 || month > 12) {
-    return null;
-  }
-
-  const now = Date.now();
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Berlin",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).formatToParts(new Date());
-
-  let year = Number(parts.find((p) => p.type === "year")?.value);
-  if (!Number.isFinite(year)) {
-    year = new Date().getUTCFullYear();
-  }
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  let isoDate = `${year}-${pad(month)}-${pad(day)}`;
-  let candidate = berlinWallTimeToUtc(isoDate, 20, 0);
-  if (Number.isNaN(candidate.getTime())) {
-    return null;
-  }
-
-  if (candidate.getTime() < now - 12 * 60 * 60 * 1000) {
-    isoDate = `${year + 1}-${pad(month)}-${pad(day)}`;
-    candidate = berlinWallTimeToUtc(isoDate, 20, 0);
-  }
-
-  if (Number.isNaN(candidate.getTime()) || candidate.getTime() < now - 12 * 60 * 60 * 1000) {
-    return null;
-  }
-
-  return candidate.toISOString();
+  // Weekly program: allow ~36h past, reject year-bumps beyond 3 weeks.
+  const resolved = resolveYearlessBerlinDate(day, month, 20, 0, {
+    maxPastMs: 36 * 60 * 60 * 1000,
+    maxFutureMs: 21 * 24 * 60 * 60 * 1000,
+  });
+  return resolved ? resolved.toISOString() : null;
 }
 
 function normalizeChunk(input: string): string {
@@ -265,6 +233,9 @@ async function fetchKuckuckEvents(): Promise<PartyCard[]> {
       spots_left: 0,
       location_name: "Kuckuck",
       music_genre: event.musicGenre,
+      event_scope: "nightlife" as const,
+      category_slug: "party",
+      category_label: "Party",
     }));
   } catch (error) {
     logExternalSourceFailure("kuckuck", error);
@@ -422,6 +393,9 @@ async function fetchFsrvvClubhausEvents(): Promise<PartyCard[]> {
           spots_left: 0,
           location_name: "Clubhaus",
           music_genre: inferMusicGenre(event.title),
+          event_scope: "nightlife",
+          category_slug: "party",
+          category_label: "Party",
         } as PartyCard;
       })
       .filter((event): event is PartyCard => Boolean(event));
@@ -492,6 +466,11 @@ const getCachedExternalEvents = unstable_cache(
       .filter((event) => {
         const endMs = new Date(event.ends_at).getTime();
         return Number.isFinite(endMs) && endMs >= nowMs;
+      })
+      .filter((event) => {
+        // Safety net: year-bump scrapers must not invent events ~half a year+ out.
+        const startMs = new Date(event.starts_at).getTime();
+        return Number.isFinite(startMs) && startMs <= nowMs + 160 * 24 * 60 * 60 * 1000;
       });
 
     const uniqueMap = new Map<string, PartyCard>();
@@ -517,7 +496,7 @@ const getCachedExternalEvents = unstable_cache(
       (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
     );
   },
-  ["external-events-v5"],
+  ["external-events-v6"],
   { revalidate: 60 * 5, tags: ["external-events"] },
 );
 
