@@ -72,7 +72,7 @@ export function DiscoverEventListItemV2({
           href={event.detailHref}
           className="block rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
-          <h3 className="truncate text-[21px] leading-none font-wordmark text-[#F2ECE6]">
+          <h3 className="line-clamp-2 text-[1.05rem] leading-snug font-wordmark text-[#F2ECE6] sm:text-[21px] sm:leading-snug">
             {event.title}
           </h3>
         </Link>

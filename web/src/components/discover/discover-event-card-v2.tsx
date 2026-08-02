@@ -98,14 +98,15 @@ export function DiscoverEventCardV2({
 
   return (
     <article
-      className="group relative w-full overflow-hidden rounded-none [contain-intrinsic-size:auto_10rem] card-lift"
+      className="group relative w-full overflow-hidden rounded-none card-lift"
       role="article"
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-none sm:aspect-[3/1] md:aspect-[5/1]">
-        <div
-          className="absolute inset-0 bg-[#221e1a]"
-          aria-hidden="true"
-        />
+      {/*
+        Media fills the card; copy is in-flow so tall titles expand height instead of
+        clipping against a flat aspect-ratio box (especially md two-column 5:1).
+      */}
+      <div className="relative w-full min-h-[13.5rem] sm:min-h-[15rem] md:min-h-[14.5rem]">
+        <div className="absolute inset-0 bg-[#221e1a]" aria-hidden="true" />
         <div
           className={`absolute inset-0 z-[1] transition-transform duration-700 ease-out ${showMedia ? "scale-100 sm:scale-105 sm:group-hover:scale-110" : ""}`}
         >
@@ -114,7 +115,7 @@ export function DiscoverEventCardV2({
               src={mediaSrc}
               alt={mediaAlt}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, min(1200px, 100vw)"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, min(40rem, 50vw)"
               priority={imagePriority}
               className={
                 hasHeroImage
@@ -133,7 +134,7 @@ export function DiscoverEventCardV2({
           className="absolute inset-0 z-[2]"
           style={{
             background:
-              "linear-gradient(to top, rgba(20,17,15,0.92) 0%, rgba(20,17,15,0.45) 48%, rgba(20,17,15,0) 100%)",
+              "linear-gradient(to top, rgba(20,17,15,0.94) 0%, rgba(20,17,15,0.55) 42%, rgba(20,17,15,0.2) 72%, rgba(20,17,15,0.05) 100%)",
           }}
         />
 
@@ -149,11 +150,10 @@ export function DiscoverEventCardV2({
           </div>
         ) : null}
 
-        {/* Mock layout: Titel → Venue → Social, Datum-Pille + CTA (Klicks außer Upvote → Detail) */}
-        <div className="absolute inset-x-0 bottom-0 z-[5] p-2.5 sm:p-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="relative z-[5] flex min-h-[13.5rem] flex-col justify-end p-3 pt-12 sm:min-h-[15rem] sm:p-4 sm:pt-14 md:min-h-[14.5rem]">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="pointer-events-none flex min-w-0 flex-1 flex-col gap-1.5 sm:gap-2">
-              <h3 className="min-w-0 text-[1.05rem] font-semibold leading-snug tracking-tight text-white drop-shadow-sm line-clamp-2 sm:text-2xl sm:leading-snug">
+              <h3 className="min-w-0 break-words text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-white drop-shadow-sm [overflow-wrap:anywhere] sm:text-xl sm:leading-[1.25] md:text-[1.35rem]">
                 {event.title}
               </h3>
               <p className="flex min-w-0 items-center gap-1.5 text-[10px] font-medium text-[#e8e1db] sm:gap-2 sm:text-xs">
