@@ -1,8 +1,8 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { Bookmark, Compass, User, Zap } from "lucide-react";
-import { m, useReducedMotion } from "@/lib/discover-motion";
 
 export type DiscoverV2NavTab = "discover" | "saved";
 
@@ -30,23 +30,20 @@ function NavLabel({
   );
 }
 
+/**
+ * CSS underline (not Framer layoutId) — layout projection was making tab switches feel laggy
+ * because it measured against the heavy Discover feed tree.
+ */
 function NavUnderline() {
-  const reduce = useReducedMotion();
   return (
-    <m.span
-      layoutId="discover-bottom-nav-underline"
-      className="absolute inset-x-3 bottom-0 h-0.5 bg-[#c4783a]"
-      transition={
-        reduce
-          ? { duration: 0 }
-          : { type: "spring", stiffness: 420, damping: 36, mass: 0.6 }
-      }
+    <span
+      className="discover-nav-underline absolute inset-x-3 bottom-0 h-0.5 bg-[#c4783a]"
       aria-hidden="true"
     />
   );
 }
 
-export function DiscoverBottomNavV2({
+function DiscoverBottomNavV2Component({
   activeTab,
   onSelectDiscover,
   onSelectSaved,
@@ -122,3 +119,5 @@ export function DiscoverBottomNavV2({
     </nav>
   );
 }
+
+export const DiscoverBottomNavV2 = memo(DiscoverBottomNavV2Component);

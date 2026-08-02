@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -180,7 +180,7 @@ export function DiscoverFeedV2({
   );
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const weeksSentinelRef = useRef<HTMLDivElement | null>(null);
-  const [headerCompact, setHeaderCompact] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
     const raw = searchParams.get("view");
@@ -249,8 +249,24 @@ export function DiscoverFeedV2({
   }, [searchQuery]);
 
   useEffect(() => {
-    const onScroll = () => setHeaderCompact(window.scrollY > 96);
-    onScroll();
+    let ticking = false;
+    const applyCompact = () => {
+      ticking = false;
+      const compact = window.scrollY > 96;
+      const el = headerRef.current;
+      if (!el) return;
+      if (compact) {
+        if (!el.hasAttribute("data-compact")) el.setAttribute("data-compact", "");
+      } else if (el.hasAttribute("data-compact")) {
+        el.removeAttribute("data-compact");
+      }
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(applyCompact);
+    };
+    applyCompact();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -530,11 +546,6 @@ export function DiscoverFeedV2({
     };
   }, [sortedParties]);
 
-  const savedCount = useMemo(
-    () => parties.filter((p) => upvotedPartyIds.includes(p.id)).length,
-    [parties, upvotedPartyIds],
-  );
-
   const filterItems: Array<{ id: DiscoverFilterKey; label: string }> = [
     { id: "all", label: "Alle" },
     { id: "top", label: "Top" },
@@ -559,28 +570,26 @@ export function DiscoverFeedV2({
   }, [likedOnly, router]);
 
   const navigateBottomNavDiscover = useCallback(() => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("ui", "new");
-    params.delete("liked");
-    params.delete("date");
-    params.delete("view");
-    router.replace(`/discover?${params.toString()}`, { scroll: false });
     setViewMode("cards");
-    window.requestAnimationFrame(() => {
-      document.getElementById("events-feed-v2")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    startTransition(() => {
+      const params = new URLSearchParams(window.location.search);
+      params.set("ui", "new");
+      params.delete("liked");
+      params.delete("date");
+      params.delete("view");
+      router.replace(`/discover?${params.toString()}`, { scroll: false });
     });
   }, [router]);
 
   const navigateBottomNavSaved = useCallback(() => {
-    const params = new URLSearchParams(window.location.search);
-    params.set("ui", "new");
-    params.set("liked", "1");
-    params.delete("date");
-    params.delete("view");
-    router.replace(`/discover?${params.toString()}`, { scroll: false });
     setViewMode("cards");
-    window.requestAnimationFrame(() => {
-      document.getElementById("events-feed-v2")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    startTransition(() => {
+      const params = new URLSearchParams(window.location.search);
+      params.set("ui", "new");
+      params.set("liked", "1");
+      params.delete("date");
+      params.delete("view");
+      router.replace(`/discover?${params.toString()}`, { scroll: false });
     });
   }, [router]);
 
@@ -681,14 +690,13 @@ export function DiscoverFeedV2({
       </a>
 
       <header
-        className={`discover-header-glass sticky top-0 z-40 px-4 motion-safe:transition-[padding] motion-safe:duration-200 ${
-          headerCompact ? "pb-2" : "pb-3"
-        }`}
+        ref={headerRef}
+        className="discover-header-glass sticky top-0 z-40 px-4"
         style={{
           paddingTop: "max(12px, env(safe-area-inset-top, 0px))",
         }}
       >
-        <div className={`flex items-center justify-between motion-safe:transition-[margin] motion-safe:duration-200 ${headerCompact ? "mb-2" : "mb-3"}`}>
+        <div className="discover-header-brand-row flex items-center justify-between">
           <div className="min-w-0">
             <h1 className="sr-only">WasGehtTüb – Events entdecken</h1>
             <div aria-hidden="true" className="flex items-center gap-2.5">
@@ -697,20 +705,14 @@ export function DiscoverFeedV2({
                 alt=""
                 width={120}
                 height={120}
-                className={`object-contain motion-safe:transition-[width,height] motion-safe:duration-200 ${
-                  headerCompact ? "h-9 w-9 sm:h-11 sm:w-11" : "h-11 w-11 sm:h-12 sm:w-12"
-                }`}
+                className="discover-header-logo object-contain"
                 priority
               />
               <div className="min-w-0">
                 <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[#f0ebe4] sm:text-2xl">
                   WasGeht<span className="text-[#c4783a]">Tüb</span>
                 </p>
-                <p
-                  className={`mt-1 hidden truncate text-[12px] text-[#9a9086] sm:block motion-safe:transition-opacity motion-safe:duration-200 ${
-                    headerCompact ? "sm:opacity-0 sm:pointer-events-none sm:h-0 sm:overflow-hidden sm:mt-0" : ""
-                  }`}
-                >
+                <p className="discover-header-tagline hidden truncate text-[12px] text-[#9a9086] sm:block">
                   Was geht heut’ in Tübingen?
                 </p>
               </div>
@@ -840,13 +842,13 @@ export function DiscoverFeedV2({
         </div>
 
         <div
-          className={`flex snap-x snap-proximity scroll-pb-1 scroll-smooth items-center gap-2.5 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 scrollbar-hide motion-safe:transition-[margin] motion-safe:duration-200 ${
-            headerCompact ? "mt-2" : "mt-4"
-          }`}
+          className="discover-header-chips flex snap-x snap-proximity scroll-pb-1 items-center gap-2.5 overflow-x-auto overscroll-x-contain pb-2 -mx-4 px-4 scrollbar-hide"
           role="tablist"
           aria-label="Kategorien"
         >
-          {filterItems.map((item) => (
+          {filterItems.map((item) => {
+            const active = !likedOnly && filter === item.id;
+            return (
             <button
               key={item.id}
               type="button"
@@ -855,35 +857,24 @@ export function DiscoverFeedV2({
                 setVisibleCount(LOAD_MORE_STEP);
               }}
               role="tab"
-              aria-selected={filter === item.id}
+              aria-selected={active}
               className={`wg-interactive wg-pressable relative snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium sm:min-h-[32px] sm:text-sm ${
-                !likedOnly && filter === item.id
-                  ? "border-transparent bg-[#221e1a] text-[#f0ebe4]"
+                active
+                  ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
                   : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
               }`}
             >
-              {!likedOnly && filter === item.id ? (
-                <m.span
-                  layoutId="discover-filter-ring"
-                  className="pointer-events-none absolute inset-0 rounded-md border border-[#c4783a]"
-                  transition={
-                    reduceMotion
-                      ? { duration: 0 }
-                      : { type: "spring", stiffness: 420, damping: 36, mass: 0.55 }
-                  }
-                  aria-hidden="true"
-                />
-              ) : null}
-              <span className="relative">{item.label}</span>
+              <span>{item.label}</span>
               <span
-                className={`relative text-[10px] leading-none tabular-nums sm:text-[11px] ${
-                  !likedOnly && filter === item.id ? "text-[#c4783a]" : "text-[#6f675f]"
+                className={`text-[10px] leading-none tabular-nums sm:text-[11px] ${
+                  active ? "text-[#c4783a]" : "text-[#6f675f]"
                 }`}
               >
                 {filterCounts[item.id]}
               </span>
             </button>
-          ))}
+            );
+          })}
           <button
             type="button"
             onClick={() => toggleLikedFilter()}
@@ -891,29 +882,15 @@ export function DiscoverFeedV2({
             aria-selected={likedOnly}
             className={`wg-interactive wg-pressable relative snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium sm:min-h-[32px] sm:text-sm ${
               likedOnly
-                ? "border-transparent bg-[#221e1a] text-[#f0ebe4]"
+                ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
                 : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
             }`}
           >
-            {likedOnly ? (
-              <m.span
-                layoutId="discover-filter-ring"
-                className="pointer-events-none absolute inset-0 rounded-md border border-[#c4783a]"
-                transition={
-                  reduceMotion
-                    ? { duration: 0 }
-                    : { type: "spring", stiffness: 420, damping: 36, mass: 0.55 }
-                }
-                aria-hidden="true"
-              />
-            ) : null}
-            <Heart className={`relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 ${likedOnly ? "fill-current text-[#c4783a]" : ""}`} aria-hidden="true" />
-            <span className="relative">Gespeichert</span>
-            <span
-              className={`relative text-[10px] leading-none tabular-nums sm:text-[11px] ${likedOnly ? "text-[#c4783a]" : "text-[#6f675f]"}`}
-            >
-              {savedCount}
-            </span>
+            <Heart
+              className={`h-3.5 w-3.5 ${likedOnly ? "fill-[#c4783a] text-[#c4783a]" : "text-[#9a9086]"}`}
+              aria-hidden="true"
+            />
+            <span>Gemerkt</span>
           </button>
         </div>
       </header>
