@@ -1,12 +1,19 @@
-Lege hier die Venue-Logos für Discover-EventCards ab.
+# Venue logos
 
-Erwartete Dateinamen:
-- kuckuck.png
-- schlachthaus.jpg
-- clubhaus.jpg
-- epplehaus.jpg
-- frau-holle.svg
-- schwarzes-schaf.svg
-- dance.png (Fallback-Icon fuer Club/Bar)
+Optional static logos for known Tübingen venues.
 
-Die Zuordnung erfolgt in `src/components/EventCard.tsx` über `location_name`, `vibe_label` und `title`.
+## Naming
+
+Use a stable slug, for example:
+
+- `club-haus.svg`
+- `club-voltair.svg`
+- `tangente.svg`
+- `zentrum-zoo.svg`
+
+Prefer SVG. PNG works if needed.
+
+## Wiring
+
+Map the filename in `web/src/lib/events/official-venues.ts` (`venueLogoPath` / venue metadata).
+The discover UI falls back to category art when a file is missing.

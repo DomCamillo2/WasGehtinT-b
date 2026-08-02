@@ -19,8 +19,6 @@ import type { ReactNode } from "react";
 export const easeOut: [number, number, number, number] = [0, 0, 0.2, 1];
 /** Ease-in leave — exits feel snappier */
 export const easeIn: [number, number, number, number] = [0.4, 0, 1, 1];
-/** Energetic snap (Emil Kowalski) — rare; confirmations only */
-export const easeEnergetic: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 export const dur = {
   micro: 0.12,

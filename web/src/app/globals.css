@@ -117,32 +117,12 @@ body::before {
   color: #1c1410;
 }
 
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
 .brand-gradient {
   background: #c4783a;
 }
 
-.glass-surface {
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-soft);
-}
-
 .surface-card {
   background: var(--surface-card);
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 2px 8px var(--shadow-color);
-}
-
-.surface-panel {
-  background: var(--surface-elevated);
   border: 1px solid var(--border-soft);
   box-shadow: 0 2px 8px var(--shadow-color);
 }
@@ -157,18 +137,7 @@ body::before {
   color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
-/* Hot card: static border cue — no glow */
-.hot-card-glow {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  box-shadow: none;
-}
-
-.hot-card-glow::after {
-  content: none;
-}
-
-.wg-cta-attention,
-.wg-cta-confirmed {
+.wg-cta-attention {
   will-change: auto;
   animation: none !important;
   box-shadow: none;
@@ -277,36 +246,20 @@ html.discover-ui-new body::before {
   top: 1rem;
 }
 
-.discover-ui-v2 .noise-overlay {
-  display: none;
-}
-
-.discover-ui-v2 .text-gradient-sunset {
-  color: var(--color-primary);
-  background: none;
-  -webkit-text-fill-color: unset;
-}
-
-.discover-ui-v2 .editorial-shadow {
-  box-shadow: none;
-}
-
 .discover-ui-v2 .discover-header-glass {
   backdrop-filter: none !important;
   background: #14110f !important;
   border-bottom: 1px solid rgba(240, 235, 228, 0.12);
   contain: layout style;
-}
-
-/* Scroll-compact header without React re-renders of the feed */
-.discover-ui-v2 .discover-header-glass {
   padding-bottom: 0.75rem;
+  transition: padding-bottom 160ms ease-out;
 }
 .discover-ui-v2 .discover-header-glass[data-compact] {
   padding-bottom: 0.5rem;
 }
 .discover-ui-v2 .discover-header-brand-row {
   margin-bottom: 0.75rem;
+  transition: margin-bottom 160ms ease-out;
 }
 .discover-ui-v2 .discover-header-glass[data-compact] .discover-header-brand-row {
   margin-bottom: 0.5rem;
@@ -314,6 +267,7 @@ html.discover-ui-new body::before {
 .discover-ui-v2 .discover-header-logo {
   height: 2.75rem;
   width: 2.75rem;
+  transition: width 160ms ease-out, height 160ms ease-out;
 }
 @media (min-width: 640px) {
   .discover-ui-v2 .discover-header-logo {
@@ -331,6 +285,7 @@ html.discover-ui-new body::before {
 }
 .discover-ui-v2 .discover-header-tagline {
   margin-top: 0.25rem;
+  transition: opacity 160ms ease-out, margin-top 160ms ease-out;
 }
 .discover-ui-v2 .discover-header-glass[data-compact] .discover-header-tagline {
   margin-top: 0;
@@ -341,9 +296,16 @@ html.discover-ui-new body::before {
 }
 .discover-ui-v2 .discover-header-chips {
   margin-top: 1rem;
+  transition: margin-top 160ms ease-out;
 }
 .discover-ui-v2 .discover-header-glass[data-compact] .discover-header-chips {
   margin-top: 0.5rem;
+}
+
+/* Fixed bottom nav: promote to own layer so feed paints don't jank taps */
+.discover-ui-v2 nav[aria-label="Hauptnavigation"] {
+  transform: translateZ(0);
+  contain: layout style;
 }
 
 .discover-ui-v2 .discover-nav-underline {
@@ -363,33 +325,15 @@ html.discover-ui-new body::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .discover-ui-v2 .discover-nav-underline {
-    animation: none;
+  .discover-ui-v2 .discover-nav-underline,
+  .discover-ui-v2 .discover-header-glass,
+  .discover-ui-v2 .discover-header-brand-row,
+  .discover-ui-v2 .discover-header-logo,
+  .discover-ui-v2 .discover-header-tagline,
+  .discover-ui-v2 .discover-header-chips {
+    transition: none !important;
+    animation: none !important;
   }
-}
-
-.discover-ui-v2 .animate-float-1,
-.discover-ui-v2 .animate-float-2,
-.discover-ui-v2 .animate-float-3,
-.discover-ui-v2 .animate-glow-pulse {
-  animation: none !important;
-}
-
-.discover-ui-v2 .animate-slide-up {
-  animation: none;
-  opacity: 1;
-}
-
-.discover-ui-v2 .glow-sunset {
-  box-shadow: none;
-}
-
-.discover-ui-v2 .squishy:active {
-  transform: scale(0.98);
-}
-
-.discover-ui-v2 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .discover-ui-v2 .event-card-separator {
@@ -472,7 +416,6 @@ html.discover-ui-new {
     scroll-snap-type: none !important;
   }
 
-  .discover-ui-v2 .squishy:active,
   .discover-ui-v2 .wg-pressable:active {
     transform: none;
   }
