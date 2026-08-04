@@ -58,7 +58,7 @@ const DiscoverCalendarPanelLazy = dynamic(
 );
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
-const LOAD_MORE_STEP = 24;
+const LOAD_MORE_STEP = 12;
 const INSTALL_DISMISSED_KEY = "wasgeht-install-dismissed-v1";
 
 type BeforeInstallPromptEvent = Event & {
@@ -365,12 +365,14 @@ export function DiscoverFeedV2({
     } else {
       params.set("view", viewMode);
     }
-    const nextHref = `/discover?${params.toString()}`;
+    // Soft-update the URL without RSC refetch (filter/view/q are client-side).
+    const nextSearch = params.toString();
+    const nextHref = nextSearch ? `/discover?${nextSearch}` : "/discover";
     const currentHref = `${window.location.pathname}${window.location.search}`;
     if (currentHref !== nextHref) {
-      router.replace(nextHref, { scroll: false });
+      window.history.replaceState(window.history.state, "", nextHref);
     }
-  }, [filter, viewMode, calendarDate, pathname, router, debouncedSearchForUrl]);
+  }, [filter, viewMode, calendarDate, pathname, debouncedSearchForUrl]);
 
   useEffect(() => {
     setWeeksNavPending(false);

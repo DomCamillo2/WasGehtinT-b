@@ -1,8 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
-import { dur, easeOut } from "@/lib/discover-motion";
+import type { ReactNode, CSSProperties } from "react";
 
 type Props = {
   children: ReactNode;
@@ -10,22 +8,14 @@ type Props = {
   delay?: number;
 };
 
-/** Light enter for event-detail sections — state, not decoration soup. */
+/** CSS enter for event-detail — avoids pulling full framer-motion on every section. */
 export function EventDetailMotion({ children, className, delay = 0 }: Props) {
-  const reduce = useReducedMotion();
-
   return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: reduce ? 0 : dur.panel,
-        ease: easeOut,
-        delay: reduce ? 0 : delay,
-      }}
+    <div
+      className={`wg-detail-enter ${className ?? ""}`.trim()}
+      style={{ "--wg-enter-delay": `${delay}s` } as CSSProperties}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

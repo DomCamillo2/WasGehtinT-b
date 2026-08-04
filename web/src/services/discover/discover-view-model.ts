@@ -1,6 +1,16 @@
 import { PartyCard } from "@/lib/types";
 import { sanitizeExternalEventTitle } from "@/lib/sanitize-event-title";
 
+const FEED_DESCRIPTION_MAX = 120;
+
+function truncateForFeed(text: string | null | undefined, max = FEED_DESCRIPTION_MAX): string | null {
+  if (!text) return null;
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return null;
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 1).trimEnd()}…`;
+}
+
 export type DiscoverEvent = {
   id: string;
   detailHref: string;
@@ -42,7 +52,7 @@ export function mapPartyCardToDiscoverEvent(party: PartyCard): DiscoverEvent {
       externalLink: party.external_link,
       fallback: party.vibe_label || party.location_name || "Event",
     }),
-    description: party.description,
+    description: truncateForFeed(party.description),
     startsAt: party.starts_at,
     endsAt: party.ends_at,
     maxGuests: party.max_guests,

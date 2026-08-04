@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getCommunityHangoutById, getExternalEventById, getExternalEvents, getPublicPartyById } from "@/lib/data";
 import { assignDiscoverHeroUrlsForParties } from "@/lib/discover-event-images";
 import { formatDateTime } from "@/lib/format";
@@ -263,7 +264,7 @@ async function loadRelatedEvents(event: PublicEventPageModel): Promise<PublicEve
   const pool = await getExternalEvents({
     fromIso: from.toISOString(),
     untilIso: until.toISOString(),
-    limit: 100,
+    limit: 32,
   });
 
   return pool
@@ -351,7 +352,7 @@ export type PublicEventPageData = PublicEventPageModel & {
   relatedEvents: PublicEventRelatedItem[];
 };
 
-export async function loadExternalEventPageData(eventId: string): Promise<PublicEventPageData | null> {
+export const loadExternalEventPageData = cache(async (eventId: string): Promise<PublicEventPageData | null> => {
   const externalEvent = await getExternalEventById(eventId);
   if (externalEvent) {
     const model = mapRawToModel(externalEvent, "external");
@@ -374,4 +375,4 @@ export async function loadExternalEventPageData(eventId: string): Promise<Public
   }
 
   return null;
-}
+});

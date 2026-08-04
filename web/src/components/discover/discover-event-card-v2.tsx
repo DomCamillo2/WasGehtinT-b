@@ -97,9 +97,7 @@ export function DiscoverEventCardV2({
     <article className="group relative w-full overflow-hidden rounded-none card-lift" role="article">
       <div className="relative w-full min-h-[13.5rem] sm:min-h-[15rem] md:min-h-[14.5rem]">
         <div className="absolute inset-0 bg-[#221e1a]" aria-hidden="true" />
-        <div
-          className={`absolute inset-0 z-[1] transition-transform duration-700 ease-out ${showMedia ? "scale-100 sm:scale-105 sm:group-hover:scale-110" : ""}`}
-        >
+        <div className="absolute inset-0 z-[1]">
           {showMedia && mediaSrc ? (
             <Image
               src={mediaSrc}
@@ -107,9 +105,10 @@ export function DiscoverEventCardV2({
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, min(40rem, 50vw)"
               priority={imagePriority}
+              quality={68}
               className={
                 hasHeroImage
-                  ? "object-cover object-center saturate-125 contrast-110 brightness-95"
+                  ? "object-cover object-center"
                   : "object-contain object-center p-6 sm:p-8 md:p-10"
               }
               onError={() => setMediaFailed(true)}

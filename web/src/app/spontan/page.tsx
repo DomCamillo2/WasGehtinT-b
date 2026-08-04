@@ -4,6 +4,8 @@ import { SpontanFeed } from "@/components/spontan/spontan-feed";
 import { getSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { mapSpontanFeedRowToItem, type SpontanFeedItem, type SpontanFeedRow } from "@/services/spontan/spontan-feed-view-model";
 
+export const revalidate = 60;
+
 async function loadSpontanFeedItems(): Promise<SpontanFeedItem[]> {
   try {
     const supabase = getSupabasePublicServerClient();

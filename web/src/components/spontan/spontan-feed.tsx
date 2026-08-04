@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createHangoutAction, type HangoutActionState } from "@/app/actions/hangouts";
@@ -134,14 +133,11 @@ export function SpontanFeed({ items }: Props) {
       </section>
 
       <section className="space-y-4" aria-label="Spontane Beiträge">
-        {items.map((item, index) => {
+        {items.map((item) => {
           const initials = (item.userDisplayName || "?").slice(0, 1).toUpperCase();
           return (
-            <motion.article
+            <article
               key={item.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.24) }}
               className="border-b border-[color:var(--border-soft)] pb-4"
             >
               <div className="mb-2 flex items-center justify-between gap-3">
@@ -187,7 +183,7 @@ export function SpontanFeed({ items }: Props) {
               >
                 Beitrag melden
               </a>
-            </motion.article>
+            </article>
           );
         })}
 

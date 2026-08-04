@@ -652,10 +652,47 @@ html.discover-ui-new {
   outline-offset: 3px;
 }
 
+.welcome-hero-kenburns {
+  animation: welcome-kenburns 1.5s cubic-bezier(0, 0, 0.2, 1) both;
+  transform-origin: center;
+}
+
+@keyframes welcome-kenburns {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.wg-detail-enter {
+  animation: wg-detail-in var(--dur-panel, 250ms) var(--ease-out, cubic-bezier(0, 0, 0.2, 1)) both;
+  animation-delay: var(--wg-enter-delay, 0s);
+}
+
+@keyframes wg-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .welcome-wordmark-reveal {
     animation: none !important;
     clip-path: none !important;
+    opacity: 1 !important;
+  }
+
+  .welcome-hero-kenburns,
+  .wg-detail-enter {
+    animation: none !important;
+    transform: none !important;
     opacity: 1 !important;
   }
 
