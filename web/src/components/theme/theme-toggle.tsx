@@ -20,7 +20,7 @@ function resolveTheme(mode: ThemeMode): ResolvedTheme {
   return mode === "system" ? getSystemTheme() : mode;
 }
 
-function applyTheme(mode: ThemeMode): ResolvedTheme {
+export function applyTheme(mode: ThemeMode): ResolvedTheme {
   const resolved = resolveTheme(mode);
   const root = document.documentElement;
 
@@ -29,6 +29,12 @@ function applyTheme(mode: ThemeMode): ResolvedTheme {
   root.style.colorScheme = resolved;
 
   return resolved;
+}
+
+export function readThemeMode(): ThemeMode {
+  if (typeof window === "undefined") return "system";
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored === "dark" || stored === "light" ? stored : "system";
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps) {

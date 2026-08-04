@@ -40,6 +40,7 @@ import { DiscoverBottomNavV2 } from "./discover-bottom-nav-v2";
 import { DiscoverEventCardV2 } from "./discover-event-card-v2";
 import { DiscoverEventListItemV2 } from "./discover-event-list-item-v2";
 import { DiscoverFeedScrollItem } from "./discover-feed-scroll-item";
+import { AnimatePresence, m, useReducedMotion } from "@/lib/discover-motion";
 
 const DiscoverMapLazy = dynamic(
   () => import("@/components/party/discover-map").then((m) => m.DiscoverMap),
@@ -143,6 +144,7 @@ export function DiscoverFeedV2({
   const searchParams = useSearchParams();
   const discoverUrlSignature = searchParams.toString();
   const { showToast } = useToast();
+  const reduceMotion = useReducedMotion();
   const [filter, setFilter] = useState<DiscoverFilterKey>(initialFilter);
   const [searchQuery, setSearchQuery] = useState(() => parseSearchFromDiscoverUrl(searchParams));
   /** Debounced value pushed to the URL as `q` (see backlog P0 — avoids router.replace on every keystroke). */
@@ -655,7 +657,7 @@ export function DiscoverFeedV2({
                 className="discover-header-logo object-contain"
                 priority
               />
-              <div className="min-w-0" aria-hidden="true">
+              <div className="min-w-0 welcome-wordmark-reveal" aria-hidden="true">
                 <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[color:var(--foreground)] sm:text-2xl">
                   WasGeht<span className="text-[color:var(--accent)]">Tüb</span>
                 </p>
@@ -801,6 +803,12 @@ export function DiscoverFeedV2({
               >
                 {filterCounts[item.id]}
               </span>
+              {active ? (
+                <span
+                  className="discover-nav-underline absolute inset-x-2 -bottom-px h-0.5 bg-[color:var(--accent)]"
+                  aria-hidden="true"
+                />
+              ) : null}
             </button>
             );
           })}
@@ -995,20 +1003,32 @@ export function DiscoverFeedV2({
         <Search className="h-5 w-5" aria-hidden="true" />
       </button>
 
-      {filterSheetOpen ? (
-        <div
-          className="fixed inset-0 z-[60] sm:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="discover-filter-sheet-title"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/70"
-            aria-label="Schließen"
-            onClick={() => setFilterSheetOpen(false)}
-          />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[color:var(--border-soft)] bg-[color:var(--background)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <AnimatePresence>
+        {filterSheetOpen ? (
+          <m.div
+            key="discover-filter-sheet"
+            className="fixed inset-0 z-[60] sm:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="discover-filter-sheet-title"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.18 }}
+          >
+            <button
+              type="button"
+              className="absolute inset-0 bg-[color:var(--foreground)]/35"
+              aria-label="Schließen"
+              onClick={() => setFilterSheetOpen(false)}
+            />
+            <m.div
+              className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_var(--shadow-color)]"
+              initial={reduceMotion ? false : { y: 28 }}
+              animate={{ y: 0 }}
+              exit={reduceMotion ? undefined : { y: 24 }}
+              transition={{ duration: reduceMotion ? 0 : 0.25, ease: [0, 0, 0.2, 1] }}
+            >
             <div className="mx-auto mb-3 h-0.5 w-10 bg-[color:var(--surface-strong)]" aria-hidden="true" />
             <h2 id="discover-filter-sheet-title" className="font-wordmark text-lg text-[color:var(--foreground)]">
               Ansicht wählen
@@ -1030,7 +1050,7 @@ export function DiscoverFeedV2({
                   type="button"
                   className={`min-h-[44px] rounded-md border px-3 text-sm font-semibold wg-pressable ${
                     viewMode === mode
-                      ? "border-[color:var(--accent)] bg-[color:var(--surface-elevated)] text-[color:var(--foreground)]"
+                      ? "border-[color:var(--accent)] bg-[color:var(--surface-card)] text-[color:var(--foreground)]"
                       : "border-[color:var(--border-soft)] bg-[color:var(--surface-card)] text-[color:var(--muted-foreground)]"
                   }`}
                   onClick={() => {
@@ -1062,9 +1082,10 @@ export function DiscoverFeedV2({
             >
               Schließen
             </button>
-          </div>
-        </div>
-      ) : null}
+            </m.div>
+          </m.div>
+        ) : null}
+      </AnimatePresence>
 
       <div className="mx-auto max-w-md px-4 pb-3 pt-6">
         <LegalLinks className="text-[color:var(--muted-foreground)] [&_a]:text-[color:var(--muted-foreground)] [&_a]:decoration-[color:var(--muted-foreground)]/50 [&_a:hover]:text-[color:var(--foreground)]" />

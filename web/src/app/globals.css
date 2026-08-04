@@ -12,7 +12,7 @@
   --muted-foreground: #5c6863;
   --border-soft: rgba(18, 24, 22, 0.1);
   --border-strong: rgba(18, 24, 22, 0.18);
-  --nav-bg: rgba(238, 242, 240, 0.94);
+  --nav-bg: #eef2f0;
   --nav-border: rgba(18, 24, 22, 0.1);
   --accent: #c4783a;
   --accent-strong: #9a5624;
@@ -111,7 +111,7 @@
   --muted-foreground: #5c6863;
   --border-soft: rgba(18, 24, 22, 0.1);
   --border-strong: rgba(18, 24, 22, 0.18);
-  --nav-bg: rgba(238, 242, 240, 0.94);
+  --nav-bg: #eef2f0;
   --nav-border: rgba(18, 24, 22, 0.1);
   --accent: #c4783a;
   --accent-strong: #9a5624;
@@ -192,8 +192,17 @@ body::before {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Discover UI — Neckar Night defaults; honors html.light from theme toggle */
+/* Discover UI — color tokens follow html.light / html.dark (never bare).
+   Bare html.discover-ui-new must NOT force night — React can wipe theme classes. */
 html.discover-ui-new {
+  --accent: #c4783a;
+  --accent-dark-text: #1c1410;
+  --shadow-accent: none;
+  --shadow-soft: none;
+}
+
+/* Night — only when .dark is present */
+html.discover-ui-new.dark {
   --bg-page: #0e1110;
   --bg-surface: #151918;
   --bg-surface-2: #1a1f1e;
@@ -253,7 +262,7 @@ html.discover-ui-new {
   color-scheme: dark;
 }
 
-/* Light mode on Discover shell — chrome + surfaces follow these tokens */
+/* Mist / light Discover chrome */
 html.discover-ui-new.light {
   --bg-page: #eef2f0;
   --bg-surface: #f7faf8;
@@ -307,8 +316,9 @@ html.discover-ui-new.light {
   --surface-soft: #e2e9e5;
   --surface-strong: #cfd8d3;
   --border-strong: rgba(18, 24, 22, 0.18);
-  --nav-bg: rgba(238, 242, 240, 0.96);
+  --nav-bg: #eef2f0;
   --nav-border: rgba(18, 24, 22, 0.1);
+  --shadow-color: rgba(18, 24, 22, 0.08);
   color-scheme: light;
 }
 
@@ -355,11 +365,22 @@ html.discover-ui-new body::before {
 
 .discover-ui-v2 .discover-header-glass {
   backdrop-filter: none !important;
-  background: var(--background) !important;
+  background: var(--nav-bg) !important;
   border-bottom: 1px solid var(--border-soft);
   contain: layout style;
   padding-bottom: 0.75rem;
-  transition: padding-bottom 160ms ease-out;
+  transition: padding-bottom 160ms ease-out, background-color 160ms ease-out,
+    border-color 160ms ease-out;
+}
+
+html.light .discover-ui-v2 .discover-header-glass {
+  background: color-mix(in srgb, var(--background) 92%, white) !important;
+  box-shadow: 0 1px 0 var(--border-soft);
+}
+
+html.dark .discover-ui-v2 .discover-header-glass {
+  background: var(--background) !important;
+  box-shadow: none;
 }
 .discover-ui-v2 .discover-header-glass[data-compact] {
   padding-bottom: 0.5rem;
@@ -413,6 +434,16 @@ html.discover-ui-new body::before {
 .discover-ui-v2 nav[aria-label="Hauptnavigation"] {
   transform: translateZ(0);
   contain: layout style;
+}
+
+html.light .discover-ui-v2 nav[aria-label="Hauptnavigation"] [role="tablist"] {
+  background: color-mix(in srgb, var(--background) 94%, white);
+  box-shadow: 0 -1px 0 var(--border-soft);
+}
+
+html.dark .discover-ui-v2 nav[aria-label="Hauptnavigation"] [role="tablist"] {
+  background: var(--nav-bg);
+  box-shadow: none;
 }
 
 .discover-ui-v2 .discover-nav-underline {

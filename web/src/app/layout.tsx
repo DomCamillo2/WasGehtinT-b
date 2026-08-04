@@ -7,6 +7,7 @@ import { SiteSchema } from "@/components/seo/site-schema";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site-config";
 import { ThemeInitScript } from "@/components/theme/theme-init-script";
+import { HtmlThemeSync } from "@/components/theme/html-theme-sync";
 import { validateSupabaseAdminConfig } from "@/lib/supabase/validate";
 import "./globals.css";
 
@@ -86,6 +87,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
+        <HtmlThemeSync />
         <ToastProvider>
           <SiteSchema />
           <PwaRegister />
