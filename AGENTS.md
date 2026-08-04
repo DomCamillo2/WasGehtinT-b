@@ -25,6 +25,7 @@ Deprioritize: chat, payments, requests — unless the change touches shared auth
 Brand / UI direction: cool ink + muted Neckar green + copper accent (`#c4783a` in CSS; avoid inventing a second accent). Fonts: Figtree + Bricolage. Avoid purple SaaS defaults, glass blur, glow CTAs.
 
 **Design / motion toolkit (MCPs + repos):** `web/docs/DESIGN_MOTION_TOOLKIT.md`  
+**Motion optimization plan:** `web/docs/MOTION_OPTIMIZATION.md`  
 **UI/UX audit (2026-08-02):** `web/docs/UI_UX_AUDIT.md`
 
 ## Start here by task

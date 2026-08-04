@@ -10,6 +10,7 @@ import {
   Ticket,
   Users,
 } from "lucide-react";
+import { EventDetailMotion } from "@/components/events/event-detail-motion";
 import type { PublicEventPageData } from "@/services/events/external-event-page-service";
 
 type Props = {
@@ -36,14 +37,17 @@ export function EventDetailView({ event }: Props) {
 
   return (
     <article className="space-y-8">
-      <Link
-        href="/discover"
-        className="inline-flex min-h-[44px] items-center text-sm font-medium text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--foreground)]"
-      >
-        ← Zurück zu Entdecken
-      </Link>
+      <EventDetailMotion>
+        <Link
+          href="/discover"
+          className="inline-flex min-h-[44px] items-center text-sm font-medium text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--foreground)]"
+        >
+          ← Zurück zu Entdecken
+        </Link>
+      </EventDetailMotion>
 
       {/* Hero */}
+      <EventDetailMotion delay={0.04}>
       <header className="overflow-hidden rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface)]">
         <div className="relative aspect-[16/10] w-full bg-[color:var(--surface-elevated)] sm:aspect-[21/9]">
           {event.heroImageUrl ? (
@@ -88,9 +92,10 @@ export function EventDetailView({ event }: Props) {
           </div>
         ) : null}
       </header>
+      </EventDetailMotion>
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-2">
+      <EventDetailMotion delay={0.08} className="flex flex-wrap gap-2">
         {event.externalLink ? (
           <a
             href={event.externalLink}
@@ -113,9 +118,10 @@ export function EventDetailView({ event }: Props) {
             Route / Karte
           </a>
         ) : null}
-      </div>
+      </EventDetailMotion>
 
       {/* Quick facts */}
+      <EventDetailMotion delay={0.12}>
       <section aria-labelledby="event-facts-heading" className="space-y-3">
         <h2 id="event-facts-heading" className="font-wordmark text-xl text-[color:var(--foreground)]">
           Auf einen Blick
@@ -175,8 +181,10 @@ export function EventDetailView({ event }: Props) {
           </div>
         </dl>
       </section>
+      </EventDetailMotion>
 
       {/* Description / known facts */}
+      <EventDetailMotion delay={0.16}>
       <section aria-labelledby="event-about-heading" className="space-y-3">
         <h2 id="event-about-heading" className="font-wordmark text-xl text-[color:var(--foreground)]">
           {event.weakDescription ? "Was wir wissen" : "Beschreibung"}
@@ -204,8 +212,10 @@ export function EventDetailView({ event }: Props) {
           </p>
         ) : null}
       </section>
+      </EventDetailMotion>
 
       {/* Extra meta */}
+      <EventDetailMotion delay={0.2}>
       <section className="space-y-3" aria-labelledby="event-meta-heading">
         <h2 id="event-meta-heading" className="font-wordmark text-xl text-[color:var(--foreground)]">
           Mehr Infos
@@ -294,8 +304,10 @@ export function EventDetailView({ event }: Props) {
           </div>
         </div>
       </section>
+      </EventDetailMotion>
 
       {event.relatedEvents.length > 0 ? (
+        <EventDetailMotion delay={0.24}>
         <section aria-labelledby="event-related-heading" className="space-y-3">
           <h2
             id="event-related-heading"
@@ -326,6 +338,7 @@ export function EventDetailView({ event }: Props) {
             ))}
           </ul>
         </section>
+        </EventDetailMotion>
       ) : null}
     </article>
   );
