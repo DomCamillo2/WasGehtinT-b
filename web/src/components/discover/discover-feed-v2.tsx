@@ -150,13 +150,9 @@ export function DiscoverFeedV2({
     parseSearchFromDiscoverUrl(searchParams).trim(),
   );
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const weeksSentinelRef = useRef<HTMLDivElement | null>(null);
-  const clientLoadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   /** Prevents double weeks navigation while RSC soft-nav is in flight. */
   const weeksLoadTargetRef = useRef<number | null>(null);
-  const partiesLenRef = useRef(parties.length);
-  const lastClientRevealAtRef = useRef(0);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<DiscoverViewMode>(() => {
     const raw = searchParams.get("view");
@@ -313,20 +309,6 @@ export function DiscoverFeedV2({
       return changed ? next : prev;
     });
   }, [parties]);
-
-  /** After weeks expand, keep the user at the fold — reveal the next batch instead of trapping behind “Mehr”. */
-  useEffect(() => {
-    const prevLen = partiesLenRef.current;
-    const nextLen = parties.length;
-    partiesLenRef.current = nextLen;
-    if (nextLen <= prevLen) return;
-    startTransition(() => {
-      setVisibleCount((c) => {
-        if (c < prevLen) return c;
-        return Math.min(nextLen, c + LOAD_MORE_STEP);
-      });
-    });
-  }, [parties.length]);
 
   // Hero images for the visible window are loaded in a later effect (after `visibleEvents`).
 
@@ -507,57 +489,6 @@ export function DiscoverFeedV2({
   );
 
   const hasMoreVisible = searchFiltered.length > visibleCount;
-
-  /** Progressive client reveal — one batch per approach; cooldown avoids dumping the whole list. */
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (viewMode === "map" || viewMode === "calendar") return;
-    if (!hasMoreVisible) return;
-    const el = clientLoadMoreSentinelRef.current;
-    if (!el) return;
-
-    let cancelled = false;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (cancelled || !entries.some((e) => e.isIntersecting)) return;
-        const now = Date.now();
-        if (now - lastClientRevealAtRef.current < 520) return;
-        lastClientRevealAtRef.current = now;
-        revealMoreVisible();
-      },
-      { root: null, rootMargin: "180px 0px", threshold: 0 },
-    );
-    obs.observe(el);
-    return () => {
-      cancelled = true;
-      obs.disconnect();
-    };
-  }, [hasMoreVisible, revealMoreVisible, viewMode, visibleCount]);
-
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (viewMode === "map" || viewMode === "calendar") return;
-    const el = weeksSentinelRef.current;
-    if (!el || !canLoadMore || hasMoreVisible || searchFiltered.length === 0 || weeksNavPending) return;
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((e) => e.isIntersecting)) return;
-        requestMoreWeeks();
-      },
-      { root: null, rootMargin: "120px 0px", threshold: 0 },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [
-    canLoadMore,
-    hasMoreVisible,
-    requestMoreWeeks,
-    searchFiltered.length,
-    viewMode,
-    weeksNavPending,
-  ]);
 
   const filterCounts = useMemo(() => {
     const count = (f: DiscoverFilterKey) =>
@@ -1021,10 +952,7 @@ export function DiscoverFeedV2({
         )}
 
         {viewMode !== "map" && viewMode !== "calendar" && hasMoreVisible ? (
-          <div
-            ref={clientLoadMoreSentinelRef}
-            className="flex justify-center scroll-mt-8 pt-4 pb-2 max-sm:scroll-mb-40 max-sm:pb-6"
-          >
+          <div className="flex justify-center scroll-mt-8 pt-4 pb-2 max-sm:scroll-mb-40 max-sm:pb-6">
             <button
               type="button"
               onClick={revealMoreVisible}
@@ -1036,8 +964,6 @@ export function DiscoverFeedV2({
         ) : null}
 
         {viewMode !== "map" && viewMode !== "calendar" && canLoadMore && !hasMoreVisible && searchFiltered.length > 0 ? (
-          <>
-            <div ref={weeksSentinelRef} className="h-2 w-full shrink-0" aria-hidden="true" />
           <div className="flex justify-center scroll-mt-8 pt-6 pb-2 max-sm:scroll-mb-40 max-sm:pb-8">
             <button
               type="button"
@@ -1051,7 +977,6 @@ export function DiscoverFeedV2({
               {weeksNavPending ? "Lade weitere Wochen …" : "Mehr Wochen laden"}
             </button>
           </div>
-          </>
         ) : null}
       </main>
       </div>
