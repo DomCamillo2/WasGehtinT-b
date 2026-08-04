@@ -105,28 +105,28 @@ export function DiscoverCalendarPanelV2({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-3 sm:p-4">
+      <div className="rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] p-3 sm:p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => goToMonth(-1)}
-            className="grid h-10 w-10 place-items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
+            className="grid h-10 w-10 place-items-center rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
             aria-label="Vorheriger Monat"
           >
             <span aria-hidden="true">‹</span>
           </button>
-          <p className="text-sm font-semibold capitalize text-[#f0ebe4]">{grid.monthLabel}</p>
+          <p className="text-sm font-semibold capitalize text-[color:var(--foreground)]">{grid.monthLabel}</p>
           <button
             type="button"
             onClick={() => goToMonth(1)}
-            className="grid h-10 w-10 place-items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
+            className="grid h-10 w-10 place-items-center rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
             aria-label="Nächster Monat"
           >
             <span aria-hidden="true">›</span>
           </button>
         </div>
 
-        <div className="mb-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-wide text-[#9a9086]">
+        <div className="mb-2 grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-wide text-[color:var(--muted-foreground)]">
           {"Mo Di Mi Do Fr Sa So".split(" ").map((weekday) => (
             <span key={weekday}>{weekday}</span>
           ))}
@@ -156,12 +156,12 @@ export function DiscoverCalendarPanelV2({
                 }}
                 className={`relative flex h-10 flex-col items-center justify-center rounded-md text-xs font-semibold transition-colors ${
                   active
-                    ? "bg-[#c4783a] text-[#1c1410]"
+                    ? "bg-[color:var(--accent)] text-[color:var(--primary-foreground)]"
                     : isToday
-                      ? "border border-[#c4783a]/70 bg-[#221e1a] text-[#f0ebe4]"
+                      ? "border border-[color:var(--accent)]/70 bg-[color:var(--surface-elevated)] text-[color:var(--foreground)]"
                       : isPast
-                        ? "border border-[rgba(240,235,228,0.08)] bg-[#1c1815] text-[#6f675f] hover:border-[rgba(240,235,228,0.18)]"
-                        : "border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
+                        ? "border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] text-[color:var(--muted-foreground)] hover:border-[color:var(--border-soft)]"
+                        : "border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
                 }`}
                 aria-label={`${BERLIN_DAY_CHIP_ARIA.format(new Date(`${cell.isoDate}T12:00:00Z`))}${
                   count > 0 ? `, ${count} Events` : ""
@@ -170,7 +170,7 @@ export function DiscoverCalendarPanelV2({
                 <span className="leading-none">{cell.day}</span>
                 {count > 0 ? (
                   <span
-                    className={`mt-0.5 h-1 w-1 rounded-full ${active ? "bg-[#1c1410]" : "bg-[#c4783a]"}`}
+                    className={`mt-0.5 h-1 w-1 rounded-full ${active ? "bg-[color:var(--primary-foreground)]" : "bg-[color:var(--accent)]"}`}
                     aria-hidden="true"
                   />
                 ) : (
@@ -187,7 +187,7 @@ export function DiscoverCalendarPanelV2({
             onSelectedDateChange(todayKey);
             onMonthAnchorChange(startOfIsoMonth(todayKey));
           }}
-          className="mt-3 h-10 w-full rounded-md border border-[rgba(240,235,228,0.12)] bg-[#221e1a] text-xs font-semibold text-[#f0ebe4] hover:border-[rgba(196,120,58,0.45)]"
+          className="mt-3 h-10 w-full rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)] text-xs font-semibold text-[color:var(--foreground)] hover:border-[color:var(--accent)]/45"
         >
           Heute
         </button>
@@ -195,11 +195,11 @@ export function DiscoverCalendarPanelV2({
 
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-2 px-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#9a9086]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--muted-foreground)]">
             Events am {heading}
           </p>
           {dayEvents.length > 0 ? (
-            <p className="text-[11px] tabular-nums text-[#6f675f]">{dayEvents.length}</p>
+            <p className="text-[11px] tabular-nums text-[color:var(--muted-foreground)]">{dayEvents.length}</p>
           ) : null}
         </div>
 
@@ -220,9 +220,9 @@ export function DiscoverCalendarPanelV2({
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-4 text-sm text-[#9a9086]">
+          <div className="rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] p-4 text-sm text-[color:var(--muted-foreground)]">
             <p>Keine Events für diesen Tag in der aktuellen Auswahl.</p>
-            {coverageHint ? <p className="mt-2 text-xs text-[#6f675f]">{coverageHint}</p> : null}
+            {coverageHint ? <p className="mt-2 text-xs text-[color:var(--muted-foreground)]">{coverageHint}</p> : null}
           </div>
         )}
       </div>

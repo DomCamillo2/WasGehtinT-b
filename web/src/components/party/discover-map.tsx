@@ -209,7 +209,7 @@ export function DiscoverMap({
   const [mapTheme, setMapTheme] = useState<MapTheme>(() => {
     if (typeof document === "undefined") return "light";
     const root = document.documentElement;
-    return root.classList.contains("dark") || root.classList.contains("discover-ui-new") ? "dark" : "light";
+    return root.classList.contains("dark") ? "dark" : "light";
   });
 
   const pinGroups = useMemo(() => groupPartiesByPin(parties), [parties]);
@@ -225,7 +225,7 @@ export function DiscoverMap({
     if (typeof document === "undefined") return;
     const root = document.documentElement;
     const syncTheme = () => {
-      setMapTheme(root.classList.contains("dark") || root.classList.contains("discover-ui-new") ? "dark" : "light");
+      setMapTheme(root.classList.contains("dark") ? "dark" : "light");
     };
     syncTheme();
     const observer = new MutationObserver(syncTheme);
@@ -369,10 +369,10 @@ export function DiscoverMap({
   if (!canLoadMap) {
     if (tone === "discover") {
       return (
-        <div className="grid min-h-[18rem] w-full place-items-center rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-6 text-center">
+        <div className="grid min-h-[18rem] w-full place-items-center rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] p-6 text-center">
           <div>
-            <p className="text-sm font-semibold text-[#f0ebe4]">Karte braucht Einwilligung</p>
-            <p className="mt-2 text-xs leading-relaxed text-[#9a9086]">
+            <p className="text-sm font-semibold text-[color:var(--foreground)]">Karte braucht Einwilligung</p>
+            <p className="mt-2 text-xs leading-relaxed text-[color:var(--muted-foreground)]">
               Für Kartenkacheln (OpenStreetMap / CARTO) externe Dienste einmalig freigeben.
             </p>
             <button
@@ -381,7 +381,7 @@ export function DiscoverMap({
                 setCookieConsent("accepted");
                 setCanLoadMap(true);
               }}
-              className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-[#c4783a] px-4 text-sm font-semibold text-[#1c1410]"
+              className="mt-4 inline-flex min-h-[44px] items-center rounded-md bg-[color:var(--accent)] px-4 text-sm font-semibold text-[color:var(--primary-foreground)]"
             >
               Externe Dienste aktivieren
             </button>
@@ -428,7 +428,7 @@ export function DiscoverMapEventList({
   if (!parties.length) return null;
   return (
     <div className="space-y-2">
-      <p className="px-1 text-xs font-semibold uppercase tracking-wide text-[#9a9086]">
+      <p className="px-1 text-xs font-semibold uppercase tracking-wide text-[color:var(--muted-foreground)]">
         Auf der Karte · {parties.length}
       </p>
       <ul className="space-y-2">
@@ -436,11 +436,11 @@ export function DiscoverMapEventList({
           <li key={event.id}>
             <Link
               href={event.detailHref}
-              className="flex items-start justify-between gap-3 rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-3 py-2.5 transition-colors hover:border-[rgba(240,235,228,0.22)]"
+              className="flex items-start justify-between gap-3 rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] px-3 py-2.5 transition-colors hover:border-[color:var(--border-strong)]"
             >
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-[#f0ebe4]">{event.title}</span>
-                <span className="mt-0.5 block truncate text-xs text-[#9a9086]">
+                <span className="block truncate text-sm font-semibold text-[color:var(--foreground)]">{event.title}</span>
+                <span className="mt-0.5 block truncate text-xs text-[color:var(--muted-foreground)]">
                   {venueLabel(event)} · {formatEventDate(event.startsAt)} {formatEventTime(event.startsAt)}
                 </span>
               </span>
@@ -449,7 +449,7 @@ export function DiscoverMapEventList({
         ))}
       </ul>
       {parties.length > 40 ? (
-        <p className="px-1 text-xs text-[#6f675f]">+{parties.length - 40} weitere in der Listen-/Kartenfilterung</p>
+        <p className="px-1 text-xs text-[color:var(--muted-foreground)]">+{parties.length - 40} weitere in der Listen-/Kartenfilterung</p>
       ) : null}
     </div>
   );

@@ -53,7 +53,7 @@ const DiscoverMapEventListLazy = dynamic(
 
 const DiscoverCalendarPanelLazy = dynamic(
   () => import("./discover-calendar-panel-v2").then((m) => m.DiscoverCalendarPanelV2),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-[#1c1815]" aria-hidden="true" /> },
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-[color:var(--surface-card)]" aria-hidden="true" /> },
 );
 
 const LOCAL_UPVOTED_EVENTS_KEY = "wasgeht-upvoted-events-v1";
@@ -514,8 +514,8 @@ export function DiscoverFeedV2({
   ];
 
   const viewModeToggleActive =
-    "bg-[#221e1a] text-[#c4783a] border border-[rgba(240,235,228,0.14)]";
-  const viewModeToggleInactive = "border border-transparent text-[#9a9086] hover:text-[#f0ebe4]";
+    "bg-[color:var(--surface-elevated)] text-[color:var(--accent)] border border-[color:var(--border-soft)]";
+  const viewModeToggleInactive = "border border-transparent text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]";
 
 
   const navigateBottomNavDiscover = useCallback(() => {
@@ -644,7 +644,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={navigateBottomNavDiscover}
-              className="flex max-w-full items-center gap-2.5 rounded-md text-left outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#c4783a]/40"
+              className="flex max-w-full items-center gap-2.5 rounded-md text-left outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/40"
               aria-label="Zu Discover"
             >
               <Image
@@ -656,10 +656,10 @@ export function DiscoverFeedV2({
                 priority
               />
               <div className="min-w-0" aria-hidden="true">
-                <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[#f0ebe4] sm:text-2xl">
-                  WasGeht<span className="text-[#c4783a]">Tüb</span>
+                <p className="font-wordmark truncate text-xl leading-none tracking-tight text-[color:var(--foreground)] sm:text-2xl">
+                  WasGeht<span className="text-[color:var(--accent)]">Tüb</span>
                 </p>
-                <p className="discover-header-tagline hidden truncate text-[12px] text-[#9a9086] sm:block">
+                <p className="discover-header-tagline hidden truncate text-[12px] text-[color:var(--muted-foreground)] sm:block">
                   Was geht heut’ in Tübingen?
                 </p>
               </div>
@@ -674,21 +674,21 @@ export function DiscoverFeedV2({
                   event.preventDefault();
                   dismissInstallHint();
                 }}
-                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-3 text-xs font-semibold text-[#f0ebe4] transition-colors hover:bg-[#221e1a]"
+                className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] px-3 text-xs font-semibold text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--surface-elevated)]"
                 aria-label="App installieren"
                 title="App installieren (Rechtsklick/Langdruck zum Ausblenden)"
               >
-                <Download className="h-4 w-4 text-[#c4783a]" aria-hidden="true" />
+                <Download className="h-4 w-4 text-[color:var(--accent)]" aria-hidden="true" />
                 <span className="hidden sm:inline">App</span>
               </button>
             ) : null}
-            <ThemeToggle className="!min-h-[44px] !min-w-[44px] !rounded-md !border-[rgba(240,235,228,0.12)] !bg-[#1c1815] !text-[#f0ebe4]" />
+            <ThemeToggle className="!min-h-[44px] !min-w-[44px] !rounded-md" />
           </div>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="flex w-full min-w-0 flex-1 items-center gap-3 rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-3 transition-colors duration-150 focus-within:border-[rgba(196,120,58,0.45)] sm:min-w-[min(100%,12rem)]">
-            <Search className="h-4 w-4 shrink-0 text-[#9a9086]" aria-hidden="true" />
+          <div className="flex w-full min-w-0 flex-1 items-center gap-3 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] px-4 py-3 transition-colors duration-150 focus-within:border-[color:var(--accent)]/45 sm:min-w-[min(100%,12rem)]">
+            <Search className="h-4 w-4 shrink-0 text-[color:var(--muted-foreground)]" aria-hidden="true" />
             <input
               ref={searchInputRef}
               type="search"
@@ -697,20 +697,20 @@ export function DiscoverFeedV2({
               placeholder="Events oder Locations suchen…"
               aria-label="Events suchen"
               id="discover-v2-search"
-              className="min-w-0 flex-1 bg-transparent text-sm text-[#f0ebe4] placeholder:text-[#6f675f] focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent text-sm text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none"
             />
             {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="shrink-0 text-xs text-[#9a9086] hover:text-[#f0ebe4]"
+                className="shrink-0 text-xs text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]"
               >
                 Leeren
               </button>
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] p-0.5" role="group" aria-label="Ansicht">
+          <div className="flex items-center rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] p-0.5" role="group" aria-label="Ansicht">
             <button
               type="button"
               onClick={() => setViewMode("cards")}
@@ -762,7 +762,7 @@ export function DiscoverFeedV2({
           <button
             type="button"
             onClick={() => setFilterSheetOpen(true)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] text-[#9a9086] transition-colors duration-150 hover:border-[rgba(240,235,228,0.22)] hover:text-[#c4783a] sm:hidden"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] text-[color:var(--muted-foreground)] transition-colors duration-150 hover:border-[color:var(--border-strong)] hover:text-[color:var(--accent)] sm:hidden"
             aria-label="Ansicht und Filter"
           >
             <SlidersHorizontal className="w-5 h-5" />
@@ -789,14 +789,14 @@ export function DiscoverFeedV2({
               aria-selected={active}
               className={`wg-interactive wg-pressable relative snap-start shrink-0 flex min-h-[40px] items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium sm:min-h-[32px] sm:text-sm ${
                 active
-                  ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
-                  : "border-[rgba(240,235,228,0.12)] bg-transparent text-[#9a9086] hover:border-[rgba(240,235,228,0.22)] hover:text-[#f0ebe4]"
+                  ? "border-[color:var(--accent)] bg-[color:var(--surface-elevated)] text-[color:var(--foreground)]"
+                  : "border-[color:var(--border-soft)] bg-transparent text-[color:var(--muted-foreground)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--foreground)]"
               }`}
             >
               <span>{item.label}</span>
               <span
                 className={`text-[10px] leading-none tabular-nums sm:text-[11px] ${
-                  active ? "text-[#c4783a]" : "text-[#6f675f]"
+                  active ? "text-[color:var(--accent)]" : "text-[color:var(--muted-foreground)]"
                 }`}
               >
                 {filterCounts[item.id]}
@@ -845,7 +845,7 @@ export function DiscoverFeedV2({
                 activeFilter={filter}
                 accentMarkers={filter === "clubs"}
                 tone="discover"
-                containerClassName="h-[min(28rem,62vh)] w-full overflow-hidden rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815]"
+                containerClassName="h-[min(28rem,62vh)] w-full overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-card)]"
               />
               <DiscoverMapEventListLazy
                 parties={partiesForMap}
@@ -854,18 +854,18 @@ export function DiscoverFeedV2({
                 venueLabel={venueLabel}
               />
               {searchFiltered.length > partiesForMap.length ? (
-                <p className="px-1 text-xs text-[#6f675f]">
+                <p className="px-1 text-xs text-[color:var(--muted-foreground)]">
                   {searchFiltered.length - partiesForMap.length} Events ohne eindeutige Position — Filter oder Liste nutzen.
                 </p>
               ) : null}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-4 py-16 text-center">
-              <div className="mb-3 flex h-14 w-14 items-center justify-center border border-[rgba(240,235,228,0.12)] bg-[#221e1a]">
-                <MapPin className="h-7 w-7 text-[#9a9086]" />
+            <div className="flex flex-col items-center justify-center rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] px-4 py-16 text-center">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center border border-[color:var(--border-soft)] bg-[color:var(--surface-elevated)]">
+                <MapPin className="h-7 w-7 text-[color:var(--muted-foreground)]" />
               </div>
-              <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[#f0ebe4]">Keine Karteneinträge</h2>
-              <p className="max-w-[280px] text-sm text-[#9a9086]">
+              <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[color:var(--foreground)]">Keine Karteneinträge</h2>
+              <p className="max-w-[280px] text-sm text-[color:var(--muted-foreground)]">
                 Für diese Auswahl gibt’s keine Position — Filter anpassen oder die Liste nutzen.
               </p>
             </div>
@@ -913,17 +913,17 @@ export function DiscoverFeedV2({
             role="status"
             aria-live="polite"
           >
-            <div className="mb-4 flex h-14 w-14 items-center justify-center border border-[rgba(240,235,228,0.12)] bg-[#1c1815]">
-              <Heart className="h-7 w-7 text-[#9a9086]" aria-hidden="true" />
+            <div className="mb-4 flex h-14 w-14 items-center justify-center border border-[color:var(--border-soft)] bg-[color:var(--surface-card)]">
+              <Heart className="h-7 w-7 text-[color:var(--muted-foreground)]" aria-hidden="true" />
             </div>
-            <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[#f0ebe4]">Noch nichts gemerkt</h2>
-            <p className="max-w-[280px] text-sm text-[#9a9086]">
+            <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[color:var(--foreground)]">Noch nichts gemerkt</h2>
+            <p className="max-w-[280px] text-sm text-[color:var(--muted-foreground)]">
               Tippe bei einem Event auf „Ich bin dabei!“ — so findest du deinen Abend in Tübingen wieder.
             </p>
             <button
               type="button"
               onClick={() => navigateBottomNavDiscover()}
-              className="mt-6 min-h-[44px] rounded-md bg-[#c4783a] px-5 py-2.5 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90"
+              className="mt-6 min-h-[44px] rounded-md bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition-opacity hover:opacity-90"
             >
               Events entdecken
             </button>
@@ -934,17 +934,17 @@ export function DiscoverFeedV2({
             role="status"
             aria-live="polite"
           >
-            <div className="mb-4 flex h-14 w-14 items-center justify-center border border-[rgba(240,235,228,0.12)] bg-[#1c1815]">
-              <Search className="h-7 w-7 text-[#9a9086]" />
+            <div className="mb-4 flex h-14 w-14 items-center justify-center border border-[color:var(--border-soft)] bg-[color:var(--surface-card)]">
+              <Search className="h-7 w-7 text-[color:var(--muted-foreground)]" />
             </div>
-            <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[#f0ebe4]">Keine Events gefunden</h2>
-            <p className="max-w-[280px] text-sm text-[#9a9086]">
+            <h2 className="mb-2 font-wordmark text-xl tracking-tight text-[color:var(--foreground)]">Keine Events gefunden</h2>
+            <p className="max-w-[280px] text-sm text-[color:var(--muted-foreground)]">
               Filter lockern, Kalender oder Karte nutzen — oder zurück zu allen Abenden in Tübingen.
             </p>
             <button
               type="button"
               onClick={() => resetDiscoverV2Filters()}
-              className="mt-6 min-h-[44px] rounded-md bg-[#c4783a] px-5 py-2.5 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90"
+              className="mt-6 min-h-[44px] rounded-md bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition-opacity hover:opacity-90"
             >
               Filter zurücksetzen
             </button>
@@ -956,7 +956,7 @@ export function DiscoverFeedV2({
             <button
               type="button"
               onClick={revealMoreVisible}
-              className="min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] px-5 py-2.5 text-sm font-medium text-[#f0ebe4] hover:border-[rgba(240,235,228,0.22)]"
+              className="min-h-[44px] rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] px-5 py-2.5 text-sm font-medium text-[color:var(--foreground)] hover:border-[color:var(--border-strong)]"
             >
               Mehr anzeigen
             </button>
@@ -969,7 +969,7 @@ export function DiscoverFeedV2({
               type="button"
               disabled={weeksNavPending}
               onClick={requestMoreWeeks}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[#c4783a] px-5 py-2.5 text-sm font-semibold text-[#1c1410] transition-opacity hover:opacity-90 disabled:opacity-70"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition-opacity hover:opacity-90 disabled:opacity-70"
             >
               {weeksNavPending ? (
                 <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
@@ -983,7 +983,7 @@ export function DiscoverFeedV2({
 
       <button
         type="button"
-        className="fixed bottom-[7.25rem] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-md border border-[rgba(240,235,228,0.14)] bg-[#1c1815] text-[#f0ebe4] transition-colors hover:border-[rgba(196,120,58,0.45)] hover:text-[#c4783a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4783a]/40 sm:hidden"
+        className="fixed bottom-[7.25rem] right-4 z-30 flex h-12 w-12 items-center justify-center rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] text-[color:var(--foreground)] transition-colors hover:border-[color:var(--accent)]/45 hover:text-[color:var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/40 sm:hidden"
         onClick={() => {
           searchInputRef.current?.focus();
           window.requestAnimationFrame(() => {
@@ -1008,12 +1008,12 @@ export function DiscoverFeedV2({
             aria-label="Schließen"
             onClick={() => setFilterSheetOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[rgba(240,235,228,0.12)] bg-[#14110f] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="mx-auto mb-3 h-0.5 w-10 bg-[#3a312b]" aria-hidden="true" />
-            <h2 id="discover-filter-sheet-title" className="font-wordmark text-lg text-[#f0ebe4]">
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-lg border border-[color:var(--border-soft)] bg-[color:var(--background)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto mb-3 h-0.5 w-10 bg-[color:var(--surface-strong)]" aria-hidden="true" />
+            <h2 id="discover-filter-sheet-title" className="font-wordmark text-lg text-[color:var(--foreground)]">
               Ansicht wählen
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#9a9086]">
+            <p className="mt-2 text-sm leading-relaxed text-[color:var(--muted-foreground)]">
               Wechsle zwischen Karten, Liste, Kalender und Karte — oder setze Filter zurück.
             </p>
             <div className="mt-5 grid grid-cols-2 gap-2">
@@ -1030,8 +1030,8 @@ export function DiscoverFeedV2({
                   type="button"
                   className={`min-h-[44px] rounded-md border px-3 text-sm font-semibold wg-pressable ${
                     viewMode === mode
-                      ? "border-[#c4783a] bg-[#221e1a] text-[#f0ebe4]"
-                      : "border-[rgba(240,235,228,0.12)] bg-[#1c1815] text-[#9a9086]"
+                      ? "border-[color:var(--accent)] bg-[color:var(--surface-elevated)] text-[color:var(--foreground)]"
+                      : "border-[color:var(--border-soft)] bg-[color:var(--surface-card)] text-[color:var(--muted-foreground)]"
                   }`}
                   onClick={() => {
                     setViewMode(mode);
@@ -1047,7 +1047,7 @@ export function DiscoverFeedV2({
             </div>
             <button
               type="button"
-              className="mt-3 w-full min-h-[44px] rounded-md border border-[rgba(240,235,228,0.12)] bg-[#1c1815] py-3 text-sm font-medium text-[#f0ebe4] wg-pressable"
+              className="mt-3 w-full min-h-[44px] rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-card)] py-3 text-sm font-medium text-[color:var(--foreground)] wg-pressable"
               onClick={() => {
                 resetDiscoverV2Filters();
                 setFilterSheetOpen(false);
@@ -1057,7 +1057,7 @@ export function DiscoverFeedV2({
             </button>
             <button
               type="button"
-              className="mt-2 w-full min-h-[44px] rounded-md py-3 text-sm font-medium text-[#9a9086] wg-pressable"
+              className="mt-2 w-full min-h-[44px] rounded-md py-3 text-sm font-medium text-[color:var(--muted-foreground)] wg-pressable"
               onClick={() => setFilterSheetOpen(false)}
             >
               Schließen
@@ -1067,7 +1067,7 @@ export function DiscoverFeedV2({
       ) : null}
 
       <div className="mx-auto max-w-md px-4 pb-3 pt-6">
-        <LegalLinks className="text-[#6f675f] [&_a]:text-[#9a9086] [&_a]:decoration-[#6f675f]/50 [&_a:hover]:text-[#f0ebe4]" />
+        <LegalLinks className="text-[color:var(--muted-foreground)] [&_a]:text-[color:var(--muted-foreground)] [&_a]:decoration-[color:var(--muted-foreground)]/50 [&_a:hover]:text-[color:var(--foreground)]" />
       </div>
 
       <DiscoverBottomNavV2

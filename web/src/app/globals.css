@@ -253,7 +253,7 @@ html.discover-ui-new {
   color-scheme: dark;
 }
 
-/* Light mode on Discover shell pages (token surfaces; feed chrome still night-tinted in places) */
+/* Light mode on Discover shell — chrome + surfaces follow these tokens */
 html.discover-ui-new.light {
   --bg-page: #eef2f0;
   --bg-surface: #f7faf8;
@@ -355,8 +355,8 @@ html.discover-ui-new body::before {
 
 .discover-ui-v2 .discover-header-glass {
   backdrop-filter: none !important;
-  background: #0e1110 !important;
-  border-bottom: 1px solid rgba(232, 236, 234, 0.1);
+  background: var(--background) !important;
+  border-bottom: 1px solid var(--border-soft);
   contain: layout style;
   padding-bottom: 0.75rem;
   transition: padding-bottom 160ms ease-out;
