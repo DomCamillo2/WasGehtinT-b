@@ -13,6 +13,7 @@ Research sources applied to WasGehtTüb Discover:
 1. **CSS tokens** (`--dur-*`, `--ease-*`) for hover/press/empty/confirm
 2. **framer-motion LazyMotion + `m`** for shared layout (filter ring, nav underline) and sheet enter/exit
 3. **No** universal scroll fade-up, `hover:scale-105`, glow pulse, or decorative spring defaults
+4. **Optional upgrades** (Welcome / marketing only — see `docs/DESIGN_MOTION_TOOLKIT.md`): GSAP ScrollTrigger, Lottie micro-interactions, Aceternity/Magic UI paste-then-recolor, Spline embed behind reduced-motion gate. Keep Discover on CSS + Motion.
 
 ## Intentional motions (≤3 jobs)
 1. Filter chip active ring slides via `layoutId`

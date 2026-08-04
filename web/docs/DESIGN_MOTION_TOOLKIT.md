@@ -1,10 +1,40 @@
 # Design & motion toolkit for agents
 
-**Researched:** 2026-08-02  
+**Researched:** 2026-08-02 · **Updated:** 2026-08-04  
 **Purpose:** MCP servers + GitHub repos that help ship UI/motion that looks intentional (design-expert), not generic AI slop.  
 **Stack fit:** WasGehtTüb already uses Next.js + Tailwind + `framer-motion` + Neckar Night tokens. Prefer restraint over effect soup.
 
-> Product constraints (do not ignore): cool ink / Neckar green / copper `#d48745`; Figtree + Bricolage; **no** purple SaaS defaults, glass blur chrome, glow pulses, or universal fade-up everywhere. See root `AGENTS.md` and `AUDIT.md`.
+> Product constraints (do not ignore): cool ink / Neckar green / copper `#c4783a`; Figtree + Bricolage; **no** purple SaaS defaults, glass blur chrome, glow pulses, or universal fade-up everywhere. See root `AGENTS.md` and `AUDIT.md`.
+
+---
+
+## High-end animation stacks (vibecoding without hand-rolling)
+
+Use these when you want production-feeling motion **without** inventing keyframes from scratch. Still filter every paste against Neckar Night / anti-slop.
+
+| Tool | What it is | Fit for WasGehtTüb | How agents should use it |
+|---|---|---|---|
+| **[Aceternity UI](https://ui.aceternity.com/)** | Copy-paste React/Tailwind components: canvas reveals, 3D tilt, glowing cards, backgrounds | **Marketing / Welcome only** — glowing mesh & 3D tilt read as AI-generic on Discover | Steal *structure* (reveal timing, section choreography). Recolor to ink/copper. Strip glow/blur defaults. MCP: [devinoldenburg/aceternity-mcp](https://github.com/devinoldenburg/aceternity-mcp) |
+| **[Spline](https://spline.design/)** | Design or grab interactive 3D scenes; embed via URL / `@splinetool/react-spline` | **Optional Welcome hero accent only** — not Discover feed (perf + clutter) | Embed one calm scene max (e.g. soft venue light). Prefer static full-bleed photo unless 3D clearly wins. Honor `prefers-reduced-motion` (hide Spline). |
+| **[GSAP](https://gsap.com/)** ([greensock/GSAP](https://github.com/greensock/GSAP)) | Timeline + ScrollTrigger for scrubbed, pin, multi-step sequences at 60fps | **Welcome / long-form marketing** scroll stories; avoid on Discover list scroll | Prompt agents: “GSAP ScrollTrigger scrub opacity/y only; copper accent; no scale bounce.” Keep `framer-motion` for UI state; add GSAP only when a scroll timeline needs it. |
+| **[LottieFiles](https://lottiefiles.com/)** | Lightweight vector / micro-interactions (JSON → `lottie-react` / `dotlottie`) | Empty states, save confirm, install hint — **not** full-page heroes | Prefer short, muted Lotties (copper/ink). Cap size; always respect reduced motion (static frame or CSS). |
+
+### Decision cheat sheet
+
+```
+Need UI state (tabs, sheets, toast)?     → framer-motion / CSS tokens (already in repo)
+Need scroll-driven storytelling?         → GSAP ScrollTrigger (Welcome only)
+Need fancy marketing block fast?         → Aceternity / Magic UI → recolor + de-glow
+Need one 3D object in hero?              → Spline URL embed (or skip)
+Need tiny delight (empty / confirm)?     → Lottie (or CSS — often enough)
+```
+
+### Prompt seeds for agents (high-end, not slop)
+
+- **Aceternity → Neckar:** “Use an Aceternity-style section reveal, but solid ink surfaces, copper `#c4783a` hairlines, no glow, no purple mesh, Figtree/Bricolage.”
+- **GSAP Welcome scrub:** “Pin the hero brand for 40% scroll; fade supporting line in; keep one full-bleed photo; duration tied to scroll, ease none on scrub.”
+- **Spline:** “Embed Spline only behind a `prefers-reduced-motion: reduce` gate; pause when offscreen; max one scene on `/`.”
+- **Lottie:** “Replace spinner flourish with a 1.2s muted copper check Lottie; fall back to CSS if reduced-motion.”
 
 ---
 
@@ -65,16 +95,18 @@
 | Repo | Stars (approx.) | Role for WasGehtTüb |
 |---|---|---|
 | [motiondivision/motion](https://github.com/motiondivision/motion) (Motion / formerly Framer Motion) | very high | **Already in use** via `framer-motion`. Prefer `LazyMotion` + intentional variants (`discover-motion.tsx`). Package rename: `motion` also works. |
-| [greensock/GSAP](https://github.com/greensock/GSAP) | high | Add **only** for scroll-scrub / pin / multi-step timelines. Don’t dual-stack casually. |
+| [greensock/GSAP](https://github.com/greensock/GSAP) | high | Scroll-scrub / pin / multi-step timelines (Welcome). Don’t dual-stack with Motion on Discover. |
+| [airbnb/lottie-web](https://github.com/airbnb/lottie-web) + [LottieFiles](https://lottiefiles.com/) | high | Micro-interactions / empty states. Prefer `lottie-react` or DotLottie; keep assets tiny. |
+| [splinetool/react-spline](https://github.com/splinetool/react-spline) | med | Embed Spline scenes in React/Next — Welcome only; lazy-load. |
 | [darkroomengineering/lenis](https://github.com/darkroomengineering/lenis) | high | Smooth scroll for marketing surfaces — optional; Discover feed is list-first. |
-| [pmndrs/react-three-fiber](https://github.com/pmndrs/react-three-fiber) | very high | 3D only if a hero truly needs it — usually overkill for nightlife Discover. |
+| [pmndrs/react-three-fiber](https://github.com/pmndrs/react-three-fiber) | very high | Prefer Spline for one-off 3D; R3F only if you own the scene code. |
 
 ### Component / inspiration libraries (copy patterns, don’t dump wholesale)
 
 | Repo | Notes |
 |---|---|
 | [magicuidesign/magicui](https://github.com/magicuidesign/magicui) (~22k★) | Best “design engineer” animated primitives + official MCP. Pair with our copper/ink palette. |
-| [aceternity/ui](https://ui.aceternity.com/) (Aceternity UI) | Strong marketing effects; filter hard against anti-slop rules. |
+| [aceternity/ui](https://ui.aceternity.com/) (Aceternity UI) | Heavy wow components (tilt, glow, canvas). **Strip glow**; Welcome/marketing only. |
 | [boldpiq/boldpiq-web](https://github.com/boldpiq/boldpiq-web) | Elite Motion+GSAP components + **110+ Awwwards-style prompts** (`PROMPTS.md`) — gold for agent prompts. |
 | [syntax-syndicate/motion-primitives-website](https://github.com/syntax-syndicate/motion-primitives-website) | 150+ copy-paste Motion/GSAP/Three examples — study structure, don’t paste glassmorphism. |
 | [omerakben/tuel-animate](https://github.com/omerakben/tuel-animate) | TS monorepo, SSR-aware Motion/GSAP packages — good architecture reference. |
@@ -96,8 +128,8 @@
 2. **Motion budget** — 2–3 intentional motions per surface (enter, state change, scroll accent). Prefer opacity/transform over blur/glow.
 3. **Source of truth** — Figma (tokens + Motion) → implement with existing `discover-motion.tsx` easings (`easeOut` / short durations).
 4. **Steal craft, not themes** — from Magic UI / boldpiq take *timing and structure*; recolor to Neckar Night.
-5. **Libraries** — stay on `framer-motion` unless a scroll timeline truly needs GSAP.
-6. **Verify** — desktop + mobile; honor `prefers-reduced-motion` (already wired in `DiscoverMotionRoot`).
+5. **Libraries** — default `framer-motion` + CSS tokens. Add **GSAP** only for Welcome scroll timelines; **Lottie** for micro-delight; **Aceternity/Magic UI** as paste-then-recolor; **Spline** as optional hero accent (never Discover cards).
+6. **Verify** — desktop + mobile; honor `prefers-reduced-motion` (already wired in `DiscoverMotionRoot`; gate Spline/Lottie/GSAP the same way).
 
 ### Prompt seeds (adapted from award-site craft)
 
@@ -126,7 +158,9 @@ Full prompt catalogs: `boldpiq-web/PROMPTS.md`, Magic UI docs, Aceternity exampl
 - TouchDesigner MCP (live generative art — not Discover)
 - Excalidraw MCP (diagramming)
 - Shipping Aceternity-style mesh/glow heroes as the default Discover look
-- Adding Three.js “because it’s cool” without a product reason
+- Spline/Three “exploding robots” or product turntables on Discover cards
+- Dual Motion+GSAP on the same Discover scroll surface
+- Adding Three.js / Spline “because it’s cool” without a product reason
 
 ---
 
@@ -135,3 +169,4 @@ Full prompt catalogs: `boldpiq-web/PROMPTS.md`, Magic UI docs, Aceternity exampl
 | Date | Note |
 |---|---|
 | 2026-08-02 | Initial research saved for vibecoding agents |
+| 2026-08-04 | Added Aceternity / Spline / GSAP / Lottie high-end stack + agent prompts; copper token aligned to `#c4783a` |
